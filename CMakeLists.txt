@@ -96,6 +96,7 @@ ENDIF (${OPENMP})
 
 INCLUDE_DIRECTORIES(
   include
+  thirdparty/FADBAD++
   ${EIGEN_INCLUDE}
   )
 
