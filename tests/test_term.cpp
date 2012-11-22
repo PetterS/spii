@@ -6,9 +6,14 @@
 class MyTerm: public SizedTerm<2, 3>
 {
 public:
-	virtual double Evaluate(double * const * const variables,
-		                    Eigen::VectorXd* gradient,
-							Eigen::MatrixXd* hessian)
+	virtual double evaluate(double * const * const variables) const
+	{
+		return 0;
+	}
+
+	virtual double evaluate(double * const * const variables,
+	                        std::vector<Eigen::VectorXd>* gradient,
+	                        std::vector< std::vector<Eigen::MatrixXd> >* hessian) const
 	{
 		return 0;
 	}
@@ -50,10 +55,15 @@ TEST(AutoDiffTerm, MyFunctor1)
 	std::vector<Eigen::VectorXd> gradient;
 	gradient.push_back(Eigen::VectorXd(2));
 
-	std::vector<Eigen::MatrixXd> hessian;
-	hessian.push_back(Eigen::MatrixXd(2, 2));
+	std::vector< std::vector<Eigen::MatrixXd> > hessian(1);
+	hessian[0].resize(1);
+	hessian[0][0].resize(2,2);
 
-	double value = term.Evaluate(&variables[0], gradient, hessian);
+	double value  = term.evaluate(&variables[0], &gradient, &hessian);
+	double value2 = term.evaluate(&variables[0]);
+
+	// The two values must agree.
+	EXPECT_DOUBLE_EQ(value, value2);
 
 	// Test function value
 	EXPECT_DOUBLE_EQ(value, sin(x[0]) + cos(x[1]) + 1.4*x[0]*x[1] + 1.0);
@@ -63,10 +73,10 @@ TEST(AutoDiffTerm, MyFunctor1)
 	EXPECT_DOUBLE_EQ(gradient[0](1), -sin(x[1]) + 1.4*x[0]);
 
 	// Test Hessian
-	EXPECT_DOUBLE_EQ(hessian[0](0,0), -sin(x[0]));
-	EXPECT_DOUBLE_EQ(hessian[0](1,1), -cos(x[1]));
-	EXPECT_DOUBLE_EQ(hessian[0](0,1), 1.4);
-	EXPECT_DOUBLE_EQ(hessian[0](1,0), 1.4);
+	EXPECT_DOUBLE_EQ(hessian[0][0](0,0), -sin(x[0]));
+	EXPECT_DOUBLE_EQ(hessian[0][0](1,1), -cos(x[1]));
+	EXPECT_DOUBLE_EQ(hessian[0][0](0,1), 1.4);
+	EXPECT_DOUBLE_EQ(hessian[0][0](1,0), 1.4);
 }
 
 class MyFunctor2
@@ -94,13 +104,19 @@ TEST(AutoDiffTerm, MyFunctor2)
 	gradient.push_back(Eigen::VectorXd(1));
 	gradient.push_back(Eigen::VectorXd(1));
 
-	std::vector<Eigen::MatrixXd> hessian;
-	hessian.push_back(Eigen::MatrixXd(1, 1));
-	hessian.push_back(Eigen::MatrixXd(1, 1));
-	hessian.push_back(Eigen::MatrixXd(1, 1));
-	hessian.push_back(Eigen::MatrixXd(1, 1));
+	std::vector< std::vector<Eigen::MatrixXd> > hessian(2);
+	hessian[0].resize(2);
+	hessian[1].resize(2);
+	hessian[0][0].resize(1,1);
+	hessian[0][1].resize(1,1);
+	hessian[1][0].resize(1,1);
+	hessian[1][1].resize(1,1);
 
-	double value = term.Evaluate(&variables[0], gradient, hessian);
+	double value  = term.evaluate(&variables[0], &gradient, &hessian);
+	double value2 = term.evaluate(&variables[0]);
+
+	// The two values must agree.
+	EXPECT_DOUBLE_EQ(value, value2);
 
 	// Test function value
 	EXPECT_DOUBLE_EQ(value, sin(x) + cos(y) + 1.4*x*y + 1.0);
@@ -110,8 +126,8 @@ TEST(AutoDiffTerm, MyFunctor2)
 	EXPECT_DOUBLE_EQ(gradient[1](0), -sin(y) + 1.4*x);
 
 	// Test Hessian
-	EXPECT_DOUBLE_EQ(hessian[0    ](0,0), -sin(x));
-	EXPECT_DOUBLE_EQ(hessian[2 + 1](0,0), -cos(y));
-	EXPECT_DOUBLE_EQ(hessian[1    ](0,0), 1.4);
-	EXPECT_DOUBLE_EQ(hessian[2 + 0](0,0), 1.4);
+	EXPECT_DOUBLE_EQ(hessian[0][0](0,0), -sin(x));
+	EXPECT_DOUBLE_EQ(hessian[1][1](0,0), -cos(y));
+	EXPECT_DOUBLE_EQ(hessian[1][0](0,0), 1.4);
+	EXPECT_DOUBLE_EQ(hessian[0][1](0,0), 1.4);
 }

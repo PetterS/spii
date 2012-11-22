@@ -1,4 +1,5 @@
 #ifndef SPII_TERM_H
+#define SPII_TERM_H
 
 #include <cstddef>
 #include <vector>
@@ -14,13 +15,15 @@ class Term
 public:
 	virtual int number_of_variables() const       = 0;
 	virtual int variable_dimension(int var) const = 0;
-	virtual double Evaluate(double * const * const variables,
-	                        std::vector<Eigen::VectorXd>& gradient,
-	                        std::vector<Eigen::MatrixXd>& hessian) const = 0;
+	virtual double evaluate(double * const * const variables) const = 0;
+	virtual double evaluate(double * const * const variables,
+	                        std::vector<Eigen::VectorXd>* gradient,
+	                        std::vector< std::vector<Eigen::MatrixXd> >* hessian) const = 0;
 };
 
 template<int D0,int D1 = 0, int D2 = 0, int D3 = 0> 
-class SizedTerm
+class SizedTerm :
+	public Term
 {
 public:
 	virtual int number_of_variables() const
@@ -61,9 +64,14 @@ public:
 		this->functor = f;
 	}
 
-	virtual double Evaluate(double * const * const variables,
-	                        std::vector<Eigen::VectorXd>& gradient,
-	                        std::vector<Eigen::MatrixXd>& hessian) const
+	virtual double evaluate(double * const * const variables) const
+	{
+		return (*functor)(variables[0]);
+	}
+
+	virtual double evaluate(double * const * const variables,
+	                        std::vector<Eigen::VectorXd>* gradient,
+	                        std::vector< std::vector<Eigen::MatrixXd> >* hessian) const
 	{
 		using namespace fadbad;
 		typedef B< F<double> > BF;
@@ -71,16 +79,16 @@ public:
 		BF vars[D0];
 		for (int i = 0; i < D0; ++i) {
 			vars[i] = variables[0][i];
-			vars[i].x().diff(i, 2); 
+			vars[i].x().diff(i, D0); 
 		}
 
 		BF f = (*functor)(vars);
 		f.diff(0, 1);
 
 		for (int i = 0; i < D0; ++i) {
-			gradient[0](i) = vars[i].d(0).x();
+			(*gradient)[0](i) = vars[i].d(0).x();
 			for (int j = 0; j < D0; ++j) {
-				hessian[0](i, j) = vars[i].d(0).d(j);
+				(*hessian)[0][0](i, j) = vars[i].d(0).d(j);
 			}
 		}
 
@@ -105,56 +113,59 @@ public:
 		this->functor = f;
 	}
 
-	virtual double Evaluate(double * const * const variables,
-	                        std::vector<Eigen::VectorXd>& gradient,
-	                        std::vector<Eigen::MatrixXd>& hessian) const
+	virtual double evaluate(double * const * const variables) const
+	{
+		return (*functor)(variables[0], variables[1]);
+	}
+
+	virtual double evaluate(double * const * const variables,
+	                        std::vector<Eigen::VectorXd>* gradient,
+	                        std::vector< std::vector<Eigen::MatrixXd> >* hessian) const
 	{
 		using namespace fadbad;
 		typedef B< F<double> > BF;
 
-		int D[] = {D0, D1};
-
 		BF vars0[D0];
 		for (int i = 0; i < D0; ++i) {
 			vars0[i] = variables[0][i];
-			vars0[i].x().diff(i, 2); 
+			vars0[i].x().diff(i, D0 + D1); 
 		}
-
+		
 		BF vars1[D1];
 		int offset1 = D0;
 		for (int i = 0; i < D1; ++i) {
 			vars1[i] = variables[1][i];
-			vars1[i].x().diff(offset1 + i, 2); 
+			vars1[i].x().diff(offset1 + i, D0 + D1); 
 		}
 
 		BF f = (*functor)(vars0, vars1);
 		f.diff(0, 1);
 
 		for (int i = 0; i < D0; ++i) {
-			gradient[0](i) = vars0[i].d(0).x();
+			(*gradient)[0](i) = vars0[i].d(0).x();
 
 			// D0 and D0
 			for (int j = 0; j < D0; ++j) {
-				hessian[0](i, j) = vars0[i].d(0).d(j);
+				(*hessian)[0][0](i, j) = vars0[i].d(0).d(j);
 			}
 
 			// D0 and D1
 			for (int j = 0; j < D1; ++j) {
-				hessian[1](i, j) = vars0[i].d(0).d(offset1 + j);
+				(*hessian)[0][1](i, j) = vars0[i].d(0).d(offset1 + j);
 			}
 		}
 
 		for (int i = 0; i < D1; ++i) {
-			gradient[1](i) = vars1[i].d(0).x();
+			(*gradient)[1](i) = vars1[i].d(0).x();
 
 			// D1 and D0
 			for (int j = 0; j < D0; ++j) {
-				hessian[2 + 0](i, j) = vars1[i].d(0).d(j);
+				(*hessian)[1][0](i, j) = vars1[i].d(0).d(j);
 			}
 
 			// D1 and D1
 			for (int j = 0; j < D1; ++j) {
-				hessian[2 + 1](i, j) = vars1[i].d(0).d(offset1 + j);
+				(*hessian)[1][1](i, j) = vars1[i].d(0).d(offset1 + j);
 			}
 		}
 
