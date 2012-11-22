@@ -63,6 +63,7 @@ public:
 protected:
 	size_t global_index(double* variable) const;
 	void copy_global_to_local(const Eigen::VectorXd& x) const;
+	void copy_global_to_user(const Eigen::VectorXd& x) const;
 	void copy_user_to_global(Eigen::VectorXd* x) const;
 
 	// Has to be mutable because the temporary storage

@@ -187,3 +187,12 @@ void Function::copy_user_to_global(Eigen::VectorXd* x) const
 		}
 	}
 }
+
+void Function::copy_global_to_user(const Eigen::VectorXd& x) const
+{
+	for (auto itr = variables.begin(); itr != variables.end(); ++itr) {
+		for (int i = 0; i < itr->second.dimension; ++i) {
+			itr->first[i] = x[itr->second.global_index + i];
+		}
+	}
+}
