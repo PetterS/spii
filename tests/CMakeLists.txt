@@ -15,6 +15,8 @@ IF (${BUILD_TESTING})
              ${CMAKE_SOURCE_DIR}/data)
   ENDMACRO (SPII_TEST)
 
+  SPII_TEST(function)
+  SPII_TEST(solver)
   SPII_TEST(term)
 
 ENDIF (${BUILD_TESTING})

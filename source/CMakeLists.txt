@@ -1,7 +1,9 @@
 # Author: petter.strandmark@gmail.com (Petter Strandmark)
 
 SET(SPII_INTERNAL_SRC
-    term.cpp
+	function.cpp
+	solver.cpp
+	term.cpp
 )
 
 # Also depend on the header files so that they appear in IDEs.
