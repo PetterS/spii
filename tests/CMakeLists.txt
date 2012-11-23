@@ -17,6 +17,7 @@ IF (${BUILD_TESTING})
 
   SPII_TEST(function)
   SPII_TEST(solver)
+  SPII_TEST(suite)
   SPII_TEST(term)
 
 ENDIF (${BUILD_TESTING})
