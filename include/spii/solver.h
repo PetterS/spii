@@ -12,6 +12,7 @@ struct SolverResults
 	enum {GRADIENT_TOLERANCE,
 	      FUNCTION_TOLERANCE,
 	      ARGUMENT_TOLERANCE,
+	      NO_CONVERGENCE,
 	      NAN,
 	      INFINITY,
 	      ERROR,

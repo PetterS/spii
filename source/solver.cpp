@@ -41,6 +41,7 @@ void Solver::Solve(const Function& function,
 	// Starting value for alpha during line search.
 	double alpha_start = 1.0;
 
+	results->exit_condition = SolverResults::NO_CONVERGENCE;
 	for (int iter = 0; iter < this->maximum_iterations; ++iter) {
 		// Evaluate function and derivatives.
 		fval = function.evaluate(x, &g, &H);
