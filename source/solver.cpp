@@ -12,6 +12,9 @@ Solver::Solver()
 {
 	this->log_function = cerr_log_function;
 	this->maximum_iterations = 100;
+	this->gradient_tolerance = 1e-12;
+	this->function_improvement_tolerance = 1e-12;
+	this->argument_improvement_tolerance = 1e-12;
 }
 
 void Solver::Solve(const Function& function,
@@ -21,7 +24,7 @@ void Solver::Solve(const Function& function,
 	size_t n = function.get_number_of_scalars();
 
 	// Current point, gradient and Hessian.
-	double fval;
+	double fval, fprev, normg0, normdx;
 	Eigen::VectorXd x, g;
 	Eigen::MatrixXd H;
 	// Copy the user state to the current point.
@@ -30,13 +33,15 @@ void Solver::Solve(const Function& function,
 
 	Eigen::VectorXd p(function.get_number_of_scalars());
 
+	// Starting value for alpha during line search.
+	double alpha_start = 1.0;
+
 	for (int iter = 0; iter < this->maximum_iterations; ++iter) {
 		// Evaluate function and derivatives.
 		fval = function.evaluate(x, &g, &H);
-		double normg = g.norm();
-
-		if (normg < 1e-9) {
-			break;
+		double normg = std::max(g.maxCoeff(), -g.minCoeff());
+		if (iter == 0) {
+			normg0 = normg;
 		}
 
 		if (fval != fval) {
@@ -45,6 +50,31 @@ void Solver::Solve(const Function& function,
 				this->log_function("f(x) is NaN.");
 			}
 			break;
+		}
+
+		if (iter >= 1) {
+			if (normg / normg0 < this->gradient_tolerance) {
+				if (this->log_function) {
+					this->log_function("Gradient tolerance.");
+				}
+				break;
+			}
+
+			if (abs(fval - fprev) / (abs(fval) + this->function_improvement_tolerance) <
+			                                     this->function_improvement_tolerance) {
+				if (this->log_function) {
+					this->log_function("Function improvement tolerance.");
+				}
+				break;
+			}
+
+			if (normdx / (x.norm() + this->argument_improvement_tolerance) <
+			                         this->argument_improvement_tolerance) {
+				if (this->log_function) {
+					this->log_function("Variable tolerance.");
+				}
+				break;
+			}
 		}
 
 		if (fval ==  std::numeric_limits<double>::infinity() ||
@@ -95,7 +125,8 @@ void Solver::Solve(const Function& function,
 		// Search direction.
 		p = factorization.solve(-g);
 
-		double alpha = 1.0;
+		// Perform back-tracking line search.
+		double alpha = alpha_start;
 		double rho = 0.5;
 		double c = 0.5;
 		while (true) {
@@ -111,9 +142,22 @@ void Solver::Solve(const Function& function,
 		}
 		x = x2;
 
-		if (this->log_function) {
+		// Record length of this step.
+		normdx = alpha * p.norm();
+
+		int log_interval = 1;
+		if (iter > 30) {
+			log_interval = 10;
+		}
+		if (iter > 200) {
+			log_interval = 100;
+		}
+		if (iter > 2000) {
+			log_interval = 1000;
+		}
+		if (this->log_function && iter % log_interval == 0) {
 			if (iter == 0) {
-				this->log_function("Itr      f        ||g||       ||H||      det(H)       e         alpha     fac ");
+				this->log_function("Itr      f       max|g_i|     ||H||      det(H)       e         alpha     fac ");
 			}
 			char str[1024];
 			std::sprintf(str, "%4d %.3e %.3e %.3e %+.3e %+.3e %.3e %3d",
