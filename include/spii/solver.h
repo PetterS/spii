@@ -28,6 +28,10 @@ public:
 	void Solve(const Function& function,
 	           SolverResults* results) const;
 
+	// Mode of operation. How the Hessian is stored.
+	// Default: AUTO.
+	enum {DENSE, SPARSE, AUTO} sparsity_mode;
+
 	// Function called each iteration with a log message.
 	void (*log_function)(const std::string& log_message);
 

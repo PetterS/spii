@@ -20,7 +20,19 @@ struct GeneralizedRosenbrockTerm
 	}
 };
 
-template<size_t n>
+// An easier variant.
+struct EasyRosenbrockTerm
+{
+	template<typename R>
+	R operator()(const R* const x1, const R* const x2)
+	{
+		R d0 =  (*x1) * (*x1) - (*x2);
+		R d1 =  1 - (*x1);
+		return d0*d0 + d1*d1;
+	}
+};
+
+template<typename Functor, size_t n>
 void test_rosenbrock()
 {
 	Function f;
@@ -41,8 +53,8 @@ void test_rosenbrock()
 
 	// Add all terms.
 	for (size_t i = 0; i < n - 1; ++i) {
-		f.add_term(new AutoDiffTerm<GeneralizedRosenbrockTerm, 1, 1>
-		               (new GeneralizedRosenbrockTerm()), &x[i], &x[i+1]);
+		f.add_term(new AutoDiffTerm<Functor, 1, 1>
+		               (new Functor()), &x[i], &x[i+1]);
 	}
 
 	Solver solver;
@@ -60,10 +72,15 @@ void test_rosenbrock()
 
 TEST(Solver, Rosenbrock10)
 {
-	test_rosenbrock<10>();
+	test_rosenbrock<GeneralizedRosenbrockTerm, 10>();
 }
 
 TEST(Solver, Rosenbrock100)
 {
-	test_rosenbrock<100>();
+	test_rosenbrock<GeneralizedRosenbrockTerm, 100>();
+}
+
+TEST(Solver, EasyRosenbrock1000)
+{
+	test_rosenbrock<EasyRosenbrockTerm, 1000>();
 }
