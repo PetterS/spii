@@ -7,6 +7,15 @@
 
 struct SolverResults
 {
+	SolverResults();
+
+	enum {GRADIENT_TOLERANCE,
+	      FUNCTION_TOLERANCE,
+	      ARGUMENT_TOLERANCE,
+	      NAN,
+	      INFINITY,
+	      ERROR,
+	      NA} exit_condition; 
 };
 
 void cerr_log_function(const std::string& log_message);

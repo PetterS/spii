@@ -8,6 +8,11 @@
 
 #include <spii/solver.h>
 
+SolverResults::SolverResults()
+{
+	exit_condition = NA;
+}
+
 Solver::Solver()
 {
 	this->log_function = cerr_log_function;
@@ -49,6 +54,7 @@ void Solver::Solve(const Function& function,
 			if (this->log_function) {
 				this->log_function("f(x) is NaN.");
 			}
+			results->exit_condition = SolverResults::NAN;
 			break;
 		}
 
@@ -57,6 +63,7 @@ void Solver::Solve(const Function& function,
 				if (this->log_function) {
 					this->log_function("Gradient tolerance.");
 				}
+				results->exit_condition = SolverResults::GRADIENT_TOLERANCE;
 				break;
 			}
 
@@ -65,6 +72,7 @@ void Solver::Solve(const Function& function,
 				if (this->log_function) {
 					this->log_function("Function improvement tolerance.");
 				}
+				results->exit_condition = SolverResults::FUNCTION_TOLERANCE;
 				break;
 			}
 
@@ -73,6 +81,7 @@ void Solver::Solve(const Function& function,
 				if (this->log_function) {
 					this->log_function("Variable tolerance.");
 				}
+				results->exit_condition = SolverResults::ARGUMENT_TOLERANCE;
 				break;
 			}
 		}
@@ -83,6 +92,7 @@ void Solver::Solve(const Function& function,
 			if (this->log_function) {
 				this->log_function("f(x) is infinity.");
 			}
+			results->exit_condition = SolverResults::INFINITY;
 			break;
 		}
 
@@ -164,8 +174,6 @@ void Solver::Solve(const Function& function,
 				iter, fval, normg, H.norm(), H.determinant(), e, alpha, factorizations);
 			this->log_function(str);
 		}
-
-		
 	}
 
 	if (this->log_function) {
