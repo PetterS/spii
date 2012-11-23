@@ -62,29 +62,35 @@ void Solver::Solve(const Function& function,
 		Eigen::VectorXd values = ES.eigenvalues();
 		double e = values.minCoeff();
 
-		// If alpha is negative, modify H so that it becomes positive definite.
-		if (e > 1e-6) {
-			// Matrix is already positive definite.
-		}
-		else if (e < -1e-6) {
-			// Modify Hessian in order to obtain a positive definite matrix.
-			for (size_t i = 0; i < n; ++i) {
-				H(i, i) += -1.5 * e;
-			}
+		// Attempt repeated Cholesky factorization until the Hessian
+		// becomes positive semidefinite.
+		Eigen::LLT<Eigen::MatrixXd> factorization(n);
+		int factorizations = 0;
+		Eigen::VectorXd dH = H.diagonal();
+
+		double tau;
+		double beta = 1.0;
+		double mindiag = H.diagonal().minCoeff();
+		if (mindiag > 0) {
+			tau = 0;
 		}
 		else {
-			// Hessian is (close to) singular.
-			this->log_function("H (close to) singular.");
-			break;
+			tau = -mindiag + beta;
 		}
-		
-		/*
-		// Factorize the modified Hessian (now positive definite).
-		Eigen::LLT<Eigen::MatrixXd> factorization(H);
-		*/
-
-		// Factorize the Hessian with a robust Cholesky algorithm.
-		Eigen::LDLT<Eigen::MatrixXd> factorization(H);
+		while (true) {
+			// Add tau*I to the Hessian.
+			for (size_t i = 0; i < n; ++i) {
+				H(i, i) = dH(i) + tau;
+			}
+			// Attempt Cholesky factorization.
+			factorization.compute(H);
+			factorizations++;
+			// Check for success.
+			if (factorization.info() == Eigen::Success) {
+				break;
+			}
+			tau = std::max(2*tau, beta);
+		}
 
 		// Search direction.
 		p = factorization.solve(-g);
@@ -107,10 +113,11 @@ void Solver::Solve(const Function& function,
 
 		if (this->log_function) {
 			if (iter == 0) {
-				this->log_function("Itr      f        ||g||       ||H||      det(H)       e         alpha ");
+				this->log_function("Itr      f        ||g||       ||H||      det(H)       e         alpha     fac ");
 			}
 			char str[1024];
-			std::sprintf(str, "%4d %.3e %.3e %.3e %+.3e %+.3e %.3e", iter, fval, normg, H.norm(), H.determinant(), e, alpha);
+			std::sprintf(str, "%4d %.3e %.3e %.3e %+.3e %+.3e %.3e %3d",
+				iter, fval, normg, H.norm(), H.determinant(), e, alpha, factorizations);
 			this->log_function(str);
 		}
 
