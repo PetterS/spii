@@ -32,6 +32,37 @@ TEST(SizedTerm, variable_dimension)
 	EXPECT_EQ(term.variable_dimension(1), 3);
 }
 
+class DestructorFunctor
+{
+public:
+	DestructorFunctor(int* counter)
+	{
+		this->counter = counter;
+	}
+
+	~DestructorFunctor()
+	{
+		(*counter)++;
+	}
+
+	template<typename R>
+	R operator()(const R* const x)
+	{
+		return 0.0;
+	}
+
+private:
+	int* counter;
+};
+
+TEST(AutoDiffTerm, calls_functor_destructor)
+{
+	int counter = 0;
+	Term* term = new AutoDiffTerm<DestructorFunctor, 1>
+	                 (new DestructorFunctor(&counter));
+	delete term;
+	EXPECT_EQ(counter, 1);
+}
 
 class MyFunctor1
 {
@@ -45,8 +76,7 @@ public:
 
 TEST(AutoDiffTerm, MyFunctor1)
 {
-	MyFunctor1 functor;
-	AutoDiffTerm<MyFunctor1, 2> term(&functor);
+	AutoDiffTerm<MyFunctor1, 2> term(new MyFunctor1());
 
 	double x[2] = {1.0, 3.0};
 	std::vector<double*> variables;
@@ -91,8 +121,7 @@ public:
 
 TEST(AutoDiffTerm, MyFunctor2)
 {
-	MyFunctor2 functor;
-	AutoDiffTerm<MyFunctor2, 1, 1> term(&functor);
+	AutoDiffTerm<MyFunctor2, 1, 1> term(new MyFunctor2());
 
 	double x = 5.3;
 	double y = 7.1;

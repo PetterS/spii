@@ -7,6 +7,14 @@
 Function::Function()
 {
 	this->number_of_scalars = 0;
+	this->term_deletion = DeleteTerms;
+}
+
+Function::~Function()
+{
+	for (auto itr = added_terms.begin(); itr != added_terms.end(); ++itr) {
+		delete *itr;
+	}
 }
 
 void Function::add_variable(double* variable, int dimension)
@@ -40,6 +48,7 @@ void Function::add_term(const Term* term, const std::vector<double*>& arguments)
 		}
 	}
 	
+	added_terms.insert(term);
 
 	terms.push_back(AddedTerm());
 	terms.back().term = term;

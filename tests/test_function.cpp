@@ -53,6 +53,57 @@ TEST(Function, term_variable_mismatch)
 	EXPECT_THROW(f.add_term(new AutoDiffTerm<Term1, 4>(&term1), x), std::runtime_error);
 }
 
+class DestructorTerm :
+	public SizedTerm<1>
+{
+public:
+	DestructorTerm(int* counter)
+	{
+		this->counter = counter;
+	}
+
+	~DestructorTerm()
+	{
+		(*counter)++;
+	}
+
+	virtual double evaluate(double * const * const variables) const
+	{
+		return 0;
+	}
+
+	virtual double evaluate(double * const * const variables,
+	                        std::vector<Eigen::VectorXd>* gradient,
+	                        std::vector< std::vector<Eigen::MatrixXd> >* hessian) const
+	{
+		return 0;
+	}
+
+private:
+	int* counter;
+};
+
+TEST(Function, calls_term_destructor)
+{
+	Function* function = new Function;
+	double x[1];
+	function->add_variable(x, 1);
+
+	int counter1 = 0;
+	DestructorTerm* term1 = new DestructorTerm(&counter1);
+	int counter2 = 0;
+	DestructorTerm* term2 = new DestructorTerm(&counter2);
+
+	function->add_term(term1, x);
+	function->add_term(term1, x);
+	function->add_term(term2, x);
+
+	delete function;
+
+	EXPECT_EQ(counter1, 1);
+	EXPECT_EQ(counter2, 1);
+}
+
 TEST(Function, evaluate)
 {
 	
@@ -65,10 +116,8 @@ TEST(Function, evaluate)
 	f.add_variable(y, 1);
 	f.add_variable(z, 1);
 
-	Term1 term1;
-	f.add_term(new AutoDiffTerm<Term1, 2>(&term1), x);
-	Term2 term2;
-	f.add_term(new AutoDiffTerm<Term2, 1, 1>(&term2), y, z);
+	f.add_term(new AutoDiffTerm<Term1, 2>(new Term1), x);
+	f.add_term(new AutoDiffTerm<Term2, 1, 1>(new Term2), y, z);
 	
 	double fval = f.evaluate();
 	EXPECT_DOUBLE_EQ(fval, sin(x[0]) + cos(x[1]) + 1.4 * x[0]*x[1] + 1.0 +
@@ -87,10 +136,8 @@ TEST(Function, evaluate_x)
 	f.add_variable(y, 1);
 	f.add_variable(z, 1);
 
-	Term1 term1;
-	f.add_term(new AutoDiffTerm<Term1, 2>(&term1), x);
-	Term2 term2;
-	f.add_term(new AutoDiffTerm<Term2, 1, 1>(&term2), y, z);
+	f.add_term(new AutoDiffTerm<Term1, 2>(new Term1), x);
+	f.add_term(new AutoDiffTerm<Term2, 1, 1>(new Term2), y, z);
 	
 	Eigen::VectorXd xg(4);
 	xg[0] = 6.0;
@@ -116,11 +163,9 @@ TEST(Function, evaluate_gradient)
 	f.add_variable(y, 1);
 	f.add_variable(z, 1);
 
-	Term1 term1;
-	f.add_term(new AutoDiffTerm<Term1, 2>(&term1), x);
-	f.add_term(new AutoDiffTerm<Term1, 2>(&term1), x);  // Add term twice for testing.
-	Term2 term2;
-	f.add_term(new AutoDiffTerm<Term2, 1, 1>(&term2), y, z);
+	f.add_term(new AutoDiffTerm<Term1, 2>(new Term1), x);
+	f.add_term(new AutoDiffTerm<Term1, 2>(new Term1), x);  // Add term twice for testing.
+	f.add_term(new AutoDiffTerm<Term2, 1, 1>(new Term2), y, z);
 	
 	Eigen::VectorXd xg(4);
 	xg[0] = 6.0;
@@ -184,12 +229,9 @@ TEST(Function, evaluate_hessian)
 	f.add_variable(x, 3);
 	f.add_variable(y, 2);
 
-	Single3 single3;
-	f.add_term(new AutoDiffTerm<Single3, 3>(&single3), x);
-	Single2 single2;
-	f.add_term(new AutoDiffTerm<Single2, 2>(&single2), y);
-	Mixed3_2 mixed3_2;
-	f.add_term(new AutoDiffTerm<Mixed3_2, 3, 2>(&mixed3_2), x, y);
+	f.add_term(new AutoDiffTerm<Single3, 3>(new Single3), x);
+	f.add_term(new AutoDiffTerm<Single2, 2>(new Single2), y);
+	f.add_term(new AutoDiffTerm<Mixed3_2, 3, 2>(new Mixed3_2), x, y);
 	
 	Eigen::VectorXd xg(4);
 	xg[0] = 6.0; // x[0]

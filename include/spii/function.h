@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <map>
+#include <set>
 using std::size_t;
 
 #include <spii/term.h>
@@ -28,7 +29,14 @@ class Function
 {
 friend class Solver;
 public:
+	// Specifies whether the function should delete the terms
+	// added to it. Default is for the function to delete them.
+	// Note that it is still safe to add the same term multiple
+	// times.
+	enum {DeleteTerms, DoNotDeleteTerms} term_deletion; 
+
 	Function();
+	~Function();
 
 	void add_variable(double* variable, int dimension);
 
@@ -65,6 +73,10 @@ protected:
 	void copy_global_to_local(const Eigen::VectorXd& x) const;
 	void copy_global_to_user(const Eigen::VectorXd& x) const;
 	void copy_user_to_global(Eigen::VectorXd* x) const;
+
+	// A set of all terms added to the function. This is
+	// used when the function is destructed.
+	std::set<const Term*> added_terms;
 
 	// Has to be mutable because the temporary storage
 	// needs to be written to.

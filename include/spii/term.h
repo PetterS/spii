@@ -13,6 +13,7 @@ using std::size_t;
 class Term
 {
 public:
+	virtual ~Term() {};
 	virtual int number_of_variables() const       = 0;
 	virtual int variable_dimension(int var) const = 0;
 	virtual double evaluate(double * const * const variables) const = 0;
@@ -44,6 +45,15 @@ public:
 	}
 };
 
+//
+// Term which allows for automatic computation of derivatives. It is
+// used in the following way:
+//
+//   new AutoDiffTerm<Functor, 1>( new Functor(...) )
+//
+// Note that AutoDiffTerm always takes ownership of the functor passed
+// to the constructor. It will delete it when its destructor is called.
+//
 template<typename Functor, int D0, int D1 = 0, int D2 = 0, int D3 = 0> 
 class AutoDiffTerm :
 	public SizedTerm<D0, D1, D2, D3>
@@ -62,6 +72,11 @@ public:
 	AutoDiffTerm(Functor* f)
 	{
 		this->functor = f;
+	}
+
+	~AutoDiffTerm()
+	{
+		delete this->functor;
 	}
 
 	virtual double evaluate(double * const * const variables) const
@@ -111,6 +126,11 @@ public:
 	AutoDiffTerm(Functor* f)
 	{
 		this->functor = f;
+	}
+
+	~AutoDiffTerm()
+	{
+		delete this->functor;
 	}
 
 	virtual double evaluate(double * const * const variables) const
