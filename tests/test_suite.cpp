@@ -26,6 +26,10 @@ double run_test(double* var, const Solver* solver = 0)
 	}
 	std::cout << std::endl;
 
+	EXPECT_TRUE(results.exit_condition == SolverResults::ARGUMENT_TOLERANCE ||
+	        results.exit_condition == SolverResults::FUNCTION_TOLERANCE ||
+	        results.exit_condition == SolverResults::GRADIENT_TOLERANCE);
+
 	return f.evaluate();
 }
 
@@ -42,18 +46,12 @@ struct Rosenbrock
 
 TEST(Solver, Rosenbrock)
 {
-	Function f;
-	double x[3] = {-1.2, 1.0};
-	f.add_variable(x, 2);
-	f.add_term(new AutoDiffTerm<Rosenbrock, 2>(new Rosenbrock()), x);
-
-	Solver solver;
-	SolverResults results;
-	solver.Solve(f, &results);
+	double x[2] = {-1.2, 1.0};
+	double fval = run_test<Rosenbrock, 2>(x);
 
 	EXPECT_LT( std::abs(x[0] - 1.0), 1e-9);
-	EXPECT_LT( std::abs(x[0] - 1.0), 1e-9);
-	EXPECT_LT( std::abs(f.evaluate()), 1e-9);
+	EXPECT_LT( std::abs(x[1] - 1.0), 1e-9);
+	EXPECT_LT( std::abs(fval), 1e-9);
 }
 
 struct FreudenStein_Roth
@@ -69,14 +67,8 @@ struct FreudenStein_Roth
 
 TEST(Solver, FreudenStein_Roth)
 {
-	Function f;
 	double x[2] = {0.5, -2.0};
-	f.add_variable(x, 2);
-	f.add_term(new AutoDiffTerm<FreudenStein_Roth, 2>(new FreudenStein_Roth()), x);
-
-	Solver solver;
-	SolverResults results;
-	solver.Solve(f, &results);
+	double fval = run_test<FreudenStein_Roth, 2>(x);
 
 	// Can end up in local minima 48.9842...
 	//EXPECT_LT( std::abs(x[0] - 5.0), 1e-9);
@@ -97,16 +89,10 @@ struct Powell_badly_scaled
 
 TEST(Solver, Powell_badly_scaled)
 {
-	Function f;
 	double x[2] = {0.0, 1.0};
-	f.add_variable(x, 2);
-	f.add_term(new AutoDiffTerm<Powell_badly_scaled, 2>(new Powell_badly_scaled()), x);
+	double fval = run_test<Powell_badly_scaled, 2>(x);
 
-	Solver solver;
-	SolverResults results;
-	solver.Solve(f, &results);
-
-	EXPECT_LT( std::abs(f.evaluate()), 1e-9);
+	EXPECT_LT( std::abs(fval), 1e-9);
 }
 
 struct Brown_badly_scaled
@@ -123,18 +109,12 @@ struct Brown_badly_scaled
 
 TEST(Solver, Brown_badly_scaled)
 {
-	Function f;
 	double x[2] = {1.0, 1.0};
-	f.add_variable(x, 2);
-	f.add_term(new AutoDiffTerm<Brown_badly_scaled, 2>(new Brown_badly_scaled()), x);
-
-	Solver solver;
-	SolverResults results;
-	solver.Solve(f, &results);
+	double fval = run_test<Brown_badly_scaled, 2>(x);
 
 	EXPECT_LT( std::abs(x[0] - 1e6),  1e-3);
 	EXPECT_LT( std::abs(x[1] - 2e-6), 1e-9);
-	EXPECT_LT( std::abs(f.evaluate()), 1e-9);
+	EXPECT_LT( std::abs(fval), 1e-9);
 }
 
 
