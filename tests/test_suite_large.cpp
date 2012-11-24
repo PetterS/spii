@@ -6,6 +6,7 @@
 
 #include <gtest/gtest.h>
 
+#include <spii/auto_diff_term.h>
 #include <spii/solver.h>
 
 // "An analysis of the behavior of a glass of genetic adaptive systems."
@@ -171,10 +172,6 @@ struct Trid2
 template<size_t n>
 void test_trid()
 {
-	std::mt19937 prng(0);
-	std::normal_distribution<double> normal;
-	std::variate_generator<std::tr1::mt19937, std::tr1::normal_distribution<double> > randn(prng,normal);
-
 	Function f;
 
 	std::vector<double> x(n, 1.0);
@@ -204,10 +201,30 @@ void test_trid()
 	std::cerr << results;
 
 	double fval = f.evaluate();
-	EXPECT_LT(std::abs(fval + n * (n+4) * (n-1) / 6.0) / std::abs(fval), 1e-9);
+	// Global optimum is 
+	//
+	//   x[i] = (i + 1) * (n - i)
+	//
+	// Therefore, it is hard to calulate the optimal function
+	// value for large n.
+	//
+	double tol  = 1e-9;
+	if (n >= 10000) {
+		tol = 1e-6;
+	}
+	if (n >= 100000) {
+		tol = 1e-4;
+	}
+	EXPECT_LT(std::abs(fval + n * (n+4) * (n-1) / 6.0) / std::abs(fval), tol);
 	EXPECT_TRUE(results.exit_condition == SolverResults::ARGUMENT_TOLERANCE ||
 	            results.exit_condition == SolverResults::FUNCTION_TOLERANCE ||
 	            results.exit_condition == SolverResults::GRADIENT_TOLERANCE);
+
+	if (n <= 10) {
+		for (size_t i = 0; i < n; ++i) {
+			std::cerr << "x[" << i << "] = " << x[i] << '\n';
+		}
+	}
 }
 
 TEST(Solver, Trid10) 
@@ -225,7 +242,68 @@ TEST(Solver, Trid10000)
 	test_trid<10000>();
 }
 
-TEST(Solver, Trid100000) 
+
+
+struct LogBarrier01
 {
-	test_trid<100000>();
+	template<typename R>
+	R operator()(const R* const x)
+	{
+		return -log(x[0]) - log(1.0 - x[0]);
+	}
+};
+
+struct QuadraticFunction1
+{
+	QuadraticFunction1(double b)
+	{
+		this->b = b;
+	}
+
+	template<typename R>
+	R operator()(const R* const x)
+	{
+		R d = x[0] - b;
+		return d * d;
+	}
+
+	double b;
+};
+
+TEST(Solver, Barrier)
+{
+	std::mt19937 prng(0);
+	std::normal_distribution<double> normal;
+	std::variate_generator<std::tr1::mt19937, std::tr1::normal_distribution<double> > randn(prng,normal);
+
+	const int n = 10000;
+	Function f;
+
+	std::vector<double> x(n, 0.5);
+	for (size_t i = 0; i < n; ++i) {
+		f.add_variable(&x[i], 1);
+		f.add_term( new AutoDiffTerm<QuadraticFunction1, 1>(
+			new QuadraticFunction1(0.5 + randn())),
+			&x[i]);
+		f.add_term( new AutoDiffTerm<LogBarrier01, 1>(
+			new LogBarrier01),
+			&x[i]);
+	}
+
+	Solver solver;
+	solver.maximum_iterations = 100;
+	SolverResults results;
+	solver.Solve(f, &results);
+	std::cerr << results;
+
+	std::cerr << results;
+	std::cerr << "-----------------------------------\n";
+	std::cerr << "Function evaluate time                : " << f.evaluate_time << '\n';
+	std::cerr << "Function evaluate time (with hessian) : " << f.evaluate_with_hessian_time << '\n';
+	std::cerr << "Function write hessian time           : " << f.write_gradient_hessian_time << '\n';
+	std::cerr << "Function copy data time               : " << f.copy_time << '\n';
+
+	EXPECT_TRUE(results.exit_condition == SolverResults::ARGUMENT_TOLERANCE ||
+	            results.exit_condition == SolverResults::FUNCTION_TOLERANCE ||
+	            results.exit_condition == SolverResults::GRADIENT_TOLERANCE);
 }
