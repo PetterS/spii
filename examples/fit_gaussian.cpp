@@ -45,6 +45,12 @@ int main()
 	SolverResults results;
 	solver.Solve(f, &results);
 
+	std::cerr << results;
+	std::cerr << "Function evaluate time                : " << f.evaluate_time << '\n';
+	std::cerr << "Function evaluate time (with hessian) : " << f.evaluate_with_hessian_time << '\n';
+	std::cerr << "Function write hessian time           : " << f.write_gradient_hessian_time << '\n';
+	std::cerr << "Function copy data time               : " << f.copy_time << '\n';
+
 	sigma = std::exp(logsigma);
 	std::cout << "Estimated:" << std::endl;
 	std::cout << "mu = " << mu << ", sigma = " << sigma << std::endl;
