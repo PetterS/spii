@@ -299,12 +299,10 @@ void Solver::Solve(const Function& function,
 			x2 = x + alpha * p;
 			double lhs = function.evaluate(x2);
 			double rhs = fval + c * alpha * g.dot(p);
-			if (lhs > rhs) {
-				alpha *= rho;
-			}
-			else {
+			if (lhs <= rhs) {
 				break;
 			}
+			alpha *= rho;
 
 			backtracking_attempts++;
 			if (backtracking_attempts > 100) {
