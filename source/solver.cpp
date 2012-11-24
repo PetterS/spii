@@ -131,7 +131,7 @@ void Solver::Solve(const Function& function,
 	// START MAIN ITERATION
 	//
 	results->startup_time   = wall_time() - global_start_time;
-	results->exit_condition = SolverResults::NO_CONVERGENCE;
+	results->exit_condition = SolverResults::ERROR;
 	int iter = 0;
 	while (true) {
 
@@ -196,16 +196,18 @@ void Solver::Solve(const Function& function,
 		}
 
 		if (iter >= this->maximum_iterations) {
-			results->exit_condition = SolverResults::GRADIENT_TOLERANCE;
+			results->exit_condition = SolverResults::NO_CONVERGENCE;
 			break;
 		}
 
-		double e = 0;
+		double e = std::numeric_limits<double>::quiet_NaN();
 		if (!use_sparsity) {
-			// Compute smallest eigenvalue of the Hessian.
-			Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> ES(H, Eigen:: EigenvaluesOnly);
-			Eigen::VectorXd values = ES.eigenvalues();
-			e = values.minCoeff();
+			if (n < 100) {
+				// Compute smallest eigenvalue of the Hessian.
+				Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> ES(H, Eigen:: EigenvaluesOnly);
+				Eigen::VectorXd values = ES.eigenvalues();
+				e = values.minCoeff();
+			}
 		}
 
 		results->stopping_criteria_time += wall_time() - start_time;
@@ -262,6 +264,10 @@ void Solver::Solve(const Function& function,
 				break;
 			}
 			tau = std::max(2*tau, beta);
+
+			if (factorizations > 100) {
+				throw std::runtime_error("Solver::solve: factorization failed.");
+			}
 		}
 
 		results->matrix_factorization_time += wall_time() - start_time;
@@ -288,6 +294,7 @@ void Solver::Solve(const Function& function,
 		double alpha = alpha_start;
 		double rho = 0.5;
 		double c = 0.5;
+		int backtracking_attempts = 0;
 		while (true) {
 			x2 = x + alpha * p;
 			double lhs = function.evaluate(x2);
@@ -297,6 +304,11 @@ void Solver::Solve(const Function& function,
 			}
 			else {
 				break;
+			}
+
+			backtracking_attempts++;
+			if (backtracking_attempts > 100) {
+				throw std::runtime_error("Solver::solve: Backtracking failed.");
 			}
 		}
 		x = x2;
@@ -325,9 +337,9 @@ void Solver::Solve(const Function& function,
 			char str[1024];
 			if (use_sparsity) {
 				if (iter == 0) {
-					this->log_function("Itr      f       max|g_i|     alpha    fac ");
+					this->log_function("Itr       f       max|g_i|     alpha    fac ");
 				}
-				std::sprintf(str, "%4d %.3e %.3e %.3e %3d",
+				std::sprintf(str, "%4d %+.3e %.3e %.3e %3d",
 					iter, fval, normg, alpha, factorizations);
 			}
 			else {
@@ -335,15 +347,16 @@ void Solver::Solve(const Function& function,
 				double normH = H.norm();
 
 				if (iter == 0) {
-					this->log_function("Itr      f       max|g_i|     ||H||      det(H)       e         alpha     fac ");
+					this->log_function("Itr       f       max|g_i|     ||H||      det(H)       e         alpha     fac ");
 				}
-				std::sprintf(str, "%4d %.3e %.3e %.3e %+.3e %+.3e %.3e %3d",
+				std::sprintf(str, "%4d %+.3e %.3e %.3e %+.3e %+.3e %.3e %3d",
 					iter, fval, normg, normH, detH, e, alpha, factorizations);
 			}
 			this->log_function(str);
 		}
 		results->log_time += wall_time() - start_time;
 
+		fprev = fval;
 		iter++;
 	}
 

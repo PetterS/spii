@@ -36,3 +36,56 @@ TEST(Solver, banana)
 	EXPECT_LT( std::abs(x[0] - 1.0), 1e-9);
 	EXPECT_LT( std::abs(f.evaluate()), 1e-9);
 }
+
+TEST(Solver, function_tolerance)
+{
+	Function f;
+	double x[3] = {-1.2, 1.0};
+	f.add_variable(x, 2);
+	f.add_term(new AutoDiffTerm<Banana, 2>(new Banana()), x);
+
+	Solver solver;
+	solver.maximum_iterations = 50;
+	solver.gradient_tolerance = 0;
+	solver.argument_improvement_tolerance = 0;
+	SolverResults results;
+	solver.Solve(f, &results);
+
+	EXPECT_TRUE(results.exit_condition == SolverResults::FUNCTION_TOLERANCE);
+}
+
+TEST(Solver, argument_improvement_tolerance)
+{
+	Function f;
+	double x[3] = {-1.2, 1.0};
+	f.add_variable(x, 2);
+	f.add_term(new AutoDiffTerm<Banana, 2>(new Banana()), x);
+
+	Solver solver;
+	solver.maximum_iterations = 50;
+	solver.gradient_tolerance = 0;
+	solver.function_improvement_tolerance = 0;
+	SolverResults results;
+	solver.Solve(f, &results);
+
+	EXPECT_TRUE(results.exit_condition == SolverResults::ARGUMENT_TOLERANCE);
+}
+
+TEST(Solver, gradient_tolerance)
+{
+	Function f;
+	double x[3] = {-1.2, 1.0};
+	f.add_variable(x, 2);
+	f.add_term(new AutoDiffTerm<Banana, 2>(new Banana()), x);
+
+	Solver solver;
+	solver.maximum_iterations = 50;
+	solver.function_improvement_tolerance = 0;
+	solver.argument_improvement_tolerance = 0;
+	SolverResults results;
+	solver.Solve(f, &results);
+
+	EXPECT_TRUE(results.exit_condition == SolverResults::GRADIENT_TOLERANCE);
+}
+
+
