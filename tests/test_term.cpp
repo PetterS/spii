@@ -1,6 +1,7 @@
 
 #include <gtest/gtest.h>
 
+#include <spii/auto_diff_term.h>
 #include <spii/term.h>
 
 class MyTerm: public SizedTerm<2, 3>

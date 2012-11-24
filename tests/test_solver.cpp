@@ -4,6 +4,7 @@
 
 #include <gtest/gtest.h>
 
+#include <spii/auto_diff_term.h>
 #include <spii/solver.h>
 
 struct Banana

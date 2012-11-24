@@ -2,6 +2,7 @@
 #include <iostream>
 #include <random>
 
+#include <spii/auto_diff_term.h>
 #include <spii/solver.h>
 
 struct NegLogLikelihood

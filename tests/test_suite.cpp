@@ -5,6 +5,7 @@
 
 #include <gtest/gtest.h>
 
+#include <spii/auto_diff_term.h>
 #include <spii/solver.h>
 
 template<typename Functor, int dimension>
@@ -28,8 +29,8 @@ double run_test(double* var, const Solver* solver = 0)
 	std::cout << std::endl;
 
 	EXPECT_TRUE(results.exit_condition == SolverResults::ARGUMENT_TOLERANCE ||
-	        results.exit_condition == SolverResults::FUNCTION_TOLERANCE ||
-	        results.exit_condition == SolverResults::GRADIENT_TOLERANCE);
+	            results.exit_condition == SolverResults::FUNCTION_TOLERANCE ||
+	            results.exit_condition == SolverResults::GRADIENT_TOLERANCE);
 
 	return f.evaluate();
 }

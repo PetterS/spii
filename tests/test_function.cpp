@@ -1,6 +1,7 @@
 
 #include <gtest/gtest.h>
 
+#include <spii/auto_diff_term.h>
 #include <spii/function.h>
 
 TEST(Function, get_number_of_scalars)
