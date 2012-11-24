@@ -50,12 +50,12 @@ public:
 	                        std::vector< std::vector<Eigen::MatrixXd> >* hessian) const
 	{
 		using namespace fadbad;
-		typedef B< F<double> > BF;
+		typedef B< F<double, D0> > BF;
 
 		BF vars[D0];
 		for (int i = 0; i < D0; ++i) {
 			vars[i] = variables[0][i];
-			vars[i].x().diff(i, D0); 
+			vars[i].x().diff(i); 
 		}
 
 		BF f = (*functor)(vars);
@@ -104,19 +104,19 @@ public:
 	                        std::vector< std::vector<Eigen::MatrixXd> >* hessian) const
 	{
 		using namespace fadbad;
-		typedef B< F<double> > BF;
+		typedef B< F<double, D0 + D1> > BF;
 
 		BF vars0[D0];
 		for (int i = 0; i < D0; ++i) {
 			vars0[i] = variables[0][i];
-			vars0[i].x().diff(i, D0 + D1); 
+			vars0[i].x().diff(i); 
 		}
 		
 		BF vars1[D1];
 		int offset1 = D0;
 		for (int i = 0; i < D1; ++i) {
 			vars1[i] = variables[1][i];
-			vars1[i].x().diff(offset1 + i, D0 + D1); 
+			vars1[i].x().diff(offset1 + i); 
 		}
 
 		BF f = (*functor)(vars0, vars1);
