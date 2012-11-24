@@ -7,12 +7,47 @@
 #include <Eigen/Eigenvalues>
 #include <Eigen/Sparse>
 
-
+#include <spii/spii.h>
 #include <spii/solver.h>
 
 SolverResults::SolverResults()
 {
-	exit_condition = NA;
+	this->exit_condition = NA;
+
+	this->startup_time              = 0;
+	this->function_evaluation_time  = 0;
+	this->stopping_criteria_time    = 0;
+	this->matrix_factorization_time = 0;
+	this->linear_solver_time        = 0;
+	this->backtracking_time         = 0;
+	this->log_time                  = 0;
+	this->total_time                = 0;
+}
+
+std::ostream& operator<<(std::ostream& out, const SolverResults& results)
+{
+	out << "----------------------------------------------\n";
+	out << "Exit condition            : ";
+	#define EXIT_ENUM_IF(val) if (results.exit_condition == SolverResults::val) out << #val << '\n';
+	EXIT_ENUM_IF(GRADIENT_TOLERANCE);
+	EXIT_ENUM_IF(FUNCTION_TOLERANCE);
+	EXIT_ENUM_IF(ARGUMENT_TOLERANCE);
+	EXIT_ENUM_IF(NO_CONVERGENCE);
+	EXIT_ENUM_IF(NAN);
+	EXIT_ENUM_IF(INFINITY);
+	EXIT_ENUM_IF(ERROR);
+	EXIT_ENUM_IF(NA);
+	out << "----------------------------------------------\n";
+	out << "Startup time              : " << results.startup_time << '\n';
+	out << "Function evaluation time  : " << results.function_evaluation_time << '\n';
+	out << "Stopping criteria time    : " << results.stopping_criteria_time << '\n';
+	out << "Matrix factorization time : " << results.matrix_factorization_time << '\n';
+	out << "Linear solver time        : " << results.linear_solver_time << '\n';
+	out << "Backtracking time         : " << results.backtracking_time << '\n';
+	out << "Log time                  : " << results.log_time << '\n';
+	out << "Total time                : " << results.total_time << '\n';
+	out << "----------------------------------------------\n";
+	return out;
 }
 
 Solver::Solver()
@@ -28,6 +63,8 @@ Solver::Solver()
 void Solver::Solve(const Function& function,
                    SolverResults* results) const
 {
+	double global_start_time = wall_time();
+
 	// Dimension of problem.
 	size_t n = function.get_number_of_scalars();
 
@@ -50,13 +87,20 @@ void Solver::Solve(const Function& function,
 	}
 
 	// Current point, gradient and Hessian.
-	double fval, fprev, normg0, normdx;
+	double fval, fprev, normg0, normg, normdx;
 	Eigen::VectorXd x, g;
 	Eigen::MatrixXd H;
 	Eigen::SparseMatrix<double> sparse_H;
 	if (use_sparsity) {
 		// Create sparsity pattern for H.
 		function.create_sparse_hessian(&sparse_H);
+		if (this->log_function) {
+			double nnz = double(sparse_H.nonZeros()) / double(n * n);
+			char str[1024];
+			std::sprintf(str, "H is %dx%d with %d (%.5f%%) non-zeroes.",
+				sparse_H.rows(), sparse_H.cols(), sparse_H.nonZeros(), 100.0 * nnz);
+			this->log_function(str);
+		}
 	}
 
 	// Copy the user state to the current point.
@@ -75,6 +119,9 @@ void Solver::Solve(const Function& function,
 	}
 	else {
 		sparse_factorization = new Eigen::SimplicialLLT<Eigen::SparseMatrix<double> >;
+		// The sparsity pattern of H is always the same. Therefore, it is enough
+		// to analyze it once.
+		sparse_factorization->analyzePattern(sparse_H);
 	}
 
 	// Starting value for alpha during line search.
@@ -83,10 +130,15 @@ void Solver::Solve(const Function& function,
 	//
 	// START MAIN ITERATION
 	//
+	results->startup_time   = wall_time() - global_start_time;
 	results->exit_condition = SolverResults::NO_CONVERGENCE;
-	for (int iter = 0; iter < this->maximum_iterations; ++iter) {
+	int iter = 0;
+	while (true) {
 
+		//
 		// Evaluate function and derivatives.
+		//
+		double start_time = wall_time();
 		if (use_sparsity) {
 			fval = function.evaluate(x, &g, &sparse_H);
 		}
@@ -94,11 +146,17 @@ void Solver::Solve(const Function& function,
 			fval = function.evaluate(x, &g, &H);
 		}
 
-		double normg = std::max(g.maxCoeff(), -g.minCoeff());
+		normg = std::max(g.maxCoeff(), -g.minCoeff());
 		if (iter == 0) {
 			normg0 = normg;
 		}
 
+		results->function_evaluation_time += wall_time() - start_time;
+
+		//
+		// Test stopping criteriea
+		//
+		start_time = wall_time();
 		if (fval != fval) {
 			// NaN encountered.
 			if (this->log_function) {
@@ -110,27 +168,18 @@ void Solver::Solve(const Function& function,
 
 		if (iter >= 1) {
 			if (normg / normg0 < this->gradient_tolerance) {
-				if (this->log_function) {
-					this->log_function("Gradient tolerance.");
-				}
 				results->exit_condition = SolverResults::GRADIENT_TOLERANCE;
 				break;
 			}
 
 			if (abs(fval - fprev) / (abs(fval) + this->function_improvement_tolerance) <
 			                                     this->function_improvement_tolerance) {
-				if (this->log_function) {
-					this->log_function("Function improvement tolerance.");
-				}
 				results->exit_condition = SolverResults::FUNCTION_TOLERANCE;
 				break;
 			}
 
 			if (normdx / (x.norm() + this->argument_improvement_tolerance) <
 			                         this->argument_improvement_tolerance) {
-				if (this->log_function) {
-					this->log_function("Variable tolerance.");
-				}
 				results->exit_condition = SolverResults::ARGUMENT_TOLERANCE;
 				break;
 			}
@@ -146,6 +195,11 @@ void Solver::Solve(const Function& function,
 			break;
 		}
 
+		if (iter >= this->maximum_iterations) {
+			results->exit_condition = SolverResults::GRADIENT_TOLERANCE;
+			break;
+		}
+
 		double e = 0;
 		if (!use_sparsity) {
 			// Compute smallest eigenvalue of the Hessian.
@@ -154,8 +208,14 @@ void Solver::Solve(const Function& function,
 			e = values.minCoeff();
 		}
 
+		results->stopping_criteria_time += wall_time() - start_time;
+
+		//
 		// Attempt repeated Cholesky factorization until the Hessian
 		// becomes positive semidefinite.
+		//
+		start_time = wall_time();
+
 		int factorizations = 0;
 		double tau;
 		double beta = 1.0;
@@ -179,7 +239,8 @@ void Solver::Solve(const Function& function,
 			// Add tau*I to the Hessian.
 			for (size_t i = 0; i < n; ++i) {
 				if (use_sparsity) {
-					sparse_H.coeffRef(i, i) = dH(i) + tau;
+					int ii = static_cast<int>(i);
+					sparse_H.coeffRef(ii, ii) = dH(i) + tau;
 				}
 				else {
 					H(i, i) = dH(i) + tau;
@@ -188,7 +249,7 @@ void Solver::Solve(const Function& function,
 			// Attempt Cholesky factorization.
 			bool success;
 			if (use_sparsity) {
-				sparse_factorization->compute(sparse_H);
+				sparse_factorization->factorize(sparse_H);
 				success = sparse_factorization->info() == Eigen::Success;
 			}
 			else {
@@ -203,7 +264,13 @@ void Solver::Solve(const Function& function,
 			tau = std::max(2*tau, beta);
 		}
 
-		// Search direction.
+		results->matrix_factorization_time += wall_time() - start_time;
+
+		//
+		// Solve linear system to obtain search direction.
+		//
+		start_time = wall_time();
+
 		if (use_sparsity) {
 			p = sparse_factorization->solve(-g);
 		}
@@ -211,7 +278,13 @@ void Solver::Solve(const Function& function,
 			p = factorization->solve(-g);
 		}
 
+		results->linear_solver_time += wall_time() - start_time;
+
+		//
 		// Perform back-tracking line search.
+		//
+		start_time = wall_time();
+
 		double alpha = alpha_start;
 		double rho = 0.5;
 		double c = 0.5;
@@ -231,6 +304,13 @@ void Solver::Solve(const Function& function,
 		// Record length of this step.
 		normdx = alpha * p.norm();
 
+		results->backtracking_time += wall_time() - start_time;
+
+		//
+		// Log the results of this iteration.
+		//
+		start_time = wall_time();
+
 		int log_interval = 1;
 		if (iter > 30) {
 			log_interval = 10;
@@ -245,9 +325,6 @@ void Solver::Solve(const Function& function,
 			char str[1024];
 			if (use_sparsity) {
 				if (iter == 0) {
-					double nnz = double(sparse_H.nonZeros()) / double(n * n);
-					std::sprintf(str, "H has %.5f%% non-zeroes.", 100.0 * nnz);
-					this->log_function(str);
 					this->log_function("Itr      f       max|g_i|     alpha    fac ");
 				}
 				std::sprintf(str, "%4d %.3e %.3e %.3e %3d",
@@ -265,11 +342,14 @@ void Solver::Solve(const Function& function,
 			}
 			this->log_function(str);
 		}
+		results->log_time += wall_time() - start_time;
+
+		iter++;
 	}
 
 	if (this->log_function) {
 		char str[1024];
-		std::sprintf(str, " end %.3e %.3e", fval, g.norm());
+		std::sprintf(str, " end %.3e %.3e", fval, normg);
 		this->log_function(str);
 	}
 
@@ -282,6 +362,8 @@ void Solver::Solve(const Function& function,
 	}
 
 	function.copy_global_to_user(x);
+
+	results->total_time = wall_time() - global_start_time;
 }
 
 

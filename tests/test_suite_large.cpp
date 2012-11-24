@@ -61,6 +61,7 @@ void test_rosenbrock()
 	solver.maximum_iterations = 10000;
 	SolverResults results;
 	solver.Solve(f, &results);
+	std::cerr << results;
 
 	EXPECT_LT( std::abs(f.evaluate()), 1e-9);
 

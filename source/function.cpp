@@ -3,11 +3,19 @@
 #include <stdexcept>
 
 #include <spii/function.h>
+#include <spii/spii.h>
 
 Function::Function()
 {
 	this->number_of_scalars = 0;
 	this->term_deletion = DeleteTerms;
+
+	this->number_of_hessian_elements = 0;
+
+	this->evaluate_time               = 0;
+	this->evaluate_with_hessian_time  = 0;
+	this->write_gradient_hessian_time = 0;
+	this->copy_time                   = 0;
 }
 
 Function::~Function()
@@ -99,26 +107,38 @@ double Function::evaluate(const Eigen::VectorXd& x) const
 	// Copy values from the global vector x to the temporary storage
 	// used for evaluating the term.
 	this->copy_global_to_local(x);
+
+	double start_time = wall_time();
+
 	double value = 0;
 	for (auto itr = terms.begin(); itr != terms.end(); ++itr) {
 		// Evaluate this term.
 		value += itr->term->evaluate(&itr->temp_variables[0]);
 	}
+
+	this->evaluate_time += wall_time() - start_time;
 	return value;
 }
 
 double Function::evaluate() const
 {
+	double start_time = wall_time();
+
 	double value = 0;
 	for (auto itr = terms.begin(); itr != terms.end(); ++itr) {
 		value += itr->term->evaluate(&itr->user_variables[0]);
 	}
+
+	this->evaluate_time += wall_time() - start_time;
 	return value;
 }
 
 void Function::create_sparse_hessian(Eigen::SparseMatrix<double>* H) const
 {
 	std::vector<Eigen::Triplet<double> > indices;
+	indices.reserve(this->number_of_hessian_elements);
+	this->number_of_hessian_elements = 0;
+
 	for (auto itr = terms.begin(); itr != terms.end(); ++itr) {
 		// Put the hessian into the global hessian.
 		for (int var0 = 0; var0 < itr->term->number_of_variables(); ++var0) {
@@ -127,15 +147,19 @@ void Function::create_sparse_hessian(Eigen::SparseMatrix<double>* H) const
 				size_t global_offset1 = this->global_index(itr->user_variables[var1]);
 				for (size_t i = 0; i < itr->term->variable_dimension(var0); ++i) {
 					for (size_t j = 0; j < itr->term->variable_dimension(var1); ++j) {
-						indices.push_back(Eigen::Triplet<double>(i + global_offset0,
-						                                         j + global_offset1,
+						int global_i = static_cast<int>(i + global_offset0);
+						int global_j = static_cast<int>(j + global_offset1);
+						indices.push_back(Eigen::Triplet<double>(global_i,
+						                                         global_j,
 						                                         1.0));
+						this->number_of_hessian_elements++;
 					}
 				}
 			}
 		}
 	}
-	H->resize(this->number_of_scalars, this->number_of_scalars);
+	H->resize(static_cast<int>(this->number_of_scalars),
+	          static_cast<int>(this->number_of_scalars));
 	H->setFromTriplets(indices.begin(), indices.end());
 	H->makeCompressed();
 }
@@ -152,28 +176,195 @@ size_t Function::global_index(double* variable) const
 
 void Function::copy_global_to_local(const Eigen::VectorXd& x) const
 {
+	double start_time = wall_time();
+
 	for (auto itr = variables.begin(); itr != variables.end(); ++itr) {
 		for (int i = 0; i < itr->second.dimension; ++i) {
 			itr->second.temp_space[i] = x[itr->second.global_index + i];
 		}
 	}
+
+	this->copy_time += wall_time() - start_time;
 }
 
 void Function::copy_user_to_global(Eigen::VectorXd* x) const
 {
+	double start_time = wall_time();
+
 	x->resize(this->number_of_scalars);
 	for (auto itr = variables.begin(); itr != variables.end(); ++itr) {
 		for (int i = 0; i < itr->second.dimension; ++i) {
 			(*x)[itr->second.global_index + i] = itr->first[i];
 		}
 	}
+
+	this->copy_time += wall_time() - start_time;
 }
 
 void Function::copy_global_to_user(const Eigen::VectorXd& x) const
 {
+	double start_time = wall_time();
+
 	for (auto itr = variables.begin(); itr != variables.end(); ++itr) {
 		for (int i = 0; i < itr->second.dimension; ++i) {
 			itr->first[i] = x[itr->second.global_index + i];
 		}
 	}
+
+	this->copy_time += wall_time() - start_time;
 }
+
+
+double Function::evaluate(const Eigen::VectorXd& x,
+                          Eigen::VectorXd* gradient,
+						  Eigen::MatrixXd* hessian) const
+{
+	// Copy values from the global vector x to the temporary storage
+	// used for evaluating the term.
+	this->copy_global_to_local(x);
+
+	double start_time = wall_time();
+
+	double value = 0;
+	// Create the global gradient.
+	gradient->resize(this->number_of_scalars);
+	gradient->setConstant(0.0);
+	// Create the global (dense) hessian.
+	hessian->resize( static_cast<int>(this->number_of_scalars),
+	                 static_cast<int>(this->number_of_scalars));
+	//hessian->setConstant(0.0);
+	(*hessian) *= 0.0;
+
+	this->write_gradient_hessian_time += wall_time() - start_time;
+	start_time = wall_time();
+
+	// Go through and evaluate each term.
+	// OpenMP requires a signed data type as the loop variable.
+	#ifdef USE_OPENMP
+	#pragma omp parallel for reduction(+ : value)
+	#endif
+	for (int i = 0; i < terms.size(); ++i) {
+		// Evaluate the term and put its gradient and hessian
+		// into local storage.
+		value += terms[i].term->evaluate(&terms[i].temp_variables[0], 
+		                                 &terms[i].gradient,
+		                                 &terms[i].hessian);
+	}
+	
+	this->evaluate_with_hessian_time += wall_time() - start_time;
+	start_time = wall_time();
+
+	// Go through and evaluate each term.
+	for (auto itr = terms.begin(); itr != terms.end(); ++itr) {
+		// Put the gradient into the global gradient.
+		for (int var = 0; var < itr->term->number_of_variables(); ++var) {
+			size_t global_offset = this->global_index(itr->user_variables[var]);
+			for (int i = 0; i < itr->term->variable_dimension(var); ++i) {
+				(*gradient)[global_offset + i] += itr->gradient[var][i];
+			}
+		}
+		// Put the hessian into the global hessian.
+		for (int var0 = 0; var0 < itr->term->number_of_variables(); ++var0) {
+			size_t global_offset0 = this->global_index(itr->user_variables[var0]);
+			for (int var1 = 0; var1 < itr->term->number_of_variables(); ++var1) {
+				size_t global_offset1 = this->global_index(itr->user_variables[var1]);
+				Eigen::MatrixXd& part_hessian = itr->hessian[var0][var1];
+				for (int i = 0; i < itr->term->variable_dimension(var0); ++i) {
+					for (int j = 0; j < itr->term->variable_dimension(var1); ++j) {
+						//std::cerr << "var=(" << var0 << ',' << var1 << ") ";
+						//std::cerr << "ij=(" << i << ',' << j << ") ";
+						//std::cerr << "writing to (" << i + global_offset0 << ',' << j + global_offset1 << ")\n";
+						hessian->coeffRef(i + global_offset0, j + global_offset1) +=
+							part_hessian(i, j);
+					}
+				}
+			}
+		}
+	}
+
+	this->write_gradient_hessian_time += wall_time() - start_time;
+	return value;
+}
+
+double Function::evaluate(const Eigen::VectorXd& x,
+                          Eigen::VectorXd* gradient,
+						  Eigen::SparseMatrix<double>* hessian) const
+{
+	// Copy values from the global vector x to the temporary storage
+	// used for evaluating the term.
+	this->copy_global_to_local(x);
+
+	double start_time = wall_time();
+
+	double value = 0;
+	// Create the global gradient.
+	gradient->resize(this->number_of_scalars);
+	gradient->setConstant(0.0);
+	
+	std::vector<Eigen::Triplet<double> > indices;
+	indices.reserve(this->number_of_hessian_elements);
+	this->number_of_hessian_elements = 0;
+
+	this->write_gradient_hessian_time += wall_time() - start_time;
+	start_time = wall_time();
+
+	// Go through and evaluate each term.
+	// OpenMP requires a signed data type as the loop variable.
+	#ifdef USE_OPENMP
+	#pragma omp parallel for reduction(+ : value)
+	#endif
+	for (int i = 0; i < terms.size(); ++i) {
+		// Evaluate the term and put its gradient and hessian
+		// into local storage.
+		value += terms[i].term->evaluate(&terms[i].temp_variables[0], 
+		                                 &terms[i].gradient,
+		                                 &terms[i].hessian);
+	}
+	
+	this->evaluate_with_hessian_time += wall_time() - start_time;
+	start_time = wall_time();
+
+	// Collect the gradients and hessians from each term.
+	for (auto itr = terms.begin(); itr != terms.end(); ++itr) {
+		// Put the gradient into the global gradient.
+		for (int var = 0; var < itr->term->number_of_variables(); ++var) {
+			size_t global_offset = this->global_index(itr->user_variables[var]);
+			for (int i = 0; i < itr->term->variable_dimension(var); ++i) {
+				(*gradient)[global_offset + i] += itr->gradient[var][i];
+			}
+		}
+		// Put the hessian into the global hessian.
+		for (int var0 = 0; var0 < itr->term->number_of_variables(); ++var0) {
+			size_t global_offset0 = this->global_index(itr->user_variables[var0]);
+			for (int var1 = 0; var1 < itr->term->number_of_variables(); ++var1) {
+				size_t global_offset1 = this->global_index(itr->user_variables[var1]);
+				Eigen::MatrixXd& part_hessian = itr->hessian[var0][var1];
+				for (int i = 0; i < itr->term->variable_dimension(var0); ++i) {
+					for (int j = 0; j < itr->term->variable_dimension(var1); ++j) {
+						//std::cerr << "var=(" << var0 << ',' << var1 << ") ";
+						//std::cerr << "ij=(" << i << ',' << j << ") ";
+						//std::cerr << "writing to (" << i + global_offset0 << ',' << j + global_offset1 << ")\n";
+						//hessian->coeffRef(i + global_offset0, j + global_offset1) +=
+						//	part_hessian(i, j);
+						int global_i = static_cast<int>(i + global_offset0);
+						int global_j = static_cast<int>(j + global_offset1);
+						indices.push_back(Eigen::Triplet<double>(global_i,
+						                                         global_j,
+						                                         part_hessian(i, j)));
+						this->number_of_hessian_elements++;
+					}
+				}
+			}
+		}
+	}
+
+	hessian->resize(static_cast<int>(this->number_of_scalars),
+	                static_cast<int>(this->number_of_scalars));
+	hessian->setFromTriplets(indices.begin(), indices.end());
+	hessian->makeCompressed();
+
+	this->write_gradient_hessian_time += wall_time() - start_time;
+
+	return value;
+}
+

@@ -67,13 +67,23 @@ public:
 	// Evaluation using a global vector.
 	double evaluate(const Eigen::VectorXd& x) const;
 
-	template<typename Matrix>
 	double evaluate(const Eigen::VectorXd& x, 
 	            Eigen::VectorXd* gradient,
-	            Matrix* hessian) const;
+	            Eigen::MatrixXd* hessian) const;
+
+	double evaluate(const Eigen::VectorXd& x, 
+	            Eigen::VectorXd* gradient,
+	            Eigen::SparseMatrix<double>* hessian) const;
 
 	// Create a sparse matrix with the correct sparsity pattern.
 	void create_sparse_hessian(Eigen::SparseMatrix<double>* H) const;
+
+	// Used to record the time of some operations. Each time an operation
+	// is performed, the time taken is added to the appropiate variable.
+	mutable double evaluate_time;
+	mutable double evaluate_with_hessian_time;
+	mutable double write_gradient_hessian_time;
+	mutable double copy_time;
 
 protected:
 	size_t global_index(double* variable) const;
@@ -93,58 +103,11 @@ protected:
 	// Has to be mutable because the temporary storage
 	// needs to be written to.
 	mutable std::vector<AddedTerm> terms;
+
+	// Stored how many element were used the last time the Hessian
+	// was created.
+	mutable size_t number_of_hessian_elements;
 };
 
-
-template<typename Matrix>
-double Function::evaluate(const Eigen::VectorXd& x,
-                          Eigen::VectorXd* gradient,
-						  Matrix* hessian) const
-{
-	// Copy values from the global vector x to the temporary storage
-	// used for evaluating the term.
-	this->copy_global_to_local(x);
-	double value = 0;
-	// Create the global gradient.
-	gradient->resize(this->number_of_scalars);
-	gradient->setConstant(0.0);
-	// Create the global (dense) hessian.
-	hessian->resize(this->number_of_scalars, this->number_of_scalars);
-	//hessian->setConstant(0.0);
-	(*hessian) *= 0.0;
-	// Go through and evaluate each term.
-	for (auto itr = terms.begin(); itr != terms.end(); ++itr) {
-		// Evaluate the term and put its gradient and hessian
-		// into local storage.
-		value += itr->term->evaluate(&itr->temp_variables[0], 
-		                             &itr->gradient,
-		                             &itr->hessian);
-		// Put the gradient into the global gradient.
-		for (int var = 0; var < itr->term->number_of_variables(); ++var) {
-			size_t global_offset = this->global_index(itr->user_variables[var]);
-			for (int i = 0; i < itr->term->variable_dimension(var); ++i) {
-				(*gradient)[global_offset + i] += itr->gradient[var][i];
-			}
-		}
-		// Put the hessian into the global hessian.
-		for (int var0 = 0; var0 < itr->term->number_of_variables(); ++var0) {
-			size_t global_offset0 = this->global_index(itr->user_variables[var0]);
-			for (int var1 = 0; var1 < itr->term->number_of_variables(); ++var1) {
-				size_t global_offset1 = this->global_index(itr->user_variables[var1]);
-				Eigen::MatrixXd& part_hessian = itr->hessian[var0][var1];
-				for (int i = 0; i < itr->term->variable_dimension(var0); ++i) {
-					for (int j = 0; j < itr->term->variable_dimension(var1); ++j) {
-						//std::cerr << "var=(" << var0 << ',' << var1 << ") ";
-						//std::cerr << "ij=(" << i << ',' << j << ") ";
-						//std::cerr << "writing to (" << i + global_offset0 << ',' << j + global_offset1 << ")\n";
-						hessian->coeffRef(i + global_offset0, j + global_offset1) +=
-							part_hessian(i, j);
-					}
-				}
-			}
-		}
-	}
-	return value;
-}
 
 #endif SPII_FUNCTION_H

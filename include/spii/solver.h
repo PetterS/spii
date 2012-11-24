@@ -1,6 +1,7 @@
 #ifndef SPII_SOLVER_H
 #define SPII_SOLVER_H
 
+#include <iostream>
 #include <string>
 
 #include <spii/function.h>
@@ -16,8 +17,19 @@ struct SolverResults
 	      NAN,
 	      INFINITY,
 	      ERROR,
-	      NA} exit_condition; 
+	      NA} exit_condition;
+
+	double startup_time;
+	double function_evaluation_time;
+	double stopping_criteria_time;
+	double matrix_factorization_time;
+	double linear_solver_time;
+	double backtracking_time;
+	double log_time;
+	double total_time;
 };
+
+std::ostream& operator<<(std::ostream& out, const SolverResults& results);
 
 void cerr_log_function(const std::string& log_message);
 

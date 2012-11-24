@@ -20,6 +20,7 @@ double run_test(double* var, const Solver* solver = 0)
 	}
 	SolverResults results;
 	solver->Solve(f, &results);
+	std::cerr << results;
 
 	for (int i = 0; i < dimension; ++i) {
 		std::cout << "x" << i + 1 << " = " << var[i] << ",  ";
