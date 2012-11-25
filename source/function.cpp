@@ -359,10 +359,8 @@ double Function::evaluate(const Eigen::VectorXd& x,
 		}
 	}
 
-	hessian->resize(static_cast<int>(this->number_of_scalars),
-	                static_cast<int>(this->number_of_scalars));
 	hessian->setFromTriplets(indices.begin(), indices.end());
-	hessian->makeCompressed();
+	//hessian->makeCompressed();
 
 	this->write_gradient_hessian_time += wall_time() - start_time;
 
