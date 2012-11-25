@@ -16,4 +16,4 @@ double wall_time()
 }
 }
 
-#endif SPII_H
+#endif

@@ -45,4 +45,4 @@ public:
 	}
 };
 
-#endif SPII_TERM_H
+#endif

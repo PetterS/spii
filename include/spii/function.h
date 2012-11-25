@@ -110,4 +110,4 @@ protected:
 };
 
 
-#endif SPII_FUNCTION_H
+#endif
