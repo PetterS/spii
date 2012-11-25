@@ -1,5 +1,6 @@
 
 #include <cmath>
+#include <limits>
 #include <random>
 
 #include <gtest/gtest.h>
@@ -21,7 +22,7 @@ struct Banana
 TEST(Solver, banana)
 {
 	Function f;
-	double x[3] = {-1.2, 1.0};
+	double x[2] = {-1.2, 1.0};
 	f.add_variable(x, 2);
 	f.add_term(new AutoDiffTerm<Banana, 2>(new Banana()), x);
 
@@ -41,7 +42,7 @@ TEST(Solver, banana)
 TEST(Solver, function_tolerance)
 {
 	Function f;
-	double x[3] = {-1.2, 1.0};
+	double x[2] = {-1.2, 1.0};
 	f.add_variable(x, 2);
 	f.add_term(new AutoDiffTerm<Banana, 2>(new Banana()), x);
 
@@ -58,7 +59,7 @@ TEST(Solver, function_tolerance)
 TEST(Solver, argument_improvement_tolerance)
 {
 	Function f;
-	double x[3] = {-1.2, 1.0};
+	double x[2] = {-1.2, 1.0};
 	f.add_variable(x, 2);
 	f.add_term(new AutoDiffTerm<Banana, 2>(new Banana()), x);
 
@@ -75,7 +76,7 @@ TEST(Solver, argument_improvement_tolerance)
 TEST(Solver, gradient_tolerance)
 {
 	Function f;
-	double x[3] = {-1.2, 1.0};
+	double x[2] = {-1.2, 1.0};
 	f.add_variable(x, 2);
 	f.add_term(new AutoDiffTerm<Banana, 2>(new Banana()), x);
 
@@ -89,4 +90,39 @@ TEST(Solver, gradient_tolerance)
 	EXPECT_TRUE(results.exit_condition == SolverResults::GRADIENT_TOLERANCE);
 }
 
+struct NanFunctor
+{
+	template<typename R>
+	R operator()(const R* const x) const
+	{
+		return std::numeric_limits<double>::quiet_NaN();
+	}
+};
 
+struct InfFunctor
+{
+	template<typename R>
+	R operator()(const R* const x) const
+	{
+		return std::numeric_limits<double>::infinity();
+	}
+};
+
+TEST(Solver, inf_nan)
+{
+	Function f_nan, f_inf;
+	double x[1] = {-1.2};
+	f_nan.add_variable(x, 1);
+	f_inf.add_variable(x, 1);
+	f_nan.add_term(new AutoDiffTerm<NanFunctor, 1>(new NanFunctor()), x);
+	f_inf.add_term(new AutoDiffTerm<InfFunctor, 1>(new InfFunctor()), x);
+
+	Solver solver;
+	SolverResults results;
+
+	solver.Solve(f_nan, &results);
+	EXPECT_EQ(results.exit_condition, SolverResults::FUNCTION_NAN);
+
+	solver.Solve(f_inf, &results);
+	EXPECT_EQ(results.exit_condition, SolverResults::FUNCTION_INFINITY);
+}
