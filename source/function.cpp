@@ -103,6 +103,14 @@ void Function::add_term(const Term* term, double* argument0, double* argument1)
 	add_term(term, arguments);
 }
 
+void Function::print_timing_information(std::ostream& out) const
+{
+	out << "Function evaluate time                : " << evaluate_time << '\n';
+	out << "Function evaluate time (with hessian) : " << evaluate_with_hessian_time << '\n';
+	out << "Function write hessian time           : " << write_gradient_hessian_time << '\n';
+	out << "Function copy data time               : " << copy_time << '\n';
+}
+
 double Function::evaluate(const Eigen::VectorXd& x) const
 {
 	// Copy values from the global vector x to the temporary storage

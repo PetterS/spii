@@ -85,6 +85,8 @@ public:
 	mutable double write_gradient_hessian_time;
 	mutable double copy_time;
 
+	void print_timing_information(std::ostream& out) const;
+
 protected:
 	size_t global_index(double* variable) const;
 	void copy_global_to_local(const Eigen::VectorXd& x) const;

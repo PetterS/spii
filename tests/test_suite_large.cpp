@@ -297,11 +297,7 @@ TEST(Solver, Barrier)
 	solver.Solve(f, &results);
 
 	std::cerr << results;
-	std::cerr << "-----------------------------------\n";
-	std::cerr << "Function evaluate time                : " << f.evaluate_time << '\n';
-	std::cerr << "Function evaluate time (with hessian) : " << f.evaluate_with_hessian_time << '\n';
-	std::cerr << "Function write hessian time           : " << f.write_gradient_hessian_time << '\n';
-	std::cerr << "Function copy data time               : " << f.copy_time << '\n';
+	f.print_timing_information(std::cerr);
 
 	EXPECT_TRUE(results.exit_condition == SolverResults::ARGUMENT_TOLERANCE ||
 	            results.exit_condition == SolverResults::FUNCTION_TOLERANCE ||
