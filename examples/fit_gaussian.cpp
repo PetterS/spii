@@ -1,4 +1,5 @@
 
+#include <functional>
 #include <iostream>
 #include <random>
 
@@ -25,7 +26,7 @@ int main()
 {
 	std::mt19937 prng(0);
 	std::normal_distribution<double> normal;
-	std::variate_generator<std::tr1::mt19937, std::tr1::normal_distribution<double> > randn(prng,normal);
+	auto randn = std::bind(normal, prng);
 
 	double mu    = 5.0;
 	double sigma = 3.0;
