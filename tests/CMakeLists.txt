@@ -9,6 +9,11 @@ IF (${BUILD_TESTING})
   MACRO (SPII_TEST NAME)
     ADD_EXECUTABLE(test_${NAME} test_${NAME}.cpp)
     TARGET_LINK_LIBRARIES(test_${NAME} spii ${GTEST_LIB} ${GTEST_MAIN_LIB})
+
+    # There is a conflict in Google Test between tuples
+    # and Visual Studio 2012.
+    set_target_properties(test_${NAME} PROPERTIES COMPILE_DEFINITIONS "GTEST_HAS_TR1_TUPLE=0")
+
     INCLUDE_DIRECTORIES(${GTEST_INCLUDE})
     ADD_TEST(NAME test_${NAME}
              COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/test_${NAME}

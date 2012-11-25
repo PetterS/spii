@@ -49,6 +49,7 @@ OPTION(BUILD_TESTING
        ON)
 
 IF (${BUILD_TESTING})
+
   # Find Google's testing library headers
   FIND_PATH(GTEST_INCLUDE NAMES gtest/gtest.h PATHS ${SEARCH_HEADERS})
   IF (NOT EXISTS ${GTEST_INCLUDE})
