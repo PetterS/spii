@@ -46,13 +46,19 @@ public:
 	}
 };
 
+TEST(Function, variable_not_found)
+{
+	Function f;
+	double x[5];
+	EXPECT_THROW(f.add_term(new AutoDiffTerm<Term1, 5>(new Term1), x), std::runtime_error);
+}
+
 TEST(Function, term_variable_mismatch)
 {
 	Function f;
 	double x[5];
 	f.add_variable(x, 5);
-	Term1 term1;
-	EXPECT_THROW(f.add_term(new AutoDiffTerm<Term1, 4>(&term1), x), std::runtime_error);
+	EXPECT_THROW(f.add_term(new AutoDiffTerm<Term1, 4>(new Term1), x), std::runtime_error);
 }
 
 class DestructorTerm :
