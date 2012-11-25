@@ -1,5 +1,9 @@
+// Petter Strandmark 2012.
 #ifndef SPII_TERM_H
 #define SPII_TERM_H
+// The Term class defines a single term in an objective function.
+// Ususally a term is created via the AutoDiffTerm template class
+// so that the derivatives do not have to be explicitly computed.
 
 #include <cstddef>
 #include <vector>

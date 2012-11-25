@@ -1,5 +1,8 @@
+// Petter Strandmark 2012.
 #ifndef SPII_FUNCTION_H
 #define SPII_FUNCTION_H
+// This header defines the Function class which is used
+// to store an objective function to be optimized.
 
 #include <cstddef>
 #include <map>
@@ -10,13 +13,14 @@ using std::size_t;
 
 #include <spii/term.h>
 
+// These two structs are used by Function to store added
+// variables and terms.
 struct AddedVariable
 {
 	int dimension;
 	size_t global_index;
 	std::vector<double>  temp_space;
 };
-
 struct AddedTerm
 {
 	const Term* term;
@@ -40,22 +44,35 @@ public:
 	Function();
 	~Function();
 
+	// Adds a variable to the function. All variables must be added
+	// before any terms containing them are added.
 	void add_variable(double* variable, int dimension);
 
+	// Returns the current number of variables the function contains.
 	size_t get_number_of_variables() const
 	{
 		return variables.size();
 	}
 
+	// Returns the current number of scalars the function contains.
+	// (each variable contains of one or several scalars.)
 	size_t get_number_of_scalars() const
 	{
 		return number_of_scalars;
 	}
 
+	// Adds a new term to the function. Will throw an error if a variable
+	// is not already added to the function, or if it does not match the
+	// dimensionality required by the Term.
+	//
+	// The term_deletion member specified whether the Function is responsible
+	// for calling delete on the term. In any case, it is safe to add the
+	// same term twice.
 	void add_term(const Term* term, const std::vector<double*>& arguments);
 	void add_term(const Term* term, double* argument1);
 	void add_term(const Term* term, double* argument1, double* argument2);
 
+	// Returns the current number of terms contained in the function.
 	size_t get_number_of_terms() const
 	{
 		return terms.size();
@@ -67,13 +84,16 @@ public:
 	// Evaluation using a global vector.
 	double evaluate(const Eigen::VectorXd& x) const;
 
+	// Evaluate the function and compute the gradient and Hessian matrix
+	// at the point x. Dense version.
 	double evaluate(const Eigen::VectorXd& x, 
-	            Eigen::VectorXd* gradient,
-	            Eigen::MatrixXd* hessian) const;
+	                Eigen::VectorXd* gradient,
+	                Eigen::MatrixXd* hessian) const;
 
+	// Same functionality as above, but for a sparse Hessian.
 	double evaluate(const Eigen::VectorXd& x, 
-	            Eigen::VectorXd* gradient,
-	            Eigen::SparseMatrix<double>* hessian) const;
+	                Eigen::VectorXd* gradient,
+	                Eigen::SparseMatrix<double>* hessian) const;
 
 	// Create a sparse matrix with the correct sparsity pattern.
 	void create_sparse_hessian(Eigen::SparseMatrix<double>* H) const;
@@ -85,6 +105,7 @@ public:
 	mutable double write_gradient_hessian_time;
 	mutable double copy_time;
 
+	// Prints the recorded timing information.
 	void print_timing_information(std::ostream& out) const;
 
 protected:
