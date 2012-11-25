@@ -14,7 +14,7 @@
 struct GeneralizedRosenbrockTerm
 {
 	template<typename R>
-	R operator()(const R* const x1, const R* const x2)
+	R operator()(const R* const x1, const R* const x2) const
 	{
 		R d0 =  (*x1) * (*x1) - (*x2);
 		R d1 =  1 - (*x1);
@@ -26,7 +26,7 @@ struct GeneralizedRosenbrockTerm
 struct EasyRosenbrockTerm
 {
 	template<typename R>
-	R operator()(const R* const x1, const R* const x2)
+	R operator()(const R* const x1, const R* const x2) const
 	{
 		R d0 =  (*x1) * (*x1) - (*x2);
 		R d1 =  1 - (*x1);
@@ -90,7 +90,7 @@ TEST(Solver, EasyRosenbrock10000)
 struct LennardJones
 {
 	template<typename R>
-	R operator()(const R* const p1, const R* const p2)
+	R operator()(const R* const p1, const R* const p2) const
 	{
 		R dx = p1[0] - p2[0];
 		R dy = p1[1] - p2[1];
@@ -153,7 +153,7 @@ TEST(Solver, LennardJones)
 struct Trid1
 {
 	template<typename R>
-	R operator()(const R* const x)
+	R operator()(const R* const x) const
 	{
 		R d = *x - 1.0;
 		return d*d;
@@ -163,7 +163,7 @@ struct Trid1
 struct Trid2
 {
 	template<typename R>
-	R operator()(const R* const x1, const R* const x2)
+	R operator()(const R* const x1, const R* const x2) const
 	{
 		return - (*x1) * (*x2);
 	}
@@ -247,7 +247,7 @@ TEST(Solver, Trid10000)
 struct LogBarrier01
 {
 	template<typename R>
-	R operator()(const R* const x)
+	R operator()(const R* const x) const
 	{
 		return -log(x[0]) - log(1.0 - x[0]);
 	}
@@ -261,7 +261,7 @@ struct QuadraticFunction1
 	}
 
 	template<typename R>
-	R operator()(const R* const x)
+	R operator()(const R* const x) const
 	{
 		R d = x[0] - b;
 		return d * d;
@@ -294,7 +294,6 @@ TEST(Solver, Barrier)
 	solver.maximum_iterations = 100;
 	SolverResults results;
 	solver.Solve(f, &results);
-	std::cerr << results;
 
 	std::cerr << results;
 	std::cerr << "-----------------------------------\n";

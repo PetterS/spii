@@ -30,7 +30,7 @@ class Term1
 {
 public:
 	template<typename R>
-	R operator()(const R* const x)
+	R operator()(const R* const x) const
 	{
 		return sin(x[0]) + cos(x[1]) + R(1.4)*x[0]*x[1] + R(1.0);
 	}
@@ -40,7 +40,7 @@ class Term2
 {
 public:
 	template<typename R>
-	R operator()(const R* const x, const R* const y)
+	R operator()(const R* const x, const R* const y) const
 	{
 		return log(x[0]) + 3.0 * log(y[0]);
 	}
@@ -199,7 +199,7 @@ class Single3
 {
 public:
 	template<typename R>
-	R operator()(const R* const x)
+	R operator()(const R* const x) const
 	{
 		return 123.4 * x[0]*x[0] + 7.0 * sin(x[1]) + 2.0 * x[0]*x[1] + 3.0 * x[2]*x[2];
 	}
@@ -209,7 +209,7 @@ class Single2
 {
 public:
 	template<typename R>
-	R operator()(const R* const x)
+	R operator()(const R* const x) const
 	{
 		return 5.0 * x[0]*x[0] + 6.0 * x[0]*x[1] + 7.0 * x[1]*x[1];
 	}
@@ -219,7 +219,7 @@ class Mixed3_2
 {
 public:
 	template<typename R>
-	R operator()(const R* const x, const R* const y)
+	R operator()(const R* const x, const R* const y) const
 	{
 		return    9.0 * x[0]*y[0] + 10.0 * x[0]*y[1]
 		       + 11.0 * x[1]*y[0] + 12.0 * x[1]*y[1]

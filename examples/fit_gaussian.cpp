@@ -14,7 +14,7 @@ struct NegLogLikelihood
 	}
 
 	template<typename R>
-	R operator()(const R* const mu, const R* const logsigma)
+	R operator()(const R* const mu, const R* const logsigma) const
 	{
 		R diff = (*mu - sample) / exp(*logsigma);
 		return 0.5 * diff*diff + *logsigma;
@@ -34,7 +34,7 @@ int main()
 	Function f;
 	f.add_variable(&mu, 1);
 	f.add_variable(&logsigma, 1);
-	for (int i = 0; i < 1000; ++i) {
+	for (int i = 0; i < 10000; ++i) {
 		NegLogLikelihood* llh = new NegLogLikelihood(sigma*randn() + mu);
 		f.add_term(new AutoDiffTerm<NegLogLikelihood, 1, 1>(llh), &mu, &logsigma);
 	}

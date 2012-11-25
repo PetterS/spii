@@ -38,7 +38,7 @@ double run_test(double* var, const Solver* solver = 0)
 struct Rosenbrock
 {
 	template<typename R>
-	R operator()(const R* const x)
+	R operator()(const R* const x) const
 	{
 		R d0 =  x[1] - x[0]*x[0];
 		R d1 =  1 - x[0];
@@ -59,7 +59,7 @@ TEST(Solver, Rosenbrock)
 struct FreudenStein_Roth
 {
 	template<typename R>
-	R operator()(const R* const x)
+	R operator()(const R* const x) const
 	{
 		R d0 =  -13.0 + x[0] + ((5.0 - x[1])*x[1] - 2.0)*x[1];
 		R d1 =  -29.0 + x[0] + ((x[1] + 1.0)*x[1] - 14.0)*x[1];
@@ -81,7 +81,7 @@ TEST(Solver, FreudenStein_Roth)
 struct Powell_badly_scaled
 {
 	template<typename R>
-	R operator()(const R* const x)
+	R operator()(const R* const x) const
 	{
 		R d0 = 1e4*x[0]*x[1] - 1;
 		R d1 = exp(-x[0]) + exp(-x[1]) - 1.0001;
@@ -100,7 +100,7 @@ TEST(Solver, Powell_badly_scaled)
 struct Brown_badly_scaled
 {
 	template<typename R>
-	R operator()(const R* const x)
+	R operator()(const R* const x) const
 	{
 		R d0 = x[0] - 1e6;
 		R d1 = x[1] - 2e-6;
@@ -123,7 +123,7 @@ TEST(Solver, Brown_badly_scaled)
 struct Beale
 {
 	template<typename R>
-	R operator()(const R* const x)
+	R operator()(const R* const x) const
 	{
 		R d0 = 1.5   - x[0] * (1.0 - x[1]);
 		R d1 = 2.25  - x[0] * (1.0 - x[1]*x[1]);
@@ -146,7 +146,7 @@ TEST(Solver, Beale)
 struct JennrichSampson
 {
 	template<typename R>
-	R operator()(const R* const x)
+	R operator()(const R* const x) const
 	{
 		R fval = 0;
 		for (int ii = 1; ii <= 10; ++ii) {
@@ -169,7 +169,7 @@ TEST(Solver, JennrichSampson)
 struct HelicalValley
 {
 	template<typename R>
-	R operator()(const R* const x)
+	R operator()(const R* const x) const
 	{
 		R theta = 1.0 / (2.0 * 3.141592653589793)
 		          * atan(x[1] / x[0]);
@@ -197,7 +197,7 @@ TEST(Solver, HelicalValley)
 struct Bard
 {
 	template<typename R>
-	R operator()(const R* const x)
+	R operator()(const R* const x) const
 	{
 		double y[15] = {0.14, 0.18, 0.22, 0.25,
 		                0.29, 0.32, 0.35, 0.39,
@@ -226,7 +226,7 @@ TEST(Solver, Bard)
 struct Gaussian
 {
 	template<typename R>
-	R operator()(const R* const x)
+	R operator()(const R* const x) const
 	{
 		double y[15] = {0.0009, 0.0044, 0.0175, 0.0540,
 		                0.1295, 0.2420, 0.3521, 0.3989,
@@ -254,7 +254,7 @@ TEST(Solver, Gaussian)
 struct Meyer
 {
 	template<typename R>
-	R operator()(const R* const x)
+	R operator()(const R* const x) const
 	{
 		double y[16] = {34780, 28610, 23650, 19630,
 		                16370, 13720, 11540,  9744,
@@ -284,7 +284,7 @@ template<int m = 10>
 struct Gulf
 {
 	template<typename R>
-	R operator()(const R* const x)
+	R operator()(const R* const x) const
 	{
 		R fval = 0;
 		for (int ii = 1; ii <= m; ++ii) {
@@ -321,7 +321,7 @@ template<int m>
 struct Box
 {
 	template<typename R>
-	R operator()(const R* const x)
+	R operator()(const R* const x) const
 	{
 		R fval = 0;
 		for (int ii = 1; ii <= m; ++ii) {
@@ -344,7 +344,7 @@ TEST(Solver, Box)
 struct PowellSingular
 {
 	template<typename R>
-	R operator()(const R* const x)
+	R operator()(const R* const x) const
 	{
 		R d0 = x[0] + 10 * x[1];
 		R d1 = sqrt(5.0) * (x[2] - x[3]);
@@ -370,7 +370,7 @@ TEST(Solver, PowellSingular)
 struct Wood
 {
 	template<typename R>
-	R operator()(const R* const x)
+	R operator()(const R* const x) const
 	{
 		R f1 = 10.0 * (x[1] - x[0]*x[0]);
 		R f2 = 1 - x[0];

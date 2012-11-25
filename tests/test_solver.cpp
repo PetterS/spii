@@ -10,7 +10,7 @@
 struct Banana
 {
 	template<typename R>
-	R operator()(const R* const x)
+	R operator()(const R* const x) const
 	{
 		R d0 =  x[1] - x[0]*x[0];
 		R d1 =  1 - x[0];
