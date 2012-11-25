@@ -16,12 +16,13 @@ TEST(Function, get_number_of_scalars)
 	EXPECT_EQ(f.get_number_of_scalars(), 11);
 }
 
-TEST(Function, dimension_mismatch)
+TEST(Function, added_same_variable_multiple_times)
 {
 	Function f;
 	double x[5];
 	f.add_variable(x, 5);
 	f.add_variable(x, 5); // No-op.
+	EXPECT_EQ(f.get_number_of_scalars(), 5);
 	EXPECT_THROW(f.add_variable(x, 4), std::runtime_error);
 }
 

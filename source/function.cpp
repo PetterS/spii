@@ -32,6 +32,7 @@ void Function::add_variable(double* variable, int dimension)
 		if (itr->second.dimension != dimension) {
 			throw std::runtime_error("Function::add_variable: dimension mismatch.");
 		}
+		return;
 	}
 	AddedVariable& var_info = variables[variable];
 	var_info.dimension = dimension;
@@ -268,7 +269,7 @@ double Function::evaluate(const Eigen::VectorXd& x,
 			size_t global_offset0 = this->global_index(itr->user_variables[var0]);
 			for (int var1 = 0; var1 < itr->term->number_of_variables(); ++var1) {
 				size_t global_offset1 = this->global_index(itr->user_variables[var1]);
-				Eigen::MatrixXd& part_hessian = itr->hessian[var0][var1];
+				const Eigen::MatrixXd& part_hessian = itr->hessian[var0][var1];
 				for (int i = 0; i < itr->term->variable_dimension(var0); ++i) {
 					for (int j = 0; j < itr->term->variable_dimension(var1); ++j) {
 						//std::cerr << "var=(" << var0 << ',' << var1 << ") ";
@@ -338,7 +339,7 @@ double Function::evaluate(const Eigen::VectorXd& x,
 			size_t global_offset0 = this->global_index(itr->user_variables[var0]);
 			for (int var1 = 0; var1 < itr->term->number_of_variables(); ++var1) {
 				size_t global_offset1 = this->global_index(itr->user_variables[var1]);
-				Eigen::MatrixXd& part_hessian = itr->hessian[var0][var1];
+				const Eigen::MatrixXd& part_hessian = itr->hessian[var0][var1];
 				for (int i = 0; i < itr->term->variable_dimension(var0); ++i) {
 					for (int j = 0; j < itr->term->variable_dimension(var1); ++j) {
 						//std::cerr << "var=(" << var0 << ',' << var1 << ") ";
