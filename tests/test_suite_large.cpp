@@ -1,5 +1,6 @@
 
 #include <cmath>
+#include <functional>
 #include <iostream>
 #include <random>
 #include <vector>
@@ -106,7 +107,7 @@ TEST(Solver, LennardJones)
 {
 	std::mt19937 prng(0);
 	std::normal_distribution<double> normal;
-	std::variate_generator<std::tr1::mt19937, std::tr1::normal_distribution<double> > randn(prng,normal);
+	auto randn = std::bind(normal, prng);
 
 	int n = 5;
 
@@ -274,7 +275,7 @@ TEST(Solver, Barrier)
 {
 	std::mt19937 prng(0);
 	std::normal_distribution<double> normal;
-	std::variate_generator<std::tr1::mt19937, std::tr1::normal_distribution<double> > randn(prng,normal);
+	auto randn = std::bind(normal, prng);
 
 	const int n = 10000;
 	Function f;
