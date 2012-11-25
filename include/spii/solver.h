@@ -14,8 +14,8 @@ struct SolverResults
 	      FUNCTION_TOLERANCE,
 	      ARGUMENT_TOLERANCE,
 	      NO_CONVERGENCE,
-	      NAN,
-	      INFINITY,
+	      FUNCTION_NAN,
+	      FUNCTION_INFINITY,
 	      ERROR,
 	      NA} exit_condition;
 

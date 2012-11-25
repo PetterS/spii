@@ -114,6 +114,7 @@ IF (${OPENMP_FOUND})
   ENDIF (NOT MSVC)
 ENDIF (${OPENMP_FOUND})
 
+
 # Change the default build type from Debug to Release, while still
 # supporting overriding the build type.
 #
@@ -135,6 +136,13 @@ ENDIF (NOT CMAKE_BUILD_TYPE)
 
 # Set the default flags to an empty string.
 SET (SPII_CXX_FLAGS)
+
+
+# C++11
+IF (CMAKE_COMPILER_IS_GNUCXX)
+  MESSAGE("Enabling C++11 support for gcc.")
+  SET (SPII_CXX_FLAGS "${SPII_CXX_FLAGS} -std=c++0x")
+ENDIF (CMAKE_COMPILER_IS_GNUCXX)
 
 IF (CMAKE_BUILD_TYPE STREQUAL "Release")
   IF (CMAKE_COMPILER_IS_GNUCXX)

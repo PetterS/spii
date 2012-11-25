@@ -2,6 +2,7 @@
 #include <cstring>
 #include <iostream>
 #include <limits>
+#include <stdexcept>
 
 #include <Eigen/Dense>
 #include <Eigen/Eigenvalues>
@@ -33,8 +34,8 @@ std::ostream& operator<<(std::ostream& out, const SolverResults& results)
 	EXIT_ENUM_IF(FUNCTION_TOLERANCE);
 	EXIT_ENUM_IF(ARGUMENT_TOLERANCE);
 	EXIT_ENUM_IF(NO_CONVERGENCE);
-	EXIT_ENUM_IF(NAN);
-	EXIT_ENUM_IF(INFINITY);
+	EXIT_ENUM_IF(FUNCTION_NAN);
+	EXIT_ENUM_IF(FUNCTION_INFINITY);
 	EXIT_ENUM_IF(ERROR);
 	EXIT_ENUM_IF(NA);
 	out << "----------------------------------------------\n";
@@ -141,9 +142,12 @@ void Solver::Solve(const Function& function,
 		double start_time = wall_time();
 		if (use_sparsity) {
 			fval = function.evaluate(x, &g, &sparse_H);
+			//std::cerr << sparse_H << std::endl;
+			//std::cerr << sparse_H.nonZeros() << std::endl;
 		}
 		else {
 			fval = function.evaluate(x, &g, &H);
+			//std::cerr << H << std::endl;
 		}
 
 		normg = std::max(g.maxCoeff(), -g.minCoeff());
@@ -162,7 +166,7 @@ void Solver::Solve(const Function& function,
 			if (this->log_function) {
 				this->log_function("f(x) is NaN.");
 			}
-			results->exit_condition = SolverResults::NAN;
+			results->exit_condition = SolverResults::FUNCTION_NAN;
 			break;
 		}
 
@@ -191,7 +195,7 @@ void Solver::Solve(const Function& function,
 			if (this->log_function) {
 				this->log_function("f(x) is infinity.");
 			}
-			results->exit_condition = SolverResults::INFINITY;
+			results->exit_condition = SolverResults::FUNCTION_INFINITY;
 			break;
 		}
 
@@ -230,7 +234,7 @@ void Solver::Solve(const Function& function,
 			dH = H.diagonal();
 		}
 		double mindiag = dH.minCoeff();
-		
+
 		if (mindiag > 0) {
 			tau = 0;
 		}
@@ -239,13 +243,15 @@ void Solver::Solve(const Function& function,
 		}
 		while (true) {
 			// Add tau*I to the Hessian.
-			for (size_t i = 0; i < n; ++i) {
-				if (use_sparsity) {
-					int ii = static_cast<int>(i);
-					sparse_H.coeffRef(ii, ii) = dH(i) + tau;
-				}
-				else {
-					H(i, i) = dH(i) + tau;
+			if (tau > 0) {
+				for (size_t i = 0; i < n; ++i) {
+					if (use_sparsity) {
+						int ii = static_cast<int>(i);
+						sparse_H.coeffRef(ii, ii) = dH(i) + tau;
+					}
+					else {
+						H(i, i) = dH(i) + tau;
+					}
 				}
 			}
 			// Attempt Cholesky factorization.
@@ -335,20 +341,20 @@ void Solver::Solve(const Function& function,
 			char str[1024];
 			if (use_sparsity) {
 				if (iter == 0) {
-					this->log_function("Itr       f       max|g_i|     alpha    fac ");
+					this->log_function("Itr       f       max|g_i|     alpha    fac    tau    min(H_ii)");
 				}
-				std::sprintf(str, "%4d %+.3e %.3e %.3e %3d",
-					iter, fval, normg, alpha, factorizations);
+				std::sprintf(str, "%4d %+.3e %.3e %.3e %3d   %.1e %+.2e",
+					iter, fval, normg, alpha, factorizations, tau, mindiag);
 			}
 			else {
 				double detH = H.determinant();
 				double normH = H.norm();
 
 				if (iter == 0) {
-					this->log_function("Itr       f       max|g_i|     ||H||      det(H)       e         alpha     fac ");
+					this->log_function("Itr       f       max|g_i|     ||H||      det(H)       e         alpha     fac   min(H_ii) ");
 				}
-				std::sprintf(str, "%4d %+.3e %.3e %.3e %+.3e %+.3e %.3e %3d",
-					iter, fval, normg, normH, detH, e, alpha, factorizations);
+				std::sprintf(str, "%4d %+.3e %.3e %.3e %+.3e %+.3e %.3e %3d   %+.2e",
+					iter, fval, normg, normH, detH, e, alpha, factorizations, mindiag);
 			}
 			this->log_function(str);
 		}
