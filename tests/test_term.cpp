@@ -4,6 +4,90 @@
 #include <spii/auto_diff_term.h>
 #include <spii/term.h>
 
+using namespace fadbad;
+
+class Func
+{
+	public:
+	template <class T>
+	T operator()(const T* x) const
+	{
+		T z=sqrt(x[0]);
+		return x[1]*z+sin(z);
+	}
+};
+
+class DFunc
+{
+	public:
+	template <class T>
+	T operator()(
+		T& o_dfdx, T& o_dfdy,
+		const T& i_x, const T& i_y)
+	{
+		F<T, 2> x(i_x), y(i_y);
+		x.diff(0);
+		y.diff(1);
+		Func func; 
+		F<T, 2> f(func(x,y));
+		o_dfdx = f.d(0);
+		o_dfdy = f.d(1);
+
+		return f.x();       // Return function value
+	}
+};
+
+template<typename Functor>
+class DDFunc
+{
+	public:
+	template <class T>
+	T operator()(
+		T& o_dfdxdx, T& o_dfdxdy,
+		T& o_dfdydx, T& o_dfdydy,
+		T& o_dfdx, T& o_dfdy,
+		const T& i_x, const T& i_y)
+	{
+		Functor func;
+		F<T, 2> x[2]  = {i_x, i_y};
+		x[0].diff(0);
+		x[1].diff(1);
+		F<T, 2> df[2];
+		F<T, 2> f(differentiate_functor<Functor, F<T, 2>, 2>(func, x, df));   // Evaluate function and derivatives
+		o_dfdx = df[0].x();
+		o_dfdy = df[1].x();
+		o_dfdxdx = df[0].d(0);
+		o_dfdxdy = df[0].d(1);
+		o_dfdydx = df[1].d(0);
+		o_dfdydy = df[1].d(1);
+
+		return f.x();
+	}
+
+};
+
+TEST(FADBAD, differentiate_functor)
+{
+	using namespace std;
+	double f,dfdx,dfdy,
+	       dfdxdx,dfdxdy,
+	       dfdydx,dfdydy;
+	double x=1.3;
+	double y=2;
+	f=DDFunc<Func>()(dfdxdx,dfdxdy,
+	                 dfdydx,dfdydy,
+	                 dfdx,dfdy,x,y);  // Evaluate function and derivatives
+
+	// Check all derivatives.
+	EXPECT_DOUBLE_EQ(f, y * sqrt(x) + sin(sqrt(x)));
+	EXPECT_DOUBLE_EQ(dfdx, (y + cos(sqrt(x))) / (2.0*sqrt(x)));
+	EXPECT_DOUBLE_EQ(dfdy, sqrt(x));
+	EXPECT_DOUBLE_EQ(dfdxdx, -(y + cos(sqrt(x)) + sqrt(x)*sin(sqrt(x)))/(4*pow(x,3.0/2.0)));
+	EXPECT_DOUBLE_EQ(dfdxdy, 1.0 / (2.0*sqrt(x)));
+	EXPECT_DOUBLE_EQ(dfdydx, 1.0 / (2.0*sqrt(x)));
+	EXPECT_DOUBLE_EQ(dfdydy, 0.0);
+}
+
 class MyTerm: public SizedTerm<2, 3>
 {
 public:
@@ -47,7 +131,7 @@ public:
 	}
 
 	template<typename R>
-	R operator()(const R* const x)
+	R operator()(const R* const x) const
 	{
 		return 0.0;
 	}
@@ -69,7 +153,7 @@ class MyFunctor1
 {
 public:
 	template<typename R>
-	R operator()(const R* const x)
+	R operator()(const R* const x) const
 	{
 		return sin(x[0]) + cos(x[1]) + R(1.4)*x[0]*x[1] + R(1.0);
 	}
@@ -114,7 +198,7 @@ class MyFunctor2
 {
 public:
 	template<typename R>
-	R operator()(const R* const x, const R* const y)
+	R operator()(const R* const x, const R* const y) const
 	{
 		return sin(x[0]) + cos(y[0]) + R(1.4)*x[0]*y[0] + R(1.0);
 	}
