@@ -63,12 +63,6 @@ void Function::add_term(const Term* term, const std::vector<double*>& arguments)
 	terms.back().term = term;
 	terms.back().user_variables = arguments;
 
-	// Create enough space for the temporary point.
-	int storage_needed = 0;
-	for (int var = 0; var < term->number_of_variables(); ++var) {
-		storage_needed += term->variable_dimension(var);
-	}
-
 	for (int var = 0; var < term->number_of_variables(); ++var) {
 		// Stora a pointer to temporary storage for this variable.
 		double* temp_space = &this->variables[arguments[var]].temp_space[0];
