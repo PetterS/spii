@@ -88,7 +88,7 @@ void Solver::Solve(const Function& function,
 	}
 
 	// Current point, gradient and Hessian.
-	double fval, fprev, normg0, normg, normdx;
+	double fval, fprev = 0, normg0 = 0, normg = 0, normdx = 0;
 	Eigen::VectorXd x, g;
 	Eigen::MatrixXd H;
 	Eigen::SparseMatrix<double> sparse_H;
