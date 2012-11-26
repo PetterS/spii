@@ -50,6 +50,9 @@ public:
 	void Solve(const Function& function,
 	           SolverResults* results) const;
 
+	void solve_lbfgs(const Function& function,
+	                 SolverResults* results) const;
+
 	// Mode of operation. How the Hessian is stored.
 	// Default: AUTO.
 	enum {DENSE, SPARSE, AUTO} sparsity_mode;
@@ -73,6 +76,27 @@ public:
 	// Argument improvement tolerance. The solver terminates
 	// if ||dx|| / (||x|| + tol) < tol. Default: 1e-12.
 	double argument_improvement_tolerance;
+
+private:
+
+	// Computes a Newton step given a function, a gradient and a
+	// Hessian.
+	bool check_exit_conditions(const double fval,
+	                           const double fprev,
+	                           const double gnorm,
+							   const double gnorm0,
+	                           const double xnorm,
+	                           const double dxnorm,
+	                           SolverResults* results) const;
+
+	// Performs a line search from x along direction p. Returns
+	// alpha, the multiple of p to get to the new point.
+	double perform_linesearch(const Function& function,
+	                          const Eigen::VectorXd& x,
+	                          const double fval,
+	                          const Eigen::VectorXd& g,
+	                          const Eigen::VectorXd& p,
+	                          Eigen::VectorXd* scratch) const;                     
 };
 
 #endif

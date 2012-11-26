@@ -88,7 +88,12 @@ void Solver::Solve(const Function& function,
 	}
 
 	// Current point, gradient and Hessian.
-	double fval, fprev = 0, normg0 = 0, normg = 0, normdx = 0;
+	double fval   = std::numeric_limits<double>::quiet_NaN();;
+	double fprev  = std::numeric_limits<double>::quiet_NaN();
+	double normg0 = std::numeric_limits<double>::quiet_NaN();
+	double normg  = std::numeric_limits<double>::quiet_NaN();
+	double normdx = std::numeric_limits<double>::quiet_NaN();
+
 	Eigen::VectorXd x, g;
 	Eigen::MatrixXd H;
 	Eigen::SparseMatrix<double> sparse_H;
@@ -125,9 +130,6 @@ void Solver::Solve(const Function& function,
 		sparse_factorization->analyzePattern(sparse_H);
 	}
 
-	// Starting value for alpha during line search.
-	double alpha_start = 1.0;
-
 	//
 	// START MAIN ITERATION
 	//
@@ -161,59 +163,15 @@ void Solver::Solve(const Function& function,
 		// Test stopping criteriea
 		//
 		start_time = wall_time();
-		if (fval != fval) {
-			// NaN encountered.
-			if (this->log_function) {
-				this->log_function("f(x) is NaN.");
-			}
-			results->exit_condition = SolverResults::FUNCTION_NAN;
+		if (this->check_exit_conditions(fval, fprev, normg,
+			                            normg0, x.norm(), normdx,
+			                            results)) {
 			break;
 		}
-
-		if (iter >= 1) {
-			if (normg / normg0 < this->gradient_tolerance) {
-				results->exit_condition = SolverResults::GRADIENT_TOLERANCE;
-				break;
-			}
-
-			if (abs(fval - fprev) / (abs(fval) + this->function_improvement_tolerance) <
-			                                     this->function_improvement_tolerance) {
-				results->exit_condition = SolverResults::FUNCTION_TOLERANCE;
-				break;
-			}
-
-			if (normdx / (x.norm() + this->argument_improvement_tolerance) <
-			                         this->argument_improvement_tolerance) {
-				results->exit_condition = SolverResults::ARGUMENT_TOLERANCE;
-				break;
-			}
-		}
-
-		if (fval ==  std::numeric_limits<double>::infinity() ||
-			fval == -std::numeric_limits<double>::infinity()) {
-			// Infinity encountered.
-			if (this->log_function) {
-				this->log_function("f(x) is infinity.");
-			}
-			results->exit_condition = SolverResults::FUNCTION_INFINITY;
-			break;
-		}
-
 		if (iter >= this->maximum_iterations) {
 			results->exit_condition = SolverResults::NO_CONVERGENCE;
 			break;
 		}
-
-		double e = std::numeric_limits<double>::quiet_NaN();
-		if (!use_sparsity) {
-			if (n < 100) {
-				// Compute smallest eigenvalue of the Hessian.
-				Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> ES(H, Eigen:: EigenvaluesOnly);
-				Eigen::VectorXd values = ES.eigenvalues();
-				e = values.minCoeff();
-			}
-		}
-
 		results->stopping_criteria_time += wall_time() - start_time;
 
 		//
@@ -293,33 +251,14 @@ void Solver::Solve(const Function& function,
 		results->linear_solver_time += wall_time() - start_time;
 
 		//
-		// Perform back-tracking line search.
+		// Perform line search.
 		//
 		start_time = wall_time();
-
-		double alpha = alpha_start;
-		double rho = 0.5;
-		double c = 0.5;
-		int backtracking_attempts = 0;
-		while (true) {
-			x2 = x + alpha * p;
-			double lhs = function.evaluate(x2);
-			double rhs = fval + c * alpha * g.dot(p);
-			if (lhs <= rhs) {
-				break;
-			}
-			alpha *= rho;
-
-			backtracking_attempts++;
-			if (backtracking_attempts > 100) {
-				throw std::runtime_error("Solver::solve: Backtracking failed.");
-			}
-		}
-		x = x2;
-
+		double alpha = this->perform_linesearch(function, x, fval, g, p, &x2);
 		// Record length of this step.
 		normdx = alpha * p.norm();
-
+		// Update current point.
+		x = x + alpha * p;
 		results->backtracking_time += wall_time() - start_time;
 
 		//
@@ -351,10 +290,10 @@ void Solver::Solve(const Function& function,
 				double normH = H.norm();
 
 				if (iter == 0) {
-					this->log_function("Itr       f       max|g_i|     ||H||      det(H)       e         alpha     fac   min(H_ii) ");
+					this->log_function("Itr       f       max|g_i|     ||H||      det(H)        alpha     fac   min(H_ii) ");
 				}
-				std::sprintf(str, "%4d %+.3e %.3e %.3e %+.3e %+.3e %.3e %3d   %+.2e",
-					iter, fval, normg, normH, detH, e, alpha, factorizations, mindiag);
+				std::sprintf(str, "%4d %+.3e %.3e %.3e %+.3e %.3e %3d   %+.2e",
+					iter, fval, normg, normH, detH, alpha, factorizations, mindiag);
 			}
 			this->log_function(str);
 		}
