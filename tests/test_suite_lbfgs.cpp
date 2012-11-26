@@ -16,7 +16,7 @@
 #include <spii/solver.h>
 
 template<typename Functor, int dimension>
-double run_test(double* var, const Solver* solver = 0)
+double run_test(double* var, Solver* solver = 0)
 {
 	Function f;
 	f.add_variable(var, dimension);
@@ -27,7 +27,10 @@ double run_test(double* var, const Solver* solver = 0)
 		solver = &own_solver;
 	}
 	SolverResults results;
-	solver->Solve(f, &results);
+	solver->maximum_iterations = 200;
+	solver->gradient_tolerance = 1e-16;
+	solver->argument_improvement_tolerance = 1e-16;
+	solver->solve_lbfgs(f, &results);
 	std::cerr << results;
 
 	for (int i = 0; i < dimension; ++i) {

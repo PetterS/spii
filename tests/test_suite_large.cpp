@@ -35,7 +35,7 @@ struct EasyRosenbrockTerm
 	}
 };
 
-template<typename Functor, size_t n>
+template<typename Functor, size_t n, bool lbfgs>
 void test_rosenbrock()
 {
 	Function f;
@@ -63,7 +63,12 @@ void test_rosenbrock()
 	Solver solver;
 	solver.maximum_iterations = 10000;
 	SolverResults results;
-	solver.Solve(f, &results);
+	if (lbfgs) {
+		solver.solve_lbfgs(f, &results);
+	}
+	else {
+		solver.Solve(f, &results);
+	}
 	std::cerr << results;
 
 	EXPECT_TRUE(results.exit_condition == SolverResults::ARGUMENT_TOLERANCE ||
@@ -78,15 +83,26 @@ void test_rosenbrock()
 }
 
 
-TEST(Solver, EasyRosenbrock1000)
+TEST(Newton, EasyRosenbrock1000)
 {
-	test_rosenbrock<EasyRosenbrockTerm, 1000>();
+	test_rosenbrock<EasyRosenbrockTerm, 1000, false>();
 }
 
-TEST(Solver, EasyRosenbrock10000)
+TEST(Newton, EasyRosenbrock10000)
 {
-	test_rosenbrock<EasyRosenbrockTerm, 10000>();
+	test_rosenbrock<EasyRosenbrockTerm, 10000, false>();
 }
+
+TEST(LBFGS, EasyRosenbrock1000)
+{
+	test_rosenbrock<EasyRosenbrockTerm, 1000, true>();
+}
+
+TEST(LBFGS, EasyRosenbrock10000)
+{
+	test_rosenbrock<EasyRosenbrockTerm, 10000, true>();
+}
+
 
 struct LennardJones
 {
@@ -103,7 +119,8 @@ struct LennardJones
 	}
 };
 
-TEST(Solver, LennardJones)
+template<bool lbfgs>
+void test_Lennard_Jones()
 {
 	std::mt19937 prng(0);
 	std::normal_distribution<double> normal;
@@ -138,17 +155,33 @@ TEST(Solver, LennardJones)
 	}
 
 	Solver solver;
-	solver.maximum_iterations = 100;
+	solver.maximum_iterations = 1000;
 	// All points interact with all points, so the Hessian
 	// will be dense.
 	solver.sparsity_mode = Solver::DENSE;
 	SolverResults results;
-	solver.Solve(potential, &results);
+	if (lbfgs) {
+		solver.solve_lbfgs(potential, &results);
+	}
+	else {
+		solver.Solve(potential, &results);
+	}
 	std::cerr << results;
+	potential.print_timing_information(std::cerr);
 
 	EXPECT_TRUE(results.exit_condition == SolverResults::ARGUMENT_TOLERANCE ||
 	            results.exit_condition == SolverResults::FUNCTION_TOLERANCE ||
 	            results.exit_condition == SolverResults::GRADIENT_TOLERANCE);
+}
+
+TEST(Newton, LennardJones)
+{
+	test_Lennard_Jones<false>();
+}
+
+TEST(LBFGS, LennardJones)
+{
+	test_Lennard_Jones<true>();
 }
 
 struct Trid1
@@ -170,7 +203,7 @@ struct Trid2
 	}
 };
 
-template<size_t n>
+template<size_t n, bool lbfgs>
 void test_trid()
 {
 	Function f;
@@ -198,7 +231,13 @@ void test_trid()
 	//solver.argument_improvement_tolerance = 1e-16;
 	//solver.gradient_tolerance = 1e-16;
 	SolverResults results;
-	solver.Solve(f, &results);
+	if (lbfgs) {
+		solver.maximum_iterations = 1000;
+		solver.solve_lbfgs(f, &results);
+	}
+	else {
+		solver.Solve(f, &results);
+	}
 	std::cerr << results;
 
 	double fval = f.evaluate();
@@ -228,22 +267,20 @@ void test_trid()
 	}
 }
 
-TEST(Solver, Trid10) 
+TEST(Newton, Trid10) 
 {
-	test_trid<10>();
+	test_trid<10, false>();
 }
 
-TEST(Solver, Trid1000) 
+TEST(Newton, Trid1000) 
 {
-	test_trid<1000>();
+	test_trid<1000, false>();
 }
 
-TEST(Solver, Trid10000) 
+TEST(Newton, Trid10000) 
 {
-	test_trid<10000>();
+	test_trid<10000, false>();
 }
-
-
 
 struct LogBarrier01
 {
@@ -271,7 +308,7 @@ struct QuadraticFunction1
 	double b;
 };
 
-TEST(Solver, Barrier)
+TEST(Newton, Barrier)
 {
 	std::mt19937 prng(0);
 	std::normal_distribution<double> normal;

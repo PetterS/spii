@@ -84,6 +84,10 @@ public:
 	// Evaluation using a global vector.
 	double evaluate(const Eigen::VectorXd& x) const;
 
+	// Evaluate the function and compute the gradient at the point x. 
+	double evaluate(const Eigen::VectorXd& x, 
+	                Eigen::VectorXd* gradient) const;
+
 	// Evaluate the function and compute the gradient and Hessian matrix
 	// at the point x. Dense version.
 	double evaluate(const Eigen::VectorXd& x, 

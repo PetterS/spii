@@ -22,6 +22,8 @@ public:
 	virtual int variable_dimension(int var) const = 0;
 	virtual double evaluate(double * const * const variables) const = 0;
 	virtual double evaluate(double * const * const variables,
+	                        std::vector<Eigen::VectorXd>* gradient) const = 0;
+	virtual double evaluate(double * const * const variables,
 	                        std::vector<Eigen::VectorXd>* gradient,
 	                        std::vector< std::vector<Eigen::MatrixXd> >* hessian) const = 0;
 };

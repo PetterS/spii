@@ -69,6 +69,26 @@ public:
 	}
 
 	virtual double evaluate(double * const * const variables,
+	                        std::vector<Eigen::VectorXd>* gradient) const
+	{
+		using namespace fadbad;
+
+		F<double, D0> vars[D0];
+		for (int i = 0; i < D0; ++i) {
+			vars[i] = variables[0][i];
+			vars[i].diff(i); 
+		}
+
+		F<double, D0> f((*functor)(vars));
+
+		for (int i = 0; i < D0; ++i) {
+			(*gradient)[0](i) = f.d(i);
+		}
+
+		return f.x();
+	}
+
+	virtual double evaluate(double * const * const variables,
 	                        std::vector<Eigen::VectorXd>* gradient,
 	                        std::vector< std::vector<Eigen::MatrixXd> >* hessian) const
 	{
@@ -167,6 +187,37 @@ public:
 	virtual double evaluate(double * const * const variables) const
 	{
 		return (*functor)(variables[0], variables[1]);
+	}
+
+	virtual double evaluate(double * const * const variables,
+	                        std::vector<Eigen::VectorXd>* gradient) const
+	{
+		using namespace fadbad;
+
+		F<double, D0 + D1> vars0[D0];
+		for (int i = 0; i < D0; ++i) {
+			vars0[i] = variables[0][i];
+			vars0[i].diff(i); 
+		}
+
+		F<double, D0 + D1> vars1[D1];
+		int offset1 = D0;
+		for (int i = 0; i < D1; ++i) {
+			vars1[i] = variables[1][i];
+			vars1[i].diff(i + offset1); 
+		}
+
+		F<double, D0 + D1> f((*functor)(vars0, vars1));
+
+		for (int i = 0; i < D0; ++i) {
+			(*gradient)[0](i) = f.d(i);
+		}
+
+		for (int i = 0; i < D1; ++i) {
+			(*gradient)[1](i) = f.d(i + offset1);
+		}
+
+		return f.x();
 	}
 
 	virtual double evaluate(double * const * const variables,

@@ -29,16 +29,33 @@ void Solver::solve_lbfgs(const Function& function,
 	double normdx = std::numeric_limits<double>::quiet_NaN();
 
 	Eigen::VectorXd x, g;
-	Eigen::MatrixXd H;
-	Eigen::SparseMatrix<double> sparse_H;
-	function.create_sparse_hessian(&sparse_H);
 
 	// Copy the user state to the current point.
 	function.copy_user_to_global(&x);
 	Eigen::VectorXd x2(n);
 
-	// p will store the search direction.
-	Eigen::VectorXd p(function.get_number_of_scalars());
+	// p will store the search directions.
+	const int history_size = 10;
+
+	std::vector<Eigen::VectorXd>  s_data(history_size),
+	                              y_data(history_size);
+	std::vector<Eigen::VectorXd*> s(history_size),
+	                              y(history_size);
+	for (int h = 0; h < history_size; ++h) {
+		s_data[h].resize(function.get_number_of_scalars());
+		s_data[h].setZero();
+		y_data[h].resize(function.get_number_of_scalars());
+		y_data[h].setZero();
+		s[h] = &s_data[h];
+		y[h] = &y_data[h];
+	}
+
+	Eigen::VectorXd rho(history_size);
+	rho.setZero();
+
+	Eigen::VectorXd alpha(history_size);
+	Eigen::VectorXd q(n);
+	Eigen::VectorXd r(n);
 
 	//
 	// START MAIN ITERATION
@@ -52,7 +69,19 @@ void Solver::solve_lbfgs(const Function& function,
 		// Evaluate function and derivatives.
 		//
 		double start_time = wall_time();
-		fval = function.evaluate(x, &g, &sparse_H);
+		// y[0] should contain the difference between the gradient
+		// in this iteration and the gradient from the previous.
+		// Therefore, update y before and after evaluating the
+		// function.
+		if (iter > 0) {
+			*y[0] = -g;
+		}
+		fval = function.evaluate(x, &g);
+		// Now continue to update y with the new gradient.
+		if (iter > 0) {
+			*y[0] += g;
+			rho[0] = 1.0 / y[0]->dot(*s[0]);
+		}
 
 		normg = std::max(g.maxCoeff(), -g.minCoeff());
 		if (iter == 0) {
@@ -76,20 +105,67 @@ void Solver::solve_lbfgs(const Function& function,
 		results->stopping_criteria_time += wall_time() - start_time;
 
 		//
-		// Compute search direction
+		// Compute search direction via L-BGFS two-loop recursion.
 		//
-		p = -g;
+		start_time = wall_time();
+
+		double H0 = 1.0;
+		if (iter > 0) {
+			H0 = s[0]->dot(*y[0]) / y[0]->dot(*y[0]);
+		}
+
+		q = -g;
+
+		for (int h = 0; h < history_size; ++h) {
+			alpha[h] = rho[h] * s[h]->dot(q); 
+			q = q - alpha[h] * (*y[h]);
+		}
+
+		r = H0 * q;
+
+		for (int h = history_size - 1; h >= 0; --h) {
+			double beta = rho[h] * y[h]->dot(r);
+			r = r + (*s[h]) * (alpha[h] - beta);
+		}
+
+		results->lbfgs_update_time += wall_time() - start_time;
 
 		//
 		// Perform line search.
 		//
 		start_time = wall_time();
-		double alpha = this->perform_linesearch(function, x, fval, g, p, &x2);
+		double alpha_step = this->perform_linesearch(function, x, fval, g, r, &x2);
 		// Record length of this step.
-		normdx = alpha * p.norm();
-		// Update current point.
-		x = x + alpha * p;
+		normdx = alpha_step * r.norm();
 		results->backtracking_time += wall_time() - start_time;
+
+		//
+		// Update history
+		//
+		start_time = wall_time();
+
+		// Shift all pointers one step back, discarding the oldest one.
+		Eigen::VectorXd* sh = s[history_size - 1];
+		Eigen::VectorXd* yh = y[history_size - 1];
+		for (int h = history_size - 1; h >= 1; --h) {
+			s[h]   = s[h - 1];
+			y[h]   = y[h - 1];
+			rho[h] = rho[h - 1];
+		}
+		// Reuse the storage of the discarded data for the new data.
+		s[0] = sh;
+		y[0] = yh;
+
+		// Compute new point.
+		x2 = x + alpha_step * r;
+		(*s[0]) = x2 - x;
+		// y[0] will be updated in the next iteration right when
+		// evaluating the function.
+
+		// Move to the new point.
+		x = x2;
+
+		results->lbfgs_update_time += wall_time() - start_time;
 
 		//
 		// Log the results of this iteration.
@@ -109,10 +185,10 @@ void Solver::solve_lbfgs(const Function& function,
 		if (this->log_function && iter % log_interval == 0) {
 			char str[1024];
 				if (iter == 0) {
-					this->log_function("Itr       f       max|g_i|     alpha");
+					this->log_function("Itr       f       max|g_i|     alpha       H0       rho");
 				}
-				std::sprintf(str, "%4d %+.3e %.3e %.3e",
-					iter, fval, normg, alpha);
+				std::sprintf(str, "%4d %+.3e %.3e %.3e %.3e %.3e",
+					iter, fval, normg, alpha_step, H0, rho[0]);
 			this->log_function(str);
 		}
 		results->log_time += wall_time() - start_time;

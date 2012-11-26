@@ -97,6 +97,12 @@ public:
 	}
 
 	virtual double evaluate(double * const * const variables,
+	                        std::vector<Eigen::VectorXd>* gradient) const
+	{
+		return 0;
+	}
+
+	virtual double evaluate(double * const * const variables,
 	                        std::vector<Eigen::VectorXd>* gradient,
 	                        std::vector< std::vector<Eigen::MatrixXd> >* hessian) const
 	{

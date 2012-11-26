@@ -99,10 +99,10 @@ void Function::add_term(const Term* term, double* argument0, double* argument1)
 
 void Function::print_timing_information(std::ostream& out) const
 {
-	out << "Function evaluate time                : " << evaluate_time << '\n';
-	out << "Function evaluate time (with hessian) : " << evaluate_with_hessian_time << '\n';
-	out << "Function write hessian time           : " << write_gradient_hessian_time << '\n';
-	out << "Function copy data time               : " << copy_time << '\n';
+	out << "Function evaluate time            : " << evaluate_time << '\n';
+	out << "Function evaluate time (with g/H) : " << evaluate_with_hessian_time << '\n';
+	out << "Function write g/H time           : " << write_gradient_hessian_time << '\n';
+	out << "Function copy data time           : " << copy_time << '\n';
 }
 
 double Function::evaluate(const Eigen::VectorXd& x) const
@@ -128,8 +128,11 @@ double Function::evaluate() const
 	double start_time = wall_time();
 
 	double value = 0;
-	for (auto itr = terms.begin(); itr != terms.end(); ++itr) {
-		value += itr->term->evaluate(&itr->user_variables[0]);
+	#ifdef USE_OPENMP
+	#pragma omp parallel for reduction(+ : value)
+	#endif
+	for (int i = 0; i < terms.size(); ++i) {
+		value += terms[i].term->evaluate(&terms[i].user_variables[0]);
 	}
 
 	this->evaluate_time += wall_time() - start_time;
@@ -217,6 +220,53 @@ void Function::copy_global_to_user(const Eigen::VectorXd& x) const
 	this->copy_time += wall_time() - start_time;
 }
 
+double Function::evaluate(const Eigen::VectorXd& x,
+                          Eigen::VectorXd* gradient) const
+{
+	// Copy values from the global vector x to the temporary storage
+	// used for evaluating the term.
+	this->copy_global_to_local(x);
+
+	double start_time = wall_time();
+
+	double value = 0;
+	// Create the global gradient.
+	gradient->resize(this->number_of_scalars);
+	gradient->setConstant(0.0);
+
+	this->write_gradient_hessian_time += wall_time() - start_time;
+	start_time = wall_time();
+
+	// Go through and evaluate each term.
+	// OpenMP requires a signed data type as the loop variable.
+	#ifdef USE_OPENMP
+	#pragma omp parallel for reduction(+ : value)
+	#endif
+	for (int i = 0; i < terms.size(); ++i) {
+		// Evaluate the term and put its gradient and hessian
+		// into local storage.
+		value += terms[i].term->evaluate(&terms[i].temp_variables[0], 
+		                                 &terms[i].gradient);
+		                                 //&terms[i].hessian);
+	}
+	
+	this->evaluate_with_hessian_time += wall_time() - start_time;
+	start_time = wall_time();
+
+	// Go through each term.
+	for (auto itr = terms.begin(); itr != terms.end(); ++itr) {
+		// Put the gradient into the global gradient.
+		for (int var = 0; var < itr->term->number_of_variables(); ++var) {
+			size_t global_offset = this->global_index(itr->user_variables[var]);
+			for (int i = 0; i < itr->term->variable_dimension(var); ++i) {
+				(*gradient)[global_offset + i] += itr->gradient[var][i];
+			}
+		}
+	}
+
+	this->write_gradient_hessian_time += wall_time() - start_time;
+	return value;
+}
 
 double Function::evaluate(const Eigen::VectorXd& x,
                           Eigen::VectorXd* gradient,

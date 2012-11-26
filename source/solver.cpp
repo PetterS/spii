@@ -19,6 +19,7 @@ SolverResults::SolverResults()
 	this->function_evaluation_time  = 0;
 	this->stopping_criteria_time    = 0;
 	this->matrix_factorization_time = 0;
+	this->lbfgs_update_time         = 0;
 	this->linear_solver_time        = 0;
 	this->backtracking_time         = 0;
 	this->log_time                  = 0;
@@ -43,10 +44,11 @@ std::ostream& operator<<(std::ostream& out, const SolverResults& results)
 	out << "Function evaluation time  : " << results.function_evaluation_time << '\n';
 	out << "Stopping criteria time    : " << results.stopping_criteria_time << '\n';
 	out << "Matrix factorization time : " << results.matrix_factorization_time << '\n';
+	out << "L-BFGS update time        : " << results.lbfgs_update_time << '\n';
 	out << "Linear solver time        : " << results.linear_solver_time << '\n';
 	out << "Backtracking time         : " << results.backtracking_time << '\n';
 	out << "Log time                  : " << results.log_time << '\n';
-	out << "Total time                : " << results.total_time << '\n';
+	out << "Total time (without log)  : " << results.total_time - results.log_time << '\n';
 	out << "----------------------------------------------\n";
 	return out;
 }

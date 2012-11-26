@@ -32,6 +32,7 @@ struct SolverResults
 	double function_evaluation_time;
 	double stopping_criteria_time;
 	double matrix_factorization_time;
+	double lbfgs_update_time;
 	double linear_solver_time;
 	double backtracking_time;
 	double log_time;
