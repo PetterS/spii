@@ -40,6 +40,7 @@ struct SolverResults
 
 std::ostream& operator<<(std::ostream& out, const SolverResults& results);
 
+// Default log function that prints its argument to std::cerr.
 void cerr_log_function(const std::string& log_message);
 
 class Solver
@@ -54,6 +55,7 @@ public:
 	enum {DENSE, SPARSE, AUTO} sparsity_mode;
 
 	// Function called each iteration with a log message.
+	// Default: cerr_log_function.
 	void (*log_function)(const std::string& log_message);
 
 	// Maximum number of iterations. Default: 100.
