@@ -1,4 +1,11 @@
-
+// Petter Strandmark 2012
+//
+// Test functions from
+// Jorge J. More, Burton S. Garbow and Kenneth E. Hillstrom,
+// "Testing unconstrained optimization software",
+// Transactions on Mathematical Software 7(1):17-41, 1981.
+// http://www.caam.rice.edu/~zhang/caam454/nls/MGH.pdf
+//
 #include <cmath>
 #include <iostream>
 #include <random>
