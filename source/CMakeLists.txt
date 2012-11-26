@@ -3,6 +3,9 @@
 SET(SPII_INTERNAL_SRC
 	function.cpp
 	solver.cpp
+	solver_line_search.cpp
+	solver_stopping_criteria.cpp
+	solver_lbfgs.cpp
 	term.cpp
 )
 
