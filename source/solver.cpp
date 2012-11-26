@@ -61,6 +61,8 @@ Solver::Solver()
 	this->gradient_tolerance = 1e-12;
 	this->function_improvement_tolerance = 1e-12;
 	this->argument_improvement_tolerance = 1e-12;
+
+	this->lbfgs_history_size = 10;
 }
 
 void Solver::Solve(const Function& function,

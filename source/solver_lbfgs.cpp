@@ -34,14 +34,12 @@ void Solver::solve_lbfgs(const Function& function,
 	function.copy_user_to_global(&x);
 	Eigen::VectorXd x2(n);
 
-	// p will store the search directions.
-	const int history_size = 10;
-
-	std::vector<Eigen::VectorXd>  s_data(history_size),
-	                              y_data(history_size);
-	std::vector<Eigen::VectorXd*> s(history_size),
-	                              y(history_size);
-	for (int h = 0; h < history_size; ++h) {
+	// L-BFGS history.
+	std::vector<Eigen::VectorXd>  s_data(this->lbfgs_history_size),
+	                              y_data(this->lbfgs_history_size);
+	std::vector<Eigen::VectorXd*> s(this->lbfgs_history_size),
+	                              y(this->lbfgs_history_size);
+	for (int h = 0; h < this->lbfgs_history_size; ++h) {
 		s_data[h].resize(function.get_number_of_scalars());
 		s_data[h].setZero();
 		y_data[h].resize(function.get_number_of_scalars());
@@ -50,10 +48,10 @@ void Solver::solve_lbfgs(const Function& function,
 		y[h] = &y_data[h];
 	}
 
-	Eigen::VectorXd rho(history_size);
+	Eigen::VectorXd rho(this->lbfgs_history_size);
 	rho.setZero();
 
-	Eigen::VectorXd alpha(history_size);
+	Eigen::VectorXd alpha(this->lbfgs_history_size);
 	Eigen::VectorXd q(n);
 	Eigen::VectorXd r(n);
 
@@ -116,14 +114,14 @@ void Solver::solve_lbfgs(const Function& function,
 
 		q = -g;
 
-		for (int h = 0; h < history_size; ++h) {
+		for (int h = 0; h < this->lbfgs_history_size; ++h) {
 			alpha[h] = rho[h] * s[h]->dot(q); 
 			q = q - alpha[h] * (*y[h]);
 		}
 
 		r = H0 * q;
 
-		for (int h = history_size - 1; h >= 0; --h) {
+		for (int h = this->lbfgs_history_size - 1; h >= 0; --h) {
 			double beta = rho[h] * y[h]->dot(r);
 			r = r + (*s[h]) * (alpha[h] - beta);
 		}
@@ -137,6 +135,8 @@ void Solver::solve_lbfgs(const Function& function,
 		double alpha_step = this->perform_linesearch(function, x, fval, g, r, &x2);
 		// Record length of this step.
 		normdx = alpha_step * r.norm();
+		// Compute new point.
+		x2 = x + alpha_step * r;
 		results->backtracking_time += wall_time() - start_time;
 
 		//
@@ -145,9 +145,9 @@ void Solver::solve_lbfgs(const Function& function,
 		start_time = wall_time();
 
 		// Shift all pointers one step back, discarding the oldest one.
-		Eigen::VectorXd* sh = s[history_size - 1];
-		Eigen::VectorXd* yh = y[history_size - 1];
-		for (int h = history_size - 1; h >= 1; --h) {
+		Eigen::VectorXd* sh = s[this->lbfgs_history_size - 1];
+		Eigen::VectorXd* yh = y[this->lbfgs_history_size - 1];
+		for (int h = this->lbfgs_history_size - 1; h >= 1; --h) {
 			s[h]   = s[h - 1];
 			y[h]   = y[h - 1];
 			rho[h] = rho[h - 1];
@@ -156,8 +156,6 @@ void Solver::solve_lbfgs(const Function& function,
 		s[0] = sh;
 		y[0] = yh;
 
-		// Compute new point.
-		x2 = x + alpha_step * r;
 		(*s[0]) = x2 - x;
 		// y[0] will be updated in the next iteration right when
 		// evaluating the function.

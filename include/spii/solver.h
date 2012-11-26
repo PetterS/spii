@@ -78,6 +78,10 @@ public:
 	// if ||dx|| / (||x|| + tol) < tol. Default: 1e-12.
 	double argument_improvement_tolerance;
 
+	// Number of vectors L-BFGS should save in its history.
+	// Default: 10.
+	int lbfgs_history_size;
+
 private:
 
 	// Computes a Newton step given a function, a gradient and a
