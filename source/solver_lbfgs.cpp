@@ -52,6 +52,7 @@ void Solver::solve_lbfgs(const Function& function,
 	rho.setZero();
 
 	Eigen::VectorXd alpha(this->lbfgs_history_size);
+	alpha.setZero();
 	Eigen::VectorXd q(n);
 	Eigen::VectorXd r(n);
 
@@ -95,7 +96,7 @@ void Solver::solve_lbfgs(const Function& function,
 			y_tmp += g;
 
 			double sTy = s_tmp.dot(y_tmp);
-			if (true || sTy > 1e-16) {		
+			if (sTy > 1e-16) {		
 				// Shift all pointers one step back, discarding the oldest one.
 				Eigen::VectorXd* sh = s[this->lbfgs_history_size - 1];
 				Eigen::VectorXd* yh = y[this->lbfgs_history_size - 1];
@@ -111,11 +112,6 @@ void Solver::solve_lbfgs(const Function& function,
 				*y[0] = y_tmp;
 				*s[0] = s_tmp;
 				rho[0] = 1.0 / sTy;
-			}
-			else {
-				if (this->log_function) {
-					this->log_function("Did not update history.");
-				}
 			}
 		}
 
@@ -166,7 +162,16 @@ void Solver::solve_lbfgs(const Function& function,
 		// Perform line search.
 		//
 		start_time = wall_time();
-		double alpha_step = this->perform_linesearch(function, x, fval, g, r, &x2);
+		double start_alpha = 1.0;
+		if (iter == 0) {
+			double sumabsg = 0.0;
+			for (size_t i = 0; i < n; ++i) {
+				sumabsg += std::abs(g[i]);
+			}
+			start_alpha = std::min(1.0, 1.0 / sumabsg);
+		}
+		double alpha_step = this->perform_linesearch(function, x, fval, g,
+		                                             r, &x2, start_alpha);
 		// Record length of this step.
 		normdx = alpha_step * r.norm();
 		// Compute new point.

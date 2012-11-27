@@ -27,9 +27,11 @@ double run_test(double* var, Solver* solver = 0)
 		solver = &own_solver;
 	}
 	SolverResults results;
-	solver->maximum_iterations = 200;
-	solver->gradient_tolerance = 1e-16;
+	solver->maximum_iterations = 1000;
+	solver->function_improvement_tolerance = 1e-16;
+	solver->gradient_tolerance = 1e-12;
 	solver->argument_improvement_tolerance = 1e-16;
+	solver->lbfgs_history_size = 40;
 	solver->solve_lbfgs(f, &results);
 	std::cerr << results;
 

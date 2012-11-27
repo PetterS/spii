@@ -8,7 +8,8 @@ double Solver::perform_linesearch(const Function& function,
                                   const double fval,
 								  const Eigen::VectorXd& g,
                                   const Eigen::VectorXd& p,
-                                  Eigen::VectorXd* scratch) const
+                                  Eigen::VectorXd* scratch,
+								  const double start_alpha) const
 {
 	//
 	// Perform back-tracking line search.
@@ -16,9 +17,9 @@ double Solver::perform_linesearch(const Function& function,
 
 	// Starting value for alpha during line search. Newton and
 	// quasi-Newton methods should choose 1.0.
-	double alpha = 1.0;
+	double alpha = start_alpha;
 	double rho = 0.5;
-	double c = 0.5;
+	double c = 1e-4;
 	double gTp = g.dot(p);
 	int backtracking_attempts = 0;
 	while (true) {

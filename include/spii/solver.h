@@ -101,7 +101,8 @@ private:
 	                          const double fval,
 	                          const Eigen::VectorXd& g,
 	                          const Eigen::VectorXd& p,
-	                          Eigen::VectorXd* scratch) const;                     
+	                          Eigen::VectorXd* scratch,
+	                          const double start_alpha = 1.0) const;                     
 };
 
 #endif
