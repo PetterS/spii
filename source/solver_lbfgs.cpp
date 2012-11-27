@@ -55,6 +55,9 @@ void Solver::solve_lbfgs(const Function& function,
 	Eigen::VectorXd q(n);
 	Eigen::VectorXd r(n);
 
+	// Needed from the previous iteration.
+	Eigen::VectorXd x_prev(n), s_tmp(n), y_tmp(n);
+
 	//
 	// START MAIN ITERATION
 	//
@@ -72,20 +75,51 @@ void Solver::solve_lbfgs(const Function& function,
 		// Therefore, update y before and after evaluating the
 		// function.
 		if (iter > 0) {
-			*y[0] = -g;
+			y_tmp = -g;
 		}
 		fval = function.evaluate(x, &g);
-		// Now continue to update y with the new gradient.
-		if (iter > 0) {
-			*y[0] += g;
-			rho[0] = 1.0 / y[0]->dot(*s[0]);
-		}
-
+		
 		normg = std::max(g.maxCoeff(), -g.minCoeff());
 		if (iter == 0) {
 			normg0 = normg;
 		}
 		results->function_evaluation_time += wall_time() - start_time;
+
+		//
+		// Update history
+		//
+		start_time = wall_time();
+
+		if (iter > 0) {
+			s_tmp = x - x_prev;
+			y_tmp += g;
+
+			double sTy = s_tmp.dot(y_tmp);
+			if (true || sTy > 1e-16) {		
+				// Shift all pointers one step back, discarding the oldest one.
+				Eigen::VectorXd* sh = s[this->lbfgs_history_size - 1];
+				Eigen::VectorXd* yh = y[this->lbfgs_history_size - 1];
+				for (int h = this->lbfgs_history_size - 1; h >= 1; --h) {
+					s[h]   = s[h - 1];
+					y[h]   = y[h - 1];
+					rho[h] = rho[h - 1];
+				}
+				// Reuse the storage of the discarded data for the new data.
+				s[0] = sh;
+				y[0] = yh;
+
+				*y[0] = y_tmp;
+				*s[0] = s_tmp;
+				rho[0] = 1.0 / sTy;
+			}
+			else {
+				if (this->log_function) {
+					this->log_function("Did not update history.");
+				}
+			}
+		}
+
+		results->lbfgs_update_time += wall_time() - start_time;
 
 		//
 		// Test stopping criteriea
@@ -136,34 +170,9 @@ void Solver::solve_lbfgs(const Function& function,
 		// Record length of this step.
 		normdx = alpha_step * r.norm();
 		// Compute new point.
-		x2 = x + alpha_step * r;
+		x_prev = x;
+		x = x + alpha_step * r;
 		results->backtracking_time += wall_time() - start_time;
-
-		//
-		// Update history
-		//
-		start_time = wall_time();
-
-		// Shift all pointers one step back, discarding the oldest one.
-		Eigen::VectorXd* sh = s[this->lbfgs_history_size - 1];
-		Eigen::VectorXd* yh = y[this->lbfgs_history_size - 1];
-		for (int h = this->lbfgs_history_size - 1; h >= 1; --h) {
-			s[h]   = s[h - 1];
-			y[h]   = y[h - 1];
-			rho[h] = rho[h - 1];
-		}
-		// Reuse the storage of the discarded data for the new data.
-		s[0] = sh;
-		y[0] = yh;
-
-		(*s[0]) = x2 - x;
-		// y[0] will be updated in the next iteration right when
-		// evaluating the function.
-
-		// Move to the new point.
-		x = x2;
-
-		results->lbfgs_update_time += wall_time() - start_time;
 
 		//
 		// Log the results of this iteration.
