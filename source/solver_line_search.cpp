@@ -24,7 +24,7 @@ double Solver::perform_linesearch(const Function& function,
 	while (true) {
 		*scratch = x + alpha * p;
 		double lhs = function.evaluate(*scratch);
-		double rhs = fval + c * alpha * g.dot(p);
+		double rhs = fval + c * alpha * gTp;
 		if (lhs <= rhs) {
 			break;
 		}
