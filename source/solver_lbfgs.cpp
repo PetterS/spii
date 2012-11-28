@@ -156,8 +156,6 @@ void Solver::solve_lbfgs(const Function& function,
 			r = r + (*s[h]) * (alpha[h] - beta);
 		}
 
-		results->lbfgs_update_time += wall_time() - start_time;
-
 		// If the function improves very little, the approximated Hessian
 		// might be very bad. If this is the case, it is better to discard
 		// the history once in a while. This allows the solver to correctly 
@@ -182,6 +180,8 @@ void Solver::solve_lbfgs(const Function& function,
 			H0 = std::numeric_limits<double>::quiet_NaN();
 		}
 
+		results->lbfgs_update_time += wall_time() - start_time;
+
 		//
 		// Perform line search.
 		//
@@ -198,6 +198,9 @@ void Solver::solve_lbfgs(const Function& function,
 		                                             r, &x2, start_alpha);
 
 		if (alpha_step <= 0) {
+			if (this->log_function) {
+				this->log_function("Line search failed.");
+			}
 			results->exit_condition = SolverResults::FUNCTION_TOLERANCE;
 			break;
 		}
