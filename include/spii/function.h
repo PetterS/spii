@@ -19,15 +19,15 @@ struct AddedVariable
 {
 	int dimension;
 	size_t global_index;
-	std::vector<double>  temp_space;
+	mutable std::vector<double>  temp_space;
 };
 struct AddedTerm
 {
 	const Term* term;
 	std::vector<AddedVariable*> user_variables;
 	// Temporary storage for a point and hessian.
-	std::vector<double*> temp_variables;
-	std::vector< std::vector<Eigen::MatrixXd> > hessian;
+	mutable std::vector<double*> temp_variables;
+	mutable std::vector< std::vector<Eigen::MatrixXd> > hessian;
 };
 
 class Function
@@ -117,26 +117,34 @@ public:
 	// Prints the recorded timing information.
 	void print_timing_information(std::ostream& out) const;
 
+protected:
+	// Allocates temporary storage for gradient evaluations.
+	// Should be called automatically at first evaluate()
 	void finalize() const;
 
-protected:
-	size_t global_index(double* variable) const;
+	// Copies variables from a global vector x to the Function's
+	// local storage.
 	void copy_global_to_local(const Eigen::VectorXd& x) const;
+	// Copies variables from a global vector x to the storage
+	// provided by the user.
 	void copy_global_to_user(const Eigen::VectorXd& x) const;
+	// Copies variables from a the storage provided by the user
+	// to a global vector x.
 	void copy_user_to_global(Eigen::VectorXd* x) const;
 
 	// A set of all terms added to the function. This is
 	// used when the function is destructed.
 	std::set<const Term*> added_terms;
 
-	// Has to be mutable because the temporary storage
-	// needs to be written to.
-	mutable std::map<double*, AddedVariable> variables;
+	// All variables added to the function.
+	std::map<double*, AddedVariable> variables;
+
+	// Each variable can have several dimensions. This member
+	// keeps track of the total number of scalars.
 	size_t number_of_scalars;
 
-	// Has to be mutable because the temporary storage
-	// needs to be written to.
-	mutable std::vector<AddedTerm> terms;
+	// All terms added to the function.
+	std::vector<AddedTerm> terms;
 
 	// Number of threads used for evaluation.
 	int number_of_threads;

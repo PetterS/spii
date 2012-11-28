@@ -26,8 +26,10 @@ Function::Function()
 
 Function::~Function()
 {
-	for (auto itr = added_terms.begin(); itr != added_terms.end(); ++itr) {
-		delete *itr;
+	if (this->term_deletion == DeleteTerms) {
+		for (auto itr = added_terms.begin(); itr != added_terms.end(); ++itr) {
+			delete *itr;
+		}
 	}
 }
 
@@ -192,16 +194,6 @@ void Function::create_sparse_hessian(Eigen::SparseMatrix<double>* H) const
 	H->makeCompressed();
 }
 
-size_t Function::global_index(double* variable) const
-{
-	auto itr = variables.find(variable);
-	if (itr == variables.end()) {
-		throw std::runtime_error("Function::global_index: Could not find variable");
-	}
-	return itr->second.global_index;
-}
-
-
 void Function::copy_global_to_local(const Eigen::VectorXd& x) const
 {
 	double start_time = wall_time();
@@ -297,7 +289,7 @@ double Function::evaluate(const Eigen::VectorXd& x,
 		}
 
 		// Put the gradient from the term into the thread's global gradient.
-		std::vector<AddedVariable*>& variables = terms[i].user_variables;
+		const auto& variables = terms[i].user_variables;
 		for (int var = 0; var < variables.size(); ++var) {
 			size_t global_offset = variables[var]->global_index;
 			for (int i = 0; i < variables[var]->dimension; ++i) {
@@ -397,7 +389,7 @@ double Function::evaluate(const Eigen::VectorXd& x,
 		                                 &terms[i].hessian);
 
 		// Put the gradient from the term into the thread's global gradient.
-		std::vector<AddedVariable*>& variables = terms[i].user_variables;
+		const auto& variables = terms[i].user_variables;
 		for (int var = 0; var < variables.size(); ++var) {
 			size_t global_offset = variables[var]->global_index;
 			for (int i = 0; i < variables[var]->dimension; ++i) {
