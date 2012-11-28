@@ -33,7 +33,11 @@ double Solver::perform_linesearch(const Function& function,
 
 		backtracking_attempts++;
 		if (backtracking_attempts > 100) {
-			throw std::runtime_error("Solver::solve: Backtracking failed.");
+			if (this->log_function) {
+				this->log_function("Backtracking failed, returning zero step.");
+			}
+			return 0.0;
+			//return perform_linesearch(function, x, fval, g, -g, scratch, start_alpha);
 		}
 	}
 

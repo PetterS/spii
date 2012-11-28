@@ -22,7 +22,7 @@ void Solver::solve_lbfgs(const Function& function,
 	size_t n = function.get_number_of_scalars();
 
 	// Current point, gradient and Hessian.
-	double fval   = std::numeric_limits<double>::quiet_NaN();;
+	double fval   = std::numeric_limits<double>::quiet_NaN();
 	double fprev  = std::numeric_limits<double>::quiet_NaN();
 	double normg0 = std::numeric_limits<double>::quiet_NaN();
 	double normg  = std::numeric_limits<double>::quiet_NaN();
@@ -158,6 +158,30 @@ void Solver::solve_lbfgs(const Function& function,
 
 		results->lbfgs_update_time += wall_time() - start_time;
 
+		// If the function improves very little, the approximated Hessian
+		// might be very bad. If this is the case, it is better to discard
+		// the history once in a while. This allows the solver to correctly 
+		// solve some badly scaled problems.
+		double restart_tol = 1e-6;
+		double restart_test = abs(fval - fprev) / (abs(fval) + abs(fprev));
+		if (iter > 0 && iter % 100 == 0 && restart_test < restart_tol) {
+			char str[1024];
+			if (this->log_function) {
+				std::sprintf(str, "Restarting: fval = %.3e, deltaf = %.3e, max|g_i| = %.3e, test = %.3e",
+				             fval, abs(fval - fprev), normg, restart_test);
+				this->log_function(str);
+			}
+			r = -g;
+			for (int h = 0; h < this->lbfgs_history_size; ++h) {
+				(*s[h]).setZero();
+				(*y[h]).setZero();
+			}
+			rho.setZero();
+			alpha.setZero();
+			// H0 is not used, but its value will be printed.
+			H0 = std::numeric_limits<double>::quiet_NaN();
+		}
+
 		//
 		// Perform line search.
 		//
@@ -172,6 +196,12 @@ void Solver::solve_lbfgs(const Function& function,
 		}
 		double alpha_step = this->perform_linesearch(function, x, fval, g,
 		                                             r, &x2, start_alpha);
+
+		if (alpha_step <= 0) {
+			results->exit_condition = SolverResults::FUNCTION_TOLERANCE;
+			break;
+		}
+
 		// Record length of this step.
 		normdx = alpha_step * r.norm();
 		// Compute new point.
@@ -197,10 +227,10 @@ void Solver::solve_lbfgs(const Function& function,
 		if (this->log_function && iter % log_interval == 0) {
 			char str[1024];
 				if (iter == 0) {
-					this->log_function("Itr       f       max|g_i|     alpha       H0       rho");
+					this->log_function("Itr       f        deltaf     max|g_i|   alpha       H0        rho");
 				}
-				std::sprintf(str, "%4d %+.3e %.3e %.3e %.3e %.3e",
-					iter, fval, normg, alpha_step, H0, rho[0]);
+				std::sprintf(str, "%4d %+.3e %.3e %.3e %.3e %.3e %.3e",
+					iter, fval, abs(fval - fprev), normg, alpha_step, H0, rho[0]);
 			this->log_function(str);
 		}
 		results->log_time += wall_time() - start_time;
