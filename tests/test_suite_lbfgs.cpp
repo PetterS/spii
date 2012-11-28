@@ -19,6 +19,8 @@ template<typename Functor, int dimension>
 double run_test(double* var, Solver* solver = 0)
 {
 	Function f;
+	f.hessian_is_enabled = false;
+
 	f.add_variable(var, dimension);
 	f.add_term(new AutoDiffTerm<Functor, dimension>(new Functor()), var);
 

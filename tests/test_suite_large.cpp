@@ -119,14 +119,12 @@ struct LennardJones
 	}
 };
 
-template<bool lbfgs>
+template<bool lbfgs, int n>
 void test_Lennard_Jones()
 {
 	std::mt19937 prng(0);
 	std::normal_distribution<double> normal;
 	auto randn = std::bind(normal, prng);
-
-	int n = 5;
 
 	Function potential;
 
@@ -156,6 +154,8 @@ void test_Lennard_Jones()
 
 	Solver solver;
 	solver.maximum_iterations = 1000;
+	solver.function_improvement_tolerance = 1e-6;
+
 	// All points interact with all points, so the Hessian
 	// will be dense.
 	solver.sparsity_mode = Solver::DENSE;
@@ -176,12 +176,12 @@ void test_Lennard_Jones()
 
 TEST(Newton, LennardJones)
 {
-	test_Lennard_Jones<false>();
+	test_Lennard_Jones<false, 5>();
 }
 
 TEST(LBFGS, LennardJones)
 {
-	test_Lennard_Jones<true>();
+	test_Lennard_Jones<true, 5>();
 }
 
 struct Trid1
@@ -248,7 +248,7 @@ void test_trid()
 	// Therefore, it is hard to calulate the optimal function
 	// value for large n.
 	//
-	double tol  = 1e-9;
+	double tol  = 1e-8;
 	if (n >= 10000) {
 		tol = 1e-6;
 	}
