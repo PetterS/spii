@@ -24,10 +24,9 @@ struct AddedVariable
 struct AddedTerm
 {
 	const Term* term;
-	std::vector<double*> user_variables;
-	// Temporary storage for a point, gradient and hessian.
+	std::vector<AddedVariable*> user_variables;
+	// Temporary storage for a point and hessian.
 	std::vector<double*> temp_variables;
-	std::vector<Eigen::VectorXd> gradient;
 	std::vector< std::vector<Eigen::MatrixXd> > hessian;
 };
 
@@ -40,6 +39,12 @@ public:
 	// Note that it is still safe to add the same term multiple
 	// times.
 	enum {DeleteTerms, DoNotDeleteTerms} term_deletion; 
+
+	// Specifies whether the function should be prepared to compute
+	// the Hessian matrix, which is is not needed for L-BFGS. This
+	// setting only affects the amount of temporary space allocated.
+	// Default: true.
+	bool hessian_is_enabled; 
 
 	Function();
 	~Function();
@@ -112,6 +117,8 @@ public:
 	// Prints the recorded timing information.
 	void print_timing_information(std::ostream& out) const;
 
+	void finalize() const;
+
 protected:
 	size_t global_index(double* variable) const;
 	void copy_global_to_local(const Eigen::VectorXd& x) const;
@@ -130,6 +137,18 @@ protected:
 	// Has to be mutable because the temporary storage
 	// needs to be written to.
 	mutable std::vector<AddedTerm> terms;
+
+	// Number of threads used for evaluation.
+	int number_of_threads;
+
+	// If finalize has been called.
+	mutable bool finalize_called;
+	// Has to be mutable because the temporary storage
+	// needs to be written to.
+	mutable std::vector< std::vector<Eigen::VectorXd> >
+		thread_gradient_scratch;
+	mutable std::vector<Eigen::VectorXd> 
+		thread_gradient_storage;
 
 	// Stored how many element were used the last time the Hessian
 	// was created.

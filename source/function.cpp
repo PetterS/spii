@@ -10,12 +10,18 @@ Function::Function()
 	this->number_of_scalars = 0;
 	this->term_deletion = DeleteTerms;
 
+	this->hessian_is_enabled = true;
+
 	this->number_of_hessian_elements = 0;
 
 	this->evaluate_time               = 0;
 	this->evaluate_with_hessian_time  = 0;
 	this->write_gradient_hessian_time = 0;
 	this->copy_time                   = 0;
+
+	this->number_of_threads = omp_get_max_threads();
+
+	this->finalize_called = false;
 }
 
 Function::~Function()
@@ -27,6 +33,8 @@ Function::~Function()
 
 void Function::add_variable(double* variable, int dimension)
 {
+	this->finalize_called = false;
+
 	auto itr = variables.find(variable);
 	if (itr != variables.end()) {
 		if (itr->second.dimension != dimension) {
@@ -44,6 +52,8 @@ void Function::add_variable(double* variable, int dimension)
 
 void Function::add_term(const Term* term, const std::vector<double*>& arguments)
 {
+	this->finalize_called = false;
+
 	if (term->number_of_variables() != arguments.size()) {
 		throw std::runtime_error("Function::add_term: incorrect number of arguments.");
 	}
@@ -61,25 +71,45 @@ void Function::add_term(const Term* term, const std::vector<double*>& arguments)
 
 	terms.push_back(AddedTerm());
 	terms.back().term = term;
-	terms.back().user_variables = arguments;
 
 	for (int var = 0; var < term->number_of_variables(); ++var) {
+		// Look up this variable.
+		AddedVariable& added_variable = this->variables[arguments[var]];
+		terms.back().user_variables.push_back(&added_variable);
 		// Stora a pointer to temporary storage for this variable.
-		double* temp_space = &this->variables[arguments[var]].temp_space[0];
+		double* temp_space = &added_variable.temp_space[0];
 		terms.back().temp_variables.push_back(temp_space);
-		// Create space for the gradient of this variable.
-		terms.back().gradient.push_back(Eigen::VectorXd(term->variable_dimension(var)));
 	}
 
-	// Create enough space for the hessian.
-	terms.back().hessian.resize(term->number_of_variables());
-	for (int var0 = 0; var0 < term->number_of_variables(); ++var0) {
-		terms.back().hessian[var0].resize(term->number_of_variables());
-		for (int var1 = 0; var1 < term->number_of_variables(); ++var1) {
-			terms.back().hessian[var0][var1].resize(term->variable_dimension(var0),
-			                                        term->variable_dimension(var1));
+	if (this->hessian_is_enabled) {
+		// Create enough space for the hessian.
+		terms.back().hessian.resize(term->number_of_variables());
+		for (int var0 = 0; var0 < term->number_of_variables(); ++var0) {
+			terms.back().hessian[var0].resize(term->number_of_variables());
+			for (int var1 = 0; var1 < term->number_of_variables(); ++var1) {
+				terms.back().hessian[var0][var1].resize(term->variable_dimension(var0),
+														term->variable_dimension(var1));
+			}
 		}
 	}
+}
+
+void Function::finalize() const
+{
+	int max_arity = 2;
+	int max_variable_dimension = 100;
+
+	this->thread_gradient_scratch.resize(this->number_of_threads);
+	this->thread_gradient_storage.resize(this->number_of_threads);
+	for (int t = 0; t < this->number_of_threads; ++t) {
+		this->thread_gradient_storage[t].resize(number_of_scalars);
+		this->thread_gradient_scratch[t].resize(max_arity);
+		for (int var = 0; var < max_arity; ++var) {
+			this->thread_gradient_scratch[t][var].resize(max_variable_dimension);
+		}
+	}
+
+	this->finalize_called = true;
 }
 
 void Function::add_term(const Term* term, double* argument0)
@@ -125,18 +155,10 @@ double Function::evaluate(const Eigen::VectorXd& x) const
 
 double Function::evaluate() const
 {
-	double start_time = wall_time();
+	Eigen::VectorXd x;
+	this->copy_user_to_global(&x);
 
-	double value = 0;
-	#ifdef USE_OPENMP
-	#pragma omp parallel for reduction(+ : value)
-	#endif
-	for (int i = 0; i < terms.size(); ++i) {
-		value += terms[i].term->evaluate(&terms[i].user_variables[0]);
-	}
-
-	this->evaluate_time += wall_time() - start_time;
-	return value;
+	return evaluate(x);
 }
 
 void Function::create_sparse_hessian(Eigen::SparseMatrix<double>* H) const
@@ -148,9 +170,9 @@ void Function::create_sparse_hessian(Eigen::SparseMatrix<double>* H) const
 	for (auto itr = terms.begin(); itr != terms.end(); ++itr) {
 		// Put the hessian into the global hessian.
 		for (int var0 = 0; var0 < itr->term->number_of_variables(); ++var0) {
-			size_t global_offset0 = this->global_index(itr->user_variables[var0]);
+			size_t global_offset0 = itr->user_variables[var0]->global_index;
 			for (int var1 = 0; var1 < itr->term->number_of_variables(); ++var1) {
-				size_t global_offset1 = this->global_index(itr->user_variables[var1]);
+				size_t global_offset1 = itr->user_variables[var1]->global_index;
 				for (size_t i = 0; i < itr->term->variable_dimension(var0); ++i) {
 					for (size_t j = 0; j < itr->term->variable_dimension(var1); ++j) {
 						int global_i = static_cast<int>(i + global_offset0);
@@ -223,112 +245,101 @@ void Function::copy_global_to_user(const Eigen::VectorXd& x) const
 double Function::evaluate(const Eigen::VectorXd& x,
                           Eigen::VectorXd* gradient) const
 {
-	// Copy values from the global vector x to the temporary storage
-	// used for evaluating the term.
-	this->copy_global_to_local(x);
-
-	double start_time = wall_time();
-
-	double value = 0;
-	// Create the global gradient.
-	gradient->resize(this->number_of_scalars);
-	gradient->setConstant(0.0);
-
-	this->write_gradient_hessian_time += wall_time() - start_time;
-	start_time = wall_time();
-
-	// Go through and evaluate each term.
-	// OpenMP requires a signed data type as the loop variable.
-	#ifdef USE_OPENMP
-	#pragma omp parallel for reduction(+ : value)
-	#endif
-	for (int i = 0; i < terms.size(); ++i) {
-		// Evaluate the term and put its gradient and hessian
-		// into local storage.
-		value += terms[i].term->evaluate(&terms[i].temp_variables[0], 
-		                                 &terms[i].gradient);
-		                                 //&terms[i].hessian);
-	}
-	
-	this->evaluate_with_hessian_time += wall_time() - start_time;
-	start_time = wall_time();
-
-	// Go through each term.
-	for (auto itr = terms.begin(); itr != terms.end(); ++itr) {
-		// Put the gradient into the global gradient.
-		for (int var = 0; var < itr->term->number_of_variables(); ++var) {
-			size_t global_offset = this->global_index(itr->user_variables[var]);
-			for (int i = 0; i < itr->term->variable_dimension(var); ++i) {
-				(*gradient)[global_offset + i] += itr->gradient[var][i];
-			}
-		}
-	}
-
-	this->write_gradient_hessian_time += wall_time() - start_time;
-	return value;
+	return this->evaluate(x, gradient, reinterpret_cast<Eigen::MatrixXd*>(0));
 }
 
 double Function::evaluate(const Eigen::VectorXd& x,
                           Eigen::VectorXd* gradient,
 						  Eigen::MatrixXd* hessian) const
 {
+	if (hessian && ! this->hessian_is_enabled) {
+		throw std::runtime_error("Function::evaluate: Hessian computation is not enabled.");
+	}
+
+	if (! this->finalize_called) {
+		this->finalize();
+	}
+
 	// Copy values from the global vector x to the temporary storage
 	// used for evaluating the term.
 	this->copy_global_to_local(x);
 
 	double start_time = wall_time();
 
-	double value = 0;
-	// Create the global gradient.
-	gradient->resize(this->number_of_scalars);
-	gradient->setConstant(0.0);
-	// Create the global (dense) hessian.
-	hessian->resize( static_cast<int>(this->number_of_scalars),
-	                 static_cast<int>(this->number_of_scalars));
-	//hessian->setConstant(0.0);
-	(*hessian) *= 0.0;
+	// Initialize each thread's global gradient.
+	for (int t = 0; t < this->number_of_threads; ++t) {
+		this->thread_gradient_storage[t].setZero();
+	}
 
-	this->write_gradient_hessian_time += wall_time() - start_time;
-	start_time = wall_time();
+	double value = 0;
 
 	// Go through and evaluate each term.
 	// OpenMP requires a signed data type as the loop variable.
 	#ifdef USE_OPENMP
-	#pragma omp parallel for reduction(+ : value)
+	#pragma omp parallel for reduction(+ : value) num_threads(this->number_of_threads)
 	#endif
 	for (int i = 0; i < terms.size(); ++i) {
-		// Evaluate the term and put its gradient and hessian
-		// into local storage.
-		value += terms[i].term->evaluate(&terms[i].temp_variables[0], 
-		                                 &terms[i].gradient,
-		                                 &terms[i].hessian);
+		// The thread number calling this iteration.
+		int t = omp_get_thread_num();
+
+		if (hessian) {
+			// Evaluate the term and put its gradient and hessian
+			// into local storage.
+			value += terms[i].term->evaluate(&terms[i].temp_variables[0], 
+											 &this->thread_gradient_scratch[t],
+											 &terms[i].hessian);
+		}
+		else {
+			// Evaluate the term and put its gradient into local
+			// storage.
+			value += terms[i].term->evaluate(&terms[i].temp_variables[0], 
+											 &this->thread_gradient_scratch[t]);
+		}
+
+		// Put the gradient from the term into the thread's global gradient.
+		std::vector<AddedVariable*>& variables = terms[i].user_variables;
+		for (int var = 0; var < variables.size(); ++var) {
+			size_t global_offset = variables[var]->global_index;
+			for (int i = 0; i < variables[var]->dimension; ++i) {
+				this->thread_gradient_storage[t][global_offset + i] +=
+					this->thread_gradient_scratch[t][var][i];
+			}
+		}
 	}
 	
 	this->evaluate_with_hessian_time += wall_time() - start_time;
 	start_time = wall_time();
 
-	// Go through and evaluate each term.
-	for (auto itr = terms.begin(); itr != terms.end(); ++itr) {
-		// Put the gradient into the global gradient.
-		for (int var = 0; var < itr->term->number_of_variables(); ++var) {
-			size_t global_offset = this->global_index(itr->user_variables[var]);
-			for (int i = 0; i < itr->term->variable_dimension(var); ++i) {
-				(*gradient)[global_offset + i] += itr->gradient[var][i];
-			}
-		}
-		// Put the hessian into the global hessian.
-		for (int var0 = 0; var0 < itr->term->number_of_variables(); ++var0) {
-			size_t global_offset0 = this->global_index(itr->user_variables[var0]);
-			for (int var1 = 0; var1 < itr->term->number_of_variables(); ++var1) {
-				size_t global_offset1 = this->global_index(itr->user_variables[var1]);
-				const Eigen::MatrixXd& part_hessian = itr->hessian[var0][var1];
-				for (int i = 0; i < itr->term->variable_dimension(var0); ++i) {
-					for (int j = 0; j < itr->term->variable_dimension(var1); ++j) {
-						//std::cerr << "var=(" << var0 << ',' << var1 << ") ";
-						//std::cerr << "ij=(" << i << ',' << j << ") ";
-						//std::cerr << "writing to (" << i + global_offset0 << ',' << j + global_offset1 << ")\n";
-						hessian->coeffRef(i + global_offset0, j + global_offset1) +=
-							part_hessian(i, j);
+	// Create the global gradient.
+	if (gradient->size() != this->number_of_scalars) {
+		gradient->resize(this->number_of_scalars);
+	}
+	gradient->setZero();
+	// Sum the gradients from all different terms.
+	for (int t = 0; t < this->number_of_threads; ++t) {
+		(*gradient) += this->thread_gradient_storage[t];
+	}
+
+	if (hessian) {
+		// Create the global (dense) hessian.
+		hessian->resize( static_cast<int>(this->number_of_scalars),
+						 static_cast<int>(this->number_of_scalars));
+		//hessian->setConstant(0.0);
+		(*hessian) *= 0.0;
+
+		// Go through and evaluate each term.
+		for (auto itr = terms.begin(); itr != terms.end(); ++itr) {
+			// Put the hessian into the global hessian.
+			for (int var0 = 0; var0 < itr->term->number_of_variables(); ++var0) {
+				size_t global_offset0 = itr->user_variables[var0]->global_index;
+				for (int var1 = 0; var1 < itr->term->number_of_variables(); ++var1) {
+					size_t global_offset1 = itr->user_variables[var1]->global_index;
+					const Eigen::MatrixXd& part_hessian = itr->hessian[var0][var1];
+					for (int i = 0; i < itr->term->variable_dimension(var0); ++i) {
+						for (int j = 0; j < itr->term->variable_dimension(var1); ++j) {
+							hessian->coeffRef(i + global_offset0, j + global_offset1) +=
+								part_hessian(i, j);
+						}
 					}
 				}
 			}
@@ -343,16 +354,19 @@ double Function::evaluate(const Eigen::VectorXd& x,
                           Eigen::VectorXd* gradient,
 						  Eigen::SparseMatrix<double>* hessian) const
 {
+	if (! this->hessian_is_enabled) {
+		throw std::runtime_error("Function::evaluate: Hessian computation is not enabled.");
+	}
+
+	if (! this->finalize_called) {
+		this->finalize();
+	}
+
 	// Copy values from the global vector x to the temporary storage
 	// used for evaluating the term.
 	this->copy_global_to_local(x);
 
 	double start_time = wall_time();
-
-	double value = 0;
-	// Create the global gradient.
-	gradient->resize(this->number_of_scalars);
-	gradient->setConstant(0.0);
 	
 	std::vector<Eigen::Triplet<double> > indices;
 	indices.reserve(this->number_of_hessian_elements);
@@ -361,36 +375,58 @@ double Function::evaluate(const Eigen::VectorXd& x,
 	this->write_gradient_hessian_time += wall_time() - start_time;
 	start_time = wall_time();
 
+	// Initialize each thread's global gradient.
+	for (int t = 0; t < this->number_of_threads; ++t) {
+		this->thread_gradient_storage[t].setZero();
+	}
+
+	double value = 0;
 	// Go through and evaluate each term.
 	// OpenMP requires a signed data type as the loop variable.
 	#ifdef USE_OPENMP
-	#pragma omp parallel for reduction(+ : value)
+	#pragma omp parallel for reduction(+ : value) num_threads(this->number_of_threads)
 	#endif
 	for (int i = 0; i < terms.size(); ++i) {
+		// The thread number calling this iteration.
+		int t = omp_get_thread_num();
+
 		// Evaluate the term and put its gradient and hessian
 		// into local storage.
 		value += terms[i].term->evaluate(&terms[i].temp_variables[0], 
-		                                 &terms[i].gradient,
+		                                 &this->thread_gradient_scratch[t],
 		                                 &terms[i].hessian);
+
+		// Put the gradient from the term into the thread's global gradient.
+		std::vector<AddedVariable*>& variables = terms[i].user_variables;
+		for (int var = 0; var < variables.size(); ++var) {
+			size_t global_offset = variables[var]->global_index;
+			for (int i = 0; i < variables[var]->dimension; ++i) {
+				this->thread_gradient_storage[t][global_offset + i] +=
+					this->thread_gradient_scratch[t][var][i];
+			}
+		}
 	}
 	
 	this->evaluate_with_hessian_time += wall_time() - start_time;
 	start_time = wall_time();
 
+	// Create the global gradient.
+	if (gradient->size() != this->number_of_scalars) {
+		gradient->resize(this->number_of_scalars);
+	}
+	gradient->setZero();
+	// Sum the gradients from all different terms.
+	for (int t = 0; t < this->number_of_threads; ++t) {
+		(*gradient) += this->thread_gradient_storage[t];
+	}
+
 	// Collect the gradients and hessians from each term.
 	for (auto itr = terms.begin(); itr != terms.end(); ++itr) {
-		// Put the gradient into the global gradient.
-		for (int var = 0; var < itr->term->number_of_variables(); ++var) {
-			size_t global_offset = this->global_index(itr->user_variables[var]);
-			for (int i = 0; i < itr->term->variable_dimension(var); ++i) {
-				(*gradient)[global_offset + i] += itr->gradient[var][i];
-			}
-		}
 		// Put the hessian into the global hessian.
 		for (int var0 = 0; var0 < itr->term->number_of_variables(); ++var0) {
-			size_t global_offset0 = this->global_index(itr->user_variables[var0]);
+			size_t global_offset0 = itr->user_variables[var0]->global_index;
 			for (int var1 = 0; var1 < itr->term->number_of_variables(); ++var1) {
-				size_t global_offset1 = this->global_index(itr->user_variables[var1]);
+				size_t global_offset1 = itr->user_variables[var1]->global_index;
 				const Eigen::MatrixXd& part_hessian = itr->hessian[var0][var1];
 				for (int i = 0; i < itr->term->variable_dimension(var0); ++i) {
 					for (int j = 0; j < itr->term->variable_dimension(var1); ++j) {
