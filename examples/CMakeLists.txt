@@ -9,3 +9,4 @@ MACRO (SPII_EXAMPLE NAME)
 ENDMACRO (SPII_EXAMPLE)
 
 SPII_EXAMPLE(fit_gaussian)
+SPII_EXAMPLE(linear_programming)
