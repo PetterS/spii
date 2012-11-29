@@ -117,7 +117,7 @@ int main()
 	SolverResults results;
 
 	for (int iter = 1; iter <= 8; ++iter) {
-		solver.Solve(f, &results);
+		solver.solve_newton(f, &results);
 
 		double sumx = 0.0;
 		double cTx  = 0.0;

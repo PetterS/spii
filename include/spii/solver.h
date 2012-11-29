@@ -50,8 +50,8 @@ class Solver
 {
 public:
 	Solver();
-	void Solve(const Function& function,
-	           SolverResults* results) const;
+	void solve_newton(const Function& function,
+	                  SolverResults* results) const;
 
 	void solve_lbfgs(const Function& function,
 	                 SolverResults* results) const;

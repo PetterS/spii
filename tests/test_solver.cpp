@@ -31,7 +31,7 @@ TEST(Solver, banana)
 	Solver solver;
 	solver.maximum_iterations = 50;
 	SolverResults results;
-	solver.Solve(f, &results);
+	solver.solve_newton(f, &results);
 
 	EXPECT_TRUE(results.exit_condition == SolverResults::ARGUMENT_TOLERANCE ||
 	            results.exit_condition == SolverResults::FUNCTION_TOLERANCE ||
@@ -53,7 +53,7 @@ TEST(Solver, function_tolerance)
 	solver.gradient_tolerance = 0;
 	solver.argument_improvement_tolerance = 0;
 	SolverResults results;
-	solver.Solve(f, &results);
+	solver.solve_newton(f, &results);
 
 	EXPECT_TRUE(results.exit_condition == SolverResults::FUNCTION_TOLERANCE);
 }
@@ -70,7 +70,7 @@ TEST(Solver, argument_improvement_tolerance)
 	solver.gradient_tolerance = 0;
 	solver.function_improvement_tolerance = 0;
 	SolverResults results;
-	solver.Solve(f, &results);
+	solver.solve_newton(f, &results);
 
 	EXPECT_TRUE(results.exit_condition == SolverResults::ARGUMENT_TOLERANCE);
 }
@@ -87,7 +87,7 @@ TEST(Solver, gradient_tolerance)
 	solver.function_improvement_tolerance = 0;
 	solver.argument_improvement_tolerance = 0;
 	SolverResults results;
-	solver.Solve(f, &results);
+	solver.solve_newton(f, &results);
 
 	EXPECT_TRUE(results.exit_condition == SolverResults::GRADIENT_TOLERANCE);
 }
@@ -122,9 +122,9 @@ TEST(Solver, inf_nan)
 	Solver solver;
 	SolverResults results;
 
-	solver.Solve(f_nan, &results);
+	solver.solve_newton(f_nan, &results);
 	EXPECT_EQ(results.exit_condition, SolverResults::FUNCTION_NAN);
 
-	solver.Solve(f_inf, &results);
+	solver.solve_newton(f_inf, &results);
 	EXPECT_EQ(results.exit_condition, SolverResults::FUNCTION_INFINITY);
 }

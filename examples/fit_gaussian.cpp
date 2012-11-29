@@ -47,7 +47,7 @@ int main()
 	Solver solver;
 	solver.maximum_iterations = 50;
 	SolverResults results;
-	solver.Solve(f, &results);
+	solver.solve_newton(f, &results);
 
 	std::cerr << results;
 	f.print_timing_information(std::cerr);

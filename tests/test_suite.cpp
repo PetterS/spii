@@ -29,7 +29,7 @@ double run_test(double* var, const Solver* solver = 0)
 		solver = &own_solver;
 	}
 	SolverResults results;
-	solver->Solve(f, &results);
+	solver->solve_newton(f, &results);
 	std::cerr << results;
 
 	for (int i = 0; i < dimension; ++i) {

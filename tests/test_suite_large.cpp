@@ -69,7 +69,7 @@ void test_rosenbrock()
 		solver.solve_lbfgs(f, &results);
 	}
 	else {
-		solver.Solve(f, &results);
+		solver.solve_newton(f, &results);
 	}
 	std::cerr << results;
 
@@ -166,7 +166,7 @@ void test_Lennard_Jones()
 		solver.solve_lbfgs(potential, &results);
 	}
 	else {
-		solver.Solve(potential, &results);
+		solver.solve_newton(potential, &results);
 	}
 	std::cerr << results;
 	potential.print_timing_information(std::cerr);
@@ -238,7 +238,7 @@ void test_trid()
 		solver.solve_lbfgs(f, &results);
 	}
 	else {
-		solver.Solve(f, &results);
+		solver.solve_newton(f, &results);
 	}
 	std::cerr << results;
 
@@ -333,7 +333,7 @@ TEST(Newton, Barrier)
 	Solver solver;
 	solver.maximum_iterations = 100;
 	SolverResults results;
-	solver.Solve(f, &results);
+	solver.solve_newton(f, &results);
 
 	std::cerr << results;
 	f.print_timing_information(std::cerr);
