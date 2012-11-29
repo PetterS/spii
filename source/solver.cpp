@@ -55,6 +55,7 @@ Solver::Solver()
 	this->argument_improvement_tolerance = 1e-12;
 
 	this->lbfgs_history_size = 10;
+	this->lbfgs_restart_tolerance = 1e-6;
 }
 
 }  // namespace spii

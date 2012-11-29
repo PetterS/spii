@@ -84,6 +84,11 @@ public:
 	// Default: 10.
 	int lbfgs_history_size;
 
+	// If the relative function improvement is less than this
+	// value, L-BFGS will discard its history and restart.
+	// Default: 1e-6.
+	double lbfgs_restart_tolerance;
+
 private:
 
 	// Computes a Newton step given a function, a gradient and a

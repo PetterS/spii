@@ -161,9 +161,9 @@ void Solver::solve_lbfgs(const Function& function,
 		// might be very bad. If this is the case, it is better to discard
 		// the history once in a while. This allows the solver to correctly 
 		// solve some badly scaled problems.
-		double restart_tol = 1e-6;
 		double restart_test = abs(fval - fprev) / (abs(fval) + abs(fprev));
-		if (iter > 0 && iter % 100 == 0 && restart_test < restart_tol) {
+		if (iter > 0 && iter % 100 == 0 && restart_test
+		                                   < this->lbfgs_restart_tolerance) {
 			char str[1024];
 			if (this->log_function) {
 				std::sprintf(str, "Restarting: fval = %.3e, deltaf = %.3e, max|g_i| = %.3e, test = %.3e",
