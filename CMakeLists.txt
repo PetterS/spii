@@ -1,20 +1,13 @@
 # Author: petter.strandmark@gmail.com (Petter Strandmark)
-
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8.0)
-
-IF (COMMAND cmake_policy)
-  CMAKE_POLICY(SET CMP0003 NEW)
-ENDIF (COMMAND cmake_policy)
-
 PROJECT(SPII C CXX)
+
+OPTION(BUILD_TESTING "Enable tests" OFF)
+OPTION(BUILD_EXAMPLES "Build examples" ON)
 
 SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 SET(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-
-
-# To get a more static build, try the following line on Mac and Linux:
-# SET(CMAKE_FIND_LIBRARY_SUFFIXES .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
 
 # Default locations to search for on various platforms.
 LIST(APPEND SEARCH_LIBS /usr/lib)
@@ -27,27 +20,7 @@ LIST(APPEND SEARCH_HEADERS /usr/local/include)
 LIST(APPEND SEARCH_HEADERS /usr/local/homebrew/include) # Mac OS X
 LIST(APPEND SEARCH_HEADERS /opt/local/include)
 
-# Locations to search for Eigen
-SET(EIGEN_SEARCH_HEADERS ${SEARCH_HEADERS})
-LIST(APPEND EIGEN_SEARCH_HEADERS /usr/include/eigen3) # Ubuntu 10.04's default location.
-LIST(APPEND EIGEN_SEARCH_HEADERS /usr/local/include/eigen3)
-LIST(APPEND EIGEN_SEARCH_HEADERS /usr/local/homebrew/include/eigen3)  # Mac OS X
-LIST(APPEND EIGEN_SEARCH_HEADERS /opt/local/var/macports/software/eigen3/opt/local/include/eigen3) # Mac OS X
-
-# Eigen
-MESSAGE("-- Check for Eigen 3.0")
-FIND_PATH(EIGEN_INCLUDE NAMES Eigen/Core PATHS ${EIGEN_SEARCH_HEADERS})
-IF (NOT EXISTS ${EIGEN_INCLUDE})
-  MESSAGE(FATAL_ERROR "Can't find Eigen. Try passing -DEIGEN_INCLUDE=...")
-ENDIF (NOT EXISTS ${EIGEN_INCLUDE})
-MESSAGE("-- Found Eigen 3.0: ${EIGEN_INCLUDE}")
-
 ENABLE_TESTING()
-
-OPTION(BUILD_TESTING
-       "Enable tests"
-       ON)
-
 IF (${BUILD_TESTING})
 
   # Find Google's testing library headers
@@ -98,7 +71,7 @@ ENDIF (${OPENMP})
 INCLUDE_DIRECTORIES(
   include
   thirdparty/FADBAD++
-  ${EIGEN_INCLUDE}
+  thirdparty/Eigen
   )
 
 FILE(GLOB SPII_HEADERS ${CMAKE_SOURCE_DIR}/include/spii/*.h)
@@ -125,18 +98,10 @@ IF (NOT CMAKE_BUILD_TYPE)
   SET(CMAKE_BUILD_TYPE Release CACHE STRING
     "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel."
     FORCE)
-ELSE (NOT CMAKE_BUILD_TYPE)
-  IF (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    MESSAGE("\n=================================================================================")
-    MESSAGE("\n-- Build type: Debug. Performance will be terrible!")
-    MESSAGE("-- Add -DCMAKE_BUILD_TYPE=Release to the CMake command line to get an optimized build.")
-    MESSAGE("\n=================================================================================")
-  ENDIF (CMAKE_BUILD_TYPE STREQUAL "Debug")
 ENDIF (NOT CMAKE_BUILD_TYPE)
 
 # Set the default flags to an empty string.
 SET (SPII_CXX_FLAGS)
-
 
 # C++11
 IF (CMAKE_COMPILER_IS_GNUCXX)
@@ -164,8 +129,6 @@ IF ("${UNIX}")
   SET(CMAKE_CXX_FLAGS
       "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-unknown-pragmas -Wno-sign-compare -Wno-unused -Wno-unused-parameter")
 ENDIF ("${UNIX}")
-
-OPTION(BUILD_EXAMPLES "Build examples" ON)
 
 IF (${BUILD_EXAMPLES})
   MESSAGE("-- Build the examples.")
