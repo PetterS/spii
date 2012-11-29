@@ -10,6 +10,8 @@
 #include <spii/auto_diff_term.h>
 #include <spii/solver.h>
 
+using namespace spii;
+
 // "An analysis of the behavior of a glass of genetic adaptive systems."
 // K.A. De Jong.  Ph.D. thesis, University of Michigan, 1975.
 struct GeneralizedRosenbrockTerm

@@ -11,6 +11,8 @@
 #include <spii/spii.h>
 #include <spii/solver.h>
 
+namespace spii {
+
 SolverResults::SolverResults()
 {
 	this->exit_condition = NA;
@@ -330,3 +332,5 @@ void cerr_log_function(const std::string& log_message)
 {
 	std::cerr << log_message << std::endl;
 }
+
+}  // namespace spii

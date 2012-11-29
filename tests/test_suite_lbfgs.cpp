@@ -15,6 +15,8 @@
 #include <spii/auto_diff_term.h>
 #include <spii/solver.h>
 
+using namespace spii;
+
 template<typename Functor, int dimension>
 double run_test(double* var, Solver* solver = 0)
 {

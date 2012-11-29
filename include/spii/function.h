@@ -13,6 +13,8 @@ using std::size_t;
 
 #include <spii/term.h>
 
+namespace spii {
+
 // These two structs are used by Function to store added
 // variables and terms.
 struct AddedVariable
@@ -163,5 +165,6 @@ protected:
 	mutable size_t number_of_hessian_elements;
 };
 
+}  // namespace spii
 
 #endif

@@ -12,6 +12,7 @@
 #include <spii/spii.h>
 #include <spii/solver.h>
 
+namespace spii {
 
 void Solver::solve_lbfgs(const Function& function,
                           SolverResults* results) const
@@ -251,3 +252,5 @@ void Solver::solve_lbfgs(const Function& function,
 		this->log_function(str);
 	}
 }
+
+}  // namespace spii

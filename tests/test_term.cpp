@@ -5,6 +5,7 @@
 #include <spii/term.h>
 
 using namespace fadbad;
+using namespace spii;
 
 class Func
 {

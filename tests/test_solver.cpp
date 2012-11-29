@@ -8,6 +8,8 @@
 #include <spii/auto_diff_term.h>
 #include <spii/solver.h>
 
+using namespace spii;
+
 struct Banana
 {
 	template<typename R>

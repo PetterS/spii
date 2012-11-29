@@ -5,6 +5,8 @@
 #include <spii/function.h>
 #include <spii/spii.h>
 
+namespace spii {
+
 Function::Function()
 {
 	this->number_of_scalars = 0;
@@ -447,3 +449,4 @@ double Function::evaluate(const Eigen::VectorXd& x,
 	return value;
 }
 
+}  // namespace spii

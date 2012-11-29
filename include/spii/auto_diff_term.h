@@ -6,6 +6,8 @@
 
 #include <spii/term.h>
 
+namespace spii {
+
 //
 // Term which allows for automatic computation of derivatives. It is
 // used in the following way:
@@ -334,5 +336,6 @@ private:
 	const Functor* functor;
 };
 
+}  // namespace spii
 
 #endif

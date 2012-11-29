@@ -13,6 +13,8 @@
 
 #include <spii/function.h>
 
+namespace spii {
+
 // SolverResults contains the result of a call to Solver::solve.
 struct SolverResults
 {
@@ -106,3 +108,5 @@ private:
 };
 
 #endif
+
+}  // namespace spii

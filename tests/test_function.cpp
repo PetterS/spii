@@ -4,6 +4,8 @@
 #include <spii/auto_diff_term.h>
 #include <spii/function.h>
 
+using namespace spii;
+
 TEST(Function, get_number_of_scalars)
 {
 	Function f;

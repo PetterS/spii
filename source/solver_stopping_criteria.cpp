@@ -2,6 +2,8 @@
 
 #include <spii/solver.h>
 
+namespace spii {
+
 bool Solver::check_exit_conditions(const double fval,
                                    const double fprev,
                                    const double normg,
@@ -47,3 +49,5 @@ bool Solver::check_exit_conditions(const double fval,
 	}
 	return false;
 }
+
+}  // namespace spii

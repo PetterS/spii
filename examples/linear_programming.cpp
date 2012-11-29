@@ -7,6 +7,8 @@
 #include <spii/auto_diff_term.h>
 #include <spii/solver.h>
 
+using namespace spii;
+
 struct LinearObjective
 {
 	std::vector<double> c;

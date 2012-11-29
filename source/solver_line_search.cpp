@@ -3,6 +3,8 @@
 
 #include <spii/solver.h>
 
+namespace spii {
+
 double Solver::perform_linesearch(const Function& function,
                                   const Eigen::VectorXd& x,
                                   const double fval,
@@ -43,3 +45,5 @@ double Solver::perform_linesearch(const Function& function,
 
 	return alpha;
 }
+
+}  // namespace spii
