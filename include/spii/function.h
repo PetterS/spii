@@ -68,6 +68,10 @@ public:
 		return number_of_scalars;
 	}
 
+	// Sets the number of threads the Function should use when evaluating.
+	// Default: number of cores available.
+	void set_number_of_threads(int num);
+
 	// Adds a new term to the function. Will throw an error if a variable
 	// is not already added to the function, or if it does not match the
 	// dimensionality required by the Term.

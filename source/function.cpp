@@ -98,6 +98,12 @@ void Function::add_term(const Term* term, const std::vector<double*>& arguments)
 	}
 }
 
+void Function::set_number_of_threads(int num)
+{
+	this->finalize_called = false;
+	this->number_of_threads = num;
+}
+
 void Function::finalize() const
 {
 	int max_arity = 2;
