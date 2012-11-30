@@ -36,9 +36,9 @@ TEST(Solver, banana)
 	EXPECT_TRUE(results.exit_condition == SolverResults::ARGUMENT_TOLERANCE ||
 	            results.exit_condition == SolverResults::FUNCTION_TOLERANCE ||
 	            results.exit_condition == SolverResults::GRADIENT_TOLERANCE);
-	EXPECT_LT( std::abs(x[0] - 1.0), 1e-9);
-	EXPECT_LT( std::abs(x[0] - 1.0), 1e-9);
-	EXPECT_LT( std::abs(f.evaluate()), 1e-9);
+	EXPECT_LT( std::fabs(x[0] - 1.0), 1e-9);
+	EXPECT_LT( std::fabs(x[0] - 1.0), 1e-9);
+	EXPECT_LT( std::fabs(f.evaluate()), 1e-9);
 }
 
 TEST(Solver, function_tolerance)

@@ -77,10 +77,10 @@ void test_rosenbrock()
 	            results.exit_condition == SolverResults::FUNCTION_TOLERANCE ||
 	            results.exit_condition == SolverResults::GRADIENT_TOLERANCE);
 
-	EXPECT_LT( std::abs(f.evaluate()), 1e-9);
+	EXPECT_LT( std::fabs(f.evaluate()), 1e-9);
 
 	for (size_t i = 0; i < n - 1; ++i) {
-		ASSERT_LT( std::abs(x[i] - 1.0), 1e-9);
+		ASSERT_LT( std::fabs(x[i] - 1.0), 1e-9);
 	}
 }
 
@@ -257,7 +257,7 @@ void test_trid()
 	if (n >= 100000) {
 		tol = 1e-4;
 	}
-	EXPECT_LT(std::abs(fval + n * (n+4) * (n-1) / 6.0) / std::abs(fval), tol);
+	EXPECT_LT(std::fabs(fval + n * (n+4) * (n-1) / 6.0) / std::abs(fval), tol);
 	EXPECT_TRUE(results.exit_condition == SolverResults::ARGUMENT_TOLERANCE ||
 	            results.exit_condition == SolverResults::FUNCTION_TOLERANCE ||
 	            results.exit_condition == SolverResults::GRADIENT_TOLERANCE);

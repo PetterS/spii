@@ -26,8 +26,8 @@ bool Solver::check_exit_conditions(const double fval,
 		return true;
 	}
 
-	if (abs(fval - fprev) / (abs(fval) + this->function_improvement_tolerance) <
-	                                     this->function_improvement_tolerance) {
+	if (std::fabs(fval - fprev) / (std::fabs(fval) + this->function_improvement_tolerance) <
+	                                                 this->function_improvement_tolerance) {
 		results->exit_condition = SolverResults::FUNCTION_TOLERANCE;
 		return true;
 	}

@@ -17,9 +17,9 @@ TEST(Solver, Rosenbrock)
 	double x[2] = {-1.2, 1.0};
 	double fval = run_test<Rosenbrock, 2>(x);
 
-	EXPECT_LT( std::abs(x[0] - 1.0), 1e-9);
-	EXPECT_LT( std::abs(x[1] - 1.0), 1e-9);
-	EXPECT_LT( std::abs(fval), 1e-9);
+	EXPECT_LT( std::fabs(x[0] - 1.0), 1e-9);
+	EXPECT_LT( std::fabs(x[1] - 1.0), 1e-9);
+	EXPECT_LT( std::fabs(fval), 1e-9);
 }
 
 struct FreudenStein_Roth
@@ -39,9 +39,9 @@ TEST(Solver, FreudenStein_Roth)
 	double fval = run_test<FreudenStein_Roth, 2>(x);
 
 	// Can end up in local minima 48.9842...
-	//EXPECT_LT( std::abs(x[0] - 5.0), 1e-9);
-	//EXPECT_LT( std::abs(x[1] - 4.0), 1e-9);
-	//EXPECT_LT( std::abs(f.evaluate()), 1e-9);
+	//EXPECT_LT( std::fabs(x[0] - 5.0), 1e-9);
+	//EXPECT_LT( std::fabs(x[1] - 4.0), 1e-9);
+	//EXPECT_LT( std::fabs(f.evaluate()), 1e-9);
 }
 
 struct Powell_badly_scaled
@@ -60,7 +60,7 @@ TEST(Solver, Powell_badly_scaled)
 	double x[2] = {0.0, 1.0};
 	double fval = run_test<Powell_badly_scaled, 2>(x);
 
-	EXPECT_LT( std::abs(fval), 1e-9);
+	EXPECT_LT( std::fabs(fval), 1e-9);
 }
 
 struct Brown_badly_scaled
@@ -80,9 +80,9 @@ TEST(Solver, Brown_badly_scaled)
 	double x[2] = {1.0, 1.0};
 	double fval = run_test<Brown_badly_scaled, 2>(x);
 
-	EXPECT_LT( std::abs(x[0] - 1e6),  1e-3);
-	EXPECT_LT( std::abs(x[1] - 2e-6), 1e-9);
-	EXPECT_LT( std::abs(fval), 1e-9);
+	EXPECT_LT( std::fabs(x[0] - 1e6),  1e-3);
+	EXPECT_LT( std::fabs(x[1] - 2e-6), 1e-9);
+	EXPECT_LT( std::fabs(fval), 1e-9);
 }
 
 
@@ -103,9 +103,9 @@ TEST(Solver, Beale)
 	double x[2] = {1.0, 1.0};
 	double fval = run_test<Beale, 2>(x);
 
-	EXPECT_LT( std::abs(x[0] - 3.0),  1e-3);
-	EXPECT_LT( std::abs(x[1] - 0.5), 1e-9);
-	EXPECT_LT( std::abs(fval), 1e-9);
+	EXPECT_LT( std::fabs(x[0] - 3.0),  1e-3);
+	EXPECT_LT( std::fabs(x[1] - 0.5), 1e-9);
+	EXPECT_LT( std::fabs(fval), 1e-9);
 }
 
 
@@ -129,7 +129,7 @@ TEST(Solver, JennrichSampson)
 	double x[2] = {0.3, 0.4};
 	double fval = run_test<JennrichSampson, 2>(x);
 
-	EXPECT_LT( std::abs(fval - 124.362), 0.001);
+	EXPECT_LT( std::fabs(fval - 124.362), 0.001);
 }
 
 struct HelicalValley
@@ -154,10 +154,10 @@ TEST(Solver, HelicalValley)
 	double x[3] = {-1.0, 0.0, 0.0};
 	double fval = run_test<HelicalValley, 3>(x);
 
-	EXPECT_LT( std::abs(x[0] - 1.0),  1e-9);
-	EXPECT_LT( std::abs(x[1]), 1e-9);
-	EXPECT_LT( std::abs(x[2]), 1e-9);
-	EXPECT_LT( std::abs(fval), 1e-9);
+	EXPECT_LT( std::fabs(x[0] - 1.0),  1e-9);
+	EXPECT_LT( std::fabs(x[1]), 1e-9);
+	EXPECT_LT( std::fabs(x[2]), 1e-9);
+	EXPECT_LT( std::fabs(fval), 1e-9);
 }
 
 struct Bard
@@ -186,7 +186,7 @@ TEST(Solver, Bard)
 	double x[3] = {1.0, 1.0, 1.0};
 	double fval = run_test<Bard, 3>(x);
 
-	EXPECT_LT( std::abs(fval - 8.21487e-3), 1e-7);
+	EXPECT_LT( std::fabs(fval - 8.21487e-3), 1e-7);
 }
 
 struct Gaussian
@@ -214,7 +214,7 @@ TEST(Solver, Gaussian)
 	double x[3] = {0.4, 1.0, 0.0};
 	double fval = run_test<Gaussian, 3>(x);
 
-	EXPECT_LT( std::abs(fval - 1.12793e-8), 1e-12);
+	EXPECT_LT( std::fabs(fval - 1.12793e-8), 1e-12);
 }
 
 struct Meyer
@@ -243,7 +243,7 @@ TEST(Solver, Meyer)
 	solver.maximum_iterations = 500;
 	double fval = run_test<Meyer, 3>(x, &solver);
 
-	EXPECT_LT( std::abs(fval - 87.9458), 1e-3);
+	EXPECT_LT( std::fabs(fval - 87.9458), 1e-3);
 }
 
 template<int m = 10>
@@ -276,10 +276,10 @@ TEST(Solver, Gulf)
 	solver.maximum_iterations = 500;
 	double fval = run_test<Gulf<3>, 3>(x, &solver);
 
-	EXPECT_LT( std::abs(x[0] - 50.0), 1e-9);
-	EXPECT_LT( std::abs(x[1] - 25.0), 1e-9);
-	EXPECT_LT( std::abs(x[2] - 1.5),  1e-9);
-	EXPECT_LT( std::abs(fval), 1e-9);
+	EXPECT_LT( std::fabs(x[0] - 50.0), 1e-9);
+	EXPECT_LT( std::fabs(x[1] - 25.0), 1e-9);
+	EXPECT_LT( std::fabs(x[2] - 1.5),  1e-9);
+	EXPECT_LT( std::fabs(fval), 1e-9);
 }
 */
 
@@ -304,7 +304,7 @@ TEST(Solver, Box)
 	double x[3] = {1.0, 10.0, 20.0};
 	double fval = run_test<Box<10>, 3>(x);
 
-	EXPECT_LT( std::abs(fval), 1e-9);
+	EXPECT_LT( std::fabs(fval), 1e-9);
 }
 
 struct PowellSingular
@@ -326,11 +326,11 @@ TEST(Solver, PowellSingular)
 	double x[4] = {3.0, -1.0, 0.0, 1.0};
 	double fval = run_test<PowellSingular, 4>(x);
 
-	EXPECT_LT( std::abs(x[0]), 1e-3);  // Hard to end up with the variables
-	EXPECT_LT( std::abs(x[1]), 1e-3);  // very close to the origin.
-	EXPECT_LT( std::abs(x[2]), 1e-3);
-	EXPECT_LT( std::abs(x[3]), 1e-3);
-	EXPECT_LT( std::abs(fval), 1e-12);
+	EXPECT_LT( std::fabs(x[0]), 1e-3);  // Hard to end up with the variables
+	EXPECT_LT( std::fabs(x[1]), 1e-3);  // very close to the origin.
+	EXPECT_LT( std::fabs(x[2]), 1e-3);
+	EXPECT_LT( std::fabs(x[3]), 1e-3);
+	EXPECT_LT( std::fabs(fval), 1e-12);
 }
 
 struct Wood
@@ -353,9 +353,9 @@ TEST(Solver, Wood)
 	double x[4] = {-3.0, -1.0, -3.0, -1.0};
 	double fval = run_test<Wood, 4>(x);
 
-	EXPECT_LT( std::abs(x[0] - 1.0), 1e-8);
-	EXPECT_LT( std::abs(x[1] - 1.0), 1e-8);
-	EXPECT_LT( std::abs(x[2] - 1.0), 1e-8);
-	EXPECT_LT( std::abs(x[3] - 1.0), 1e-8);
-	EXPECT_LT( std::abs(fval), 1e-8);
+	EXPECT_LT( std::fabs(x[0] - 1.0), 1e-8);
+	EXPECT_LT( std::fabs(x[1] - 1.0), 1e-8);
+	EXPECT_LT( std::fabs(x[2] - 1.0), 1e-8);
+	EXPECT_LT( std::fabs(x[3] - 1.0), 1e-8);
+	EXPECT_LT( std::fabs(fval), 1e-8);
 }

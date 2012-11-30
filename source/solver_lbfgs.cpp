@@ -161,13 +161,14 @@ void Solver::solve_lbfgs(const Function& function,
 		// might be very bad. If this is the case, it is better to discard
 		// the history once in a while. This allows the solver to correctly 
 		// solve some badly scaled problems.
-		double restart_test = abs(fval - fprev) / (abs(fval) + abs(fprev));
+		double restart_test = std::fabs(fval - fprev) / 
+		                      (std::fabs(fval) + std::fabs(fprev));
 		if (iter > 0 && iter % 100 == 0 && restart_test
 		                                   < this->lbfgs_restart_tolerance) {
 			char str[1024];
 			if (this->log_function) {
 				std::sprintf(str, "Restarting: fval = %.3e, deltaf = %.3e, max|g_i| = %.3e, test = %.3e",
-				             fval, abs(fval - fprev), normg, restart_test);
+				             fval, std::fabs(fval - fprev), normg, restart_test);
 				this->log_function(str);
 			}
 			r = -g;
@@ -191,7 +192,7 @@ void Solver::solve_lbfgs(const Function& function,
 		if (iter == 0) {
 			double sumabsg = 0.0;
 			for (size_t i = 0; i < n; ++i) {
-				sumabsg += std::abs(g[i]);
+				sumabsg += std::fabs(g[i]);
 			}
 			start_alpha = std::min(1.0, 1.0 / sumabsg);
 		}
@@ -234,7 +235,7 @@ void Solver::solve_lbfgs(const Function& function,
 					this->log_function("Itr       f        deltaf     max|g_i|   alpha       H0        rho");
 				}
 				std::sprintf(str, "%4d %+.3e %.3e %.3e %.3e %.3e %.3e",
-					iter, fval, abs(fval - fprev), normg, alpha_step, H0, rho[0]);
+					iter, fval, std::fabs(fval - fprev), normg, alpha_step, H0, rho[0]);
 			this->log_function(str);
 		}
 		results->log_time += wall_time() - start_time;
