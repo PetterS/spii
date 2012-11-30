@@ -30,6 +30,14 @@ struct SolverResults
 	      ERROR,              // Internal error.
 	      NA} exit_condition;
 
+	// Returns true if the exit_condition indicates convergence.
+	bool exit_success() const
+	{
+		return exit_condition == GRADIENT_TOLERANCE ||
+		       exit_condition == FUNCTION_TOLERANCE ||
+			   exit_condition == ARGUMENT_TOLERANCE;
+	}
+
 	double startup_time;
 	double function_evaluation_time;
 	double stopping_criteria_time;
