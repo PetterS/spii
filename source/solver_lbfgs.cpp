@@ -232,7 +232,7 @@ void Solver::solve_lbfgs(const Function& function,
 		if (this->log_function && iter % log_interval == 0) {
 			char str[1024];
 				if (iter == 0) {
-					this->log_function("Itr       f        deltaf     max|g_i|   alpha       H0        rho");
+					this->log_function("Itr       f       deltaf   max|g_i|   alpha      H0       rho");
 				}
 				std::sprintf(str, "%4d %+.3e %9.3e %.3e %.3e %.3e %.3e",
 					iter, fval, std::fabs(fval - fprev), normg, alpha_step, H0, rho[0]);

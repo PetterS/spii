@@ -242,7 +242,7 @@ void Solver::solve_newton(const Function& function,
 				double normH = H.norm();
 
 				if (iter == 0) {
-					this->log_function("Itr       f       max|g_i|     ||H||      det(H)     alpha     fac   min(H_ii) ");
+					this->log_function("Itr      f       max|g_i|   ||H||     det(H)     alpha    fac  min(H_ii) ");
 				}
 				std::sprintf(str, "%4d %+.3e %.3e %.3e %+.3e %.3e %3d   %+.2e",
 					iter, fval, normg, normH, detH, alpha, factorizations, mindiag);

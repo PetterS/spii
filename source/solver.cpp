@@ -56,6 +56,10 @@ Solver::Solver()
 
 	this->lbfgs_history_size = 10;
 	this->lbfgs_restart_tolerance = 1e-6;
+
+	#ifdef _MSC_VER
+		_set_output_format(_TWO_DIGIT_EXPONENT);
+	#endif
 }
 
 }  // namespace spii
