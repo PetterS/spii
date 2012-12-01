@@ -24,6 +24,18 @@ class AutoDiffTerm :
 
 };
 
+// to_double(x) returns the real part of x, disregarding
+// any derivatives.
+inline double to_double(double x)
+{
+	return x;
+}
+template<typename R>
+inline double to_double(R& x)
+{
+	return to_double(x.x());
+}
+
 // Function differentiating a functor taking D variables.
 template<typename Functor, typename T, int D>
 T differentiate_functor(
