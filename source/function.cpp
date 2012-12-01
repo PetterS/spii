@@ -109,8 +109,15 @@ void Function::set_number_of_threads(int num)
 
 void Function::finalize() const
 {
-	int max_arity = 2;
-	int max_variable_dimension = 100;
+	size_t max_arity = 1;
+	int max_variable_dimension = 1;
+	for (auto itr = variables.begin(); itr != variables.end(); ++itr) {
+		max_variable_dimension = std::max(max_variable_dimension,
+		                                  itr->second.dimension);
+	}
+	for (auto itr = terms.begin(); itr != terms.end(); ++itr) {
+		max_arity = std::max(max_arity, itr->user_variables.size());
+	}
 
 	this->thread_gradient_scratch.resize(this->number_of_threads);
 	this->thread_gradient_storage.resize(this->number_of_threads);
