@@ -336,8 +336,7 @@ double Function::evaluate(const Eigen::VectorXd& x,
 		// Create the global (dense) hessian.
 		hessian->resize( static_cast<int>(this->number_of_scalars),
 						 static_cast<int>(this->number_of_scalars));
-		//hessian->setConstant(0.0);
-		(*hessian) *= 0.0;
+		hessian->setZero();
 
 		// Go through and evaluate each term.
 		for (auto itr = terms.begin(); itr != terms.end(); ++itr) {
