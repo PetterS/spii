@@ -103,10 +103,14 @@ ENDIF (NOT CMAKE_BUILD_TYPE)
 # Set the default flags to an empty string.
 SET (SPII_CXX_FLAGS)
 
-# C++11
+# C++11 gnu++
 IF (CMAKE_COMPILER_IS_GNUCXX)
   MESSAGE("Enabling C++11 support for gcc.")
-  SET (SPII_CXX_FLAGS "${SPII_CXX_FLAGS} -std=c++0x")
+  IF (${BUILD_TESTING})
+    SET (SPII_CXX_FLAGS "${SPII_CXX_FLAGS} -std=gnu++0x")
+  ELSE (${BUILD_TESTING})
+    SET (SPII_CXX_FLAGS "${SPII_CXX_FLAGS} -std=c++0x")
+  ENDIF (${BUILD_TESTING})
 ENDIF (CMAKE_COMPILER_IS_GNUCXX)
 
 IF (CMAKE_BUILD_TYPE STREQUAL "Release")
