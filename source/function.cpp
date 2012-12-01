@@ -16,6 +16,9 @@ Function::Function()
 
 	this->number_of_hessian_elements = 0;
 
+	this->evaluations_without_gradient = 0;
+	this->evaluations_with_gradient    = 0;
+
 	this->evaluate_time               = 0;
 	this->evaluate_with_hessian_time  = 0;
 	this->write_gradient_hessian_time = 0;
@@ -139,6 +142,8 @@ void Function::add_term(const Term* term, double* argument0, double* argument1)
 
 void Function::print_timing_information(std::ostream& out) const
 {
+	out << "Function evaluations without gradient : " << evaluations_without_gradient << '\n';
+	out << "Function evaluations with gradient    : " << evaluations_with_gradient << '\n';
 	out << "Function evaluate time            : " << evaluate_time << '\n';
 	out << "Function evaluate time (with g/H) : " << evaluate_with_hessian_time << '\n';
 	out << "Function write g/H time           : " << write_gradient_hessian_time << '\n';
@@ -147,6 +152,8 @@ void Function::print_timing_information(std::ostream& out) const
 
 double Function::evaluate(const Eigen::VectorXd& x) const
 {
+	this->evaluations_without_gradient++;
+
 	// Copy values from the global vector x to the temporary storage
 	// used for evaluating the term.
 	this->copy_global_to_local(x);
@@ -165,6 +172,9 @@ double Function::evaluate(const Eigen::VectorXd& x) const
 
 double Function::evaluate() const
 {
+	// This overload copies a lot of data. First from user space
+	// to a global vector, then from the global vector to temporary
+	// storage.
 	Eigen::VectorXd x;
 	this->copy_user_to_global(&x);
 
@@ -252,6 +262,8 @@ double Function::evaluate(const Eigen::VectorXd& x,
                           Eigen::VectorXd* gradient,
 						  Eigen::MatrixXd* hessian) const
 {
+	this->evaluations_with_gradient++;
+
 	if (hessian && ! this->hessian_is_enabled) {
 		throw std::runtime_error("Function::evaluate: Hessian computation is not enabled.");
 	}
@@ -354,6 +366,8 @@ double Function::evaluate(const Eigen::VectorXd& x,
                           Eigen::VectorXd* gradient,
 						  Eigen::SparseMatrix<double>* hessian) const
 {
+	this->evaluations_with_gradient++;
+
 	if (! this->hessian_is_enabled) {
 		throw std::runtime_error("Function::evaluate: Hessian computation is not enabled.");
 	}

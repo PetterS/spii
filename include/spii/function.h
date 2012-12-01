@@ -115,6 +115,8 @@ public:
 
 	// Used to record the time of some operations. Each time an operation
 	// is performed, the time taken is added to the appropiate variable.
+	mutable int evaluations_without_gradient;
+	mutable int evaluations_with_gradient;
 	mutable double evaluate_time;
 	mutable double evaluate_with_hessian_time;
 	mutable double write_gradient_hessian_time;
