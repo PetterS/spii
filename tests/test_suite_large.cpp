@@ -257,7 +257,8 @@ void test_trid()
 	if (n >= 100000) {
 		tol = 1e-4;
 	}
-	EXPECT_LT(std::fabs(fval + n * (n+4) * (n-1) / 6.0) / std::abs(fval), tol);
+	double nn = n;
+	EXPECT_LT(std::fabs(fval + (nn * (nn+4) * (nn-1)) / 6.0) / std::abs(fval), tol);
 	EXPECT_TRUE(results.exit_condition == SolverResults::ARGUMENT_TOLERANCE ||
 	            results.exit_condition == SolverResults::FUNCTION_TOLERANCE ||
 	            results.exit_condition == SolverResults::GRADIENT_TOLERANCE);
