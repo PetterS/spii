@@ -168,9 +168,14 @@ double Function::evaluate(const Eigen::VectorXd& x) const
 	double start_time = wall_time();
 
 	double value = 0;
-	for (auto itr = terms.begin(); itr != terms.end(); ++itr) {
-		// Evaluate this term.
-		value += itr->term->evaluate(&itr->temp_variables[0]);
+	// Go through and evaluate each term.
+	// OpenMP requires a signed data type as the loop variable.
+	#ifdef USE_OPENMP
+	#pragma omp parallel for reduction(+ : value) num_threads(this->number_of_threads)
+	#endif
+	for (int i = 0; i < terms.size(); ++i) {
+		// Evaluate the term .
+		value += terms[i].term->evaluate(&terms[i].temp_variables[0]);
 	}
 
 	this->evaluate_time += wall_time() - start_time;

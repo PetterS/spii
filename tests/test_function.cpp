@@ -1,7 +1,7 @@
 
 #include <gtest/gtest.h>
 
-// EXPECT_THROW gives errors on Cygwin. Diable for now.
+// EXPECT_THROW gives errors on Cygwin. Disable for now.
 #ifdef __CYGWIN__
 	#define EXPECT_THROW(a,b)
 #endif
