@@ -189,6 +189,8 @@ void Solver::solve_lbfgs(const Function& function,
 		//
 		start_time = wall_time();
 		double start_alpha = 1.0;
+		// In the first iteration, start with a much smaller step
+		// length.
 		if (iter == 0) {
 			double sumabsg = 0.0;
 			for (size_t i = 0; i < n; ++i) {
