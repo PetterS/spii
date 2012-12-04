@@ -384,10 +384,63 @@ TEST(Solver, Wood)
 }
 
 
-//
+//-----------------------------------------------------------------
 // Test functions from TEST_OPT
 // http://people.sc.fsu.edu/~jburkardt/m_src/test_opt/test_opt.html
-//
+//-----------------------------------------------------------------
+
+// #35
+struct Shubert
+{
+	template<typename R>
+	R operator()(const R* const x) const
+	{
+		R factor1 = 0.0;
+		for (int i = 1; i<= 5; ++i) {
+			double y = i;
+			factor1 += y * cos( (y + 1.0) * x[0] + y );
+		}
+
+		R factor2 = 0.0;
+		for (int i = 1; i<= 5; ++i) {
+			double y = i;
+			factor2 += y * cos( (y + 1.0) * x[1] + y );
+		}
+
+		return factor1 * factor2;
+	}
+};
+
+TEST(Solver, Shubert)
+{
+	double x[2] = {0.5, 1.0};
+	run_test<Shubert, 2>(x);
+}
+
+// #37
+struct Easom
+{
+	template<typename R>
+	R operator()(const R* const x) const
+	{
+		const double pi = 3.141592653589793;
+		R arg = - (x[0] - pi)*(x[0] - pi) - (x[1] - pi)*(x[1] - pi);
+		return -cos(x[0]) * cos(x[1]) * exp(arg);
+	}
+};
+
+TEST(Solver, Easom)
+{
+	Solver solver;
+	create_solver(&solver);
+	solver.maximum_iterations = 10000;
+
+	double x[2] = {0.5, 1.0};
+	run_test<Easom, 2>(x, &solver);
+
+	EXPECT_LT( std::fabs(x[0] - 3.141592653589793), 1e-8);
+	EXPECT_LT( std::fabs(x[1] - 3.141592653589793), 1e-8);
+}
 
 // #38
 struct Bohachevsky1
@@ -454,6 +507,64 @@ TEST(Solver, Bohachevsky)
 	run_test<Bohachevsky3, 2>(x, &solver);
 }
 
+
+// #41
+struct Colville
+{
+	template<typename R>
+	R operator()(const R* const x) const
+	{
+		return 100.0 * (x[1] - x[0]*x[0]) * (x[1] - x[0]*x[0])
+		+ (1.0 - x[0]) * (1.0 - x[0])
+		+ 90.0 * (x[3] - x[2]*x[2]) * (x[3] - x[2]*x[2])
+		+ (1.0 - x[2]) * (1.0 - x[2])
+		+ 10.1 * ( (x[1] - 1.0 ) * (x[1] - 1.0)
+			+ (x[3] - 1.0) * (x[3] - 1.0) )
+		+ 19.8 * (x[1] - 1.0) * (x[3] - 1.0);
+	}
+};
+
+TEST(Solver, Colville)
+{
+	double x[4] = {-0.5, 1.0, -0.5, -1.0};
+	double fval = run_test<Colville, 4>(x);
+
+	EXPECT_LT( std::fabs(x[0] - 1.0), 1e-8);
+	EXPECT_LT( std::fabs(x[1] - 1.0), 1e-8);
+	EXPECT_LT( std::fabs(x[2] - 1.0), 1e-8);
+	EXPECT_LT( std::fabs(x[3] - 1.0), 1e-8);
+}
+
+// #42
+struct Powell3D
+{
+	template<typename R>
+	R operator()(R* x) const
+	{
+		R term = 0.0;
+		if (to_double(x[1]) != 0.0) {
+			R arg = (x[0] + 2.0*x[1] + x[2]) / x[1];
+			term = exp(-arg*arg);
+		}
+
+		return 3.0
+			- 1.0 / (1.0 + (x[0] - x[1])*(x[0] - x[1]))
+			- sin( 0.5 * 3.141592653589793 * x[1] * x[2])
+			- term;
+	}
+};
+
+TEST(Solver, Powell3D)
+{
+	double x[3] = {0.0, 1.0, 2.0};
+	double fval = run_test<Powell3D, 3>(x);
+
+	// The webpage states that the optimal point is
+	// (1, 1, 1), but that seems incorrect.
+	//EXPECT_LT( std::fabs(x[0] - 1.0), 1e-8);
+	//EXPECT_LT( std::fabs(x[1] - 1.0), 1e-8);
+	//EXPECT_LT( std::fabs(x[2] - 1.0), 1e-8);
+}
 
 // #43
 struct Himmelblau
