@@ -1,6 +1,5 @@
+// Petter Strandmark 2012.
 
-
-#include <cstring>
 #include <iostream>
 #include <limits>
 #include <stdexcept>
@@ -64,6 +63,7 @@ void Solver::solve_lbfgs(const Function& function,
 	results->startup_time   = wall_time() - global_start_time;
 	results->exit_condition = SolverResults::ERROR;
 	int iter = 0;
+	bool last_iteration_successful = true;
 	while (true) {
 
 		//
@@ -90,7 +90,7 @@ void Solver::solve_lbfgs(const Function& function,
 		//
 		start_time = wall_time();
 
-		if (iter > 0) {
+		if (iter > 0 && last_iteration_successful) {
 			s_tmp = x - x_prev;
 			y_tmp += g;
 
@@ -121,8 +121,8 @@ void Solver::solve_lbfgs(const Function& function,
 		//
 		start_time = wall_time();
 		if (this->check_exit_conditions(fval, fprev, normg,
-			                            normg0, x.norm(), normdx,
-			                            results)) {
+		                                normg0, x.norm(), normdx,
+		                                last_iteration_successful, results)) {
 			break;
 		}
 		if (iter >= this->maximum_iterations) {
@@ -138,6 +138,10 @@ void Solver::solve_lbfgs(const Function& function,
 
 		double H0 = 1.0;
 		if (iter > 0) {
+			// If the gradient is identical two iterations in a row,
+			// y will be the zero vector and H0 will be NaN. In this
+			// case the line search will fail and L-BFGS will be restarted
+			// with a steepest descent step.
 			H0 = s[0]->dot(*y[0]) / y[0]->dot(*y[0]);
 		}
 
@@ -161,8 +165,16 @@ void Solver::solve_lbfgs(const Function& function,
 		// solve some badly scaled problems.
 		double restart_test = std::fabs(fval - fprev) / 
 		                      (std::fabs(fval) + std::fabs(fprev));
+		bool should_restart = false;
 		if (iter > 0 && iter % 100 == 0 && restart_test
 		                                   < this->lbfgs_restart_tolerance) {
+			should_restart = true;
+		}
+		if (! last_iteration_successful) {
+			should_restart = true;
+		}
+
+		if (should_restart) {
 			char str[1024];
 			if (this->log_function) {
 				std::sprintf(str, "Restarting: fval = %.3e, deltaf = %.3e, max|g_i| = %.3e, test = %.3e",
@@ -189,7 +201,7 @@ void Solver::solve_lbfgs(const Function& function,
 		double start_alpha = 1.0;
 		// In the first iteration, start with a much smaller step
 		// length.
-		if (iter == 0) {
+		if (iter == 0 || should_restart) {
 			double sumabsg = 0.0;
 			for (size_t i = 0; i < n; ++i) {
 				sumabsg += std::fabs(g[i]);
@@ -202,16 +214,29 @@ void Solver::solve_lbfgs(const Function& function,
 		if (alpha_step <= 0) {
 			if (this->log_function) {
 				this->log_function("Line search failed.");
+				char str[1024];
+				std::sprintf(str, "%4d %+.3e %9.3e %.3e %.3e %.3e %.3e",
+					iter, fval, std::fabs(fval - fprev), normg, alpha_step, H0, rho[0]);
+				this->log_function(str);
 			}
-			results->exit_condition = SolverResults::FUNCTION_TOLERANCE;
-			break;
+			if (! last_iteration_successful) {
+				// Last iteration also failed. Exit with an error.
+				results->exit_condition = SolverResults::ERROR;
+				break;
+			}
+
+			last_iteration_successful = false;
+		}
+		else {
+			// Record length of this step.
+			normdx = alpha_step * r.norm();
+			// Compute new point.
+			x_prev = x;
+			x = x + alpha_step * r;
+
+			last_iteration_successful = true;
 		}
 
-		// Record length of this step.
-		normdx = alpha_step * r.norm();
-		// Compute new point.
-		x_prev = x;
-		x = x + alpha_step * r;
 		results->backtracking_time += wall_time() - start_time;
 
 		//
@@ -249,7 +274,7 @@ void Solver::solve_lbfgs(const Function& function,
 
 	if (this->log_function) {
 		char str[1024];
-		std::sprintf(str, " end +%.3e           %.3e", fval, normg);
+		std::sprintf(str, " end %+.3e           %.3e", fval, normg);
 		this->log_function(str);
 	}
 }

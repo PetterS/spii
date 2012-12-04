@@ -1,3 +1,4 @@
+// Petter Strandmark 2012.
 
 #include <cstring>
 #include <iostream>
@@ -88,6 +89,7 @@ void Solver::solve_newton(const Function& function,
 	results->startup_time   = wall_time() - global_start_time;
 	results->exit_condition = SolverResults::ERROR;
 	int iter = 0;
+	bool last_iteration_successful = true;
 	while (true) {
 
 		//
@@ -117,7 +119,7 @@ void Solver::solve_newton(const Function& function,
 		start_time = wall_time();
 		if (this->check_exit_conditions(fval, fprev, normg,
 			                            normg0, x.norm(), normdx,
-			                            results)) {
+			                            last_iteration_successful, results)) {
 			break;
 		}
 		if (iter >= this->maximum_iterations) {
@@ -206,11 +208,36 @@ void Solver::solve_newton(const Function& function,
 		// Perform line search.
 		//
 		start_time = wall_time();
-		double alpha = this->perform_linesearch(function, x, fval, g, p, &x2);
-		// Record length of this step.
-		normdx = alpha * p.norm();
-		// Update current point.
-		x = x + alpha * p;
+		double start_alpha = 1.0;
+		if (! last_iteration_successful) {
+			p = -g;
+			double sumabsg = 0.0;
+			for (size_t i = 0; i < n; ++i) {
+				sumabsg += std::fabs(g[i]);
+			}
+			start_alpha = std::min(1.0, 1.0 / sumabsg);
+		}
+		double alpha = this->perform_linesearch(function, x, fval, g, p, &x2,
+		                                        start_alpha);
+
+		if (alpha <= 0) {
+			if (! last_iteration_successful) {
+				// Last iteration also failed. Exit with an error.
+				results->exit_condition = SolverResults::ERROR;
+				break;
+			}
+
+			last_iteration_successful = false;
+		}
+		else {
+			// Record length of this step.
+			normdx = alpha * p.norm();
+			// Update current point.
+			x = x + alpha * p;
+
+			last_iteration_successful = true;
+		}
+
 		results->backtracking_time += wall_time() - start_time;
 
 		//

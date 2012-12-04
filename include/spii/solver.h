@@ -107,6 +107,7 @@ private:
 							   const double gnorm0,
 	                           const double xnorm,
 	                           const double dxnorm,
+	                          const bool last_iteration_successful,
 	                           SolverResults* results) const;
 
 	// Performs a line search from x along direction p. Returns

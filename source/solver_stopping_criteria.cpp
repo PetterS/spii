@@ -10,6 +10,7 @@ bool Solver::check_exit_conditions(const double fval,
                                    const double normg0,
                                    const double normx,
                                    const double normdx,
+                                   const bool last_iteration_successful,
                                    SolverResults* results) const
 {
 	if (fval != fval) {
@@ -26,13 +27,15 @@ bool Solver::check_exit_conditions(const double fval,
 		return true;
 	}
 
-	if (std::fabs(fval - fprev) / (std::fabs(fval) + this->function_improvement_tolerance) <
+	if (last_iteration_successful &&
+	    std::fabs(fval - fprev) / (std::fabs(fval) + this->function_improvement_tolerance) <
 	                                                 this->function_improvement_tolerance) {
 		results->exit_condition = SolverResults::FUNCTION_TOLERANCE;
 		return true;
 	}
 
-	if (normdx / (normx + this->argument_improvement_tolerance) <
+	if (last_iteration_successful &&
+	    normdx / (normx + this->argument_improvement_tolerance) <
 	                      this->argument_improvement_tolerance) {
 		results->exit_condition = SolverResults::ARGUMENT_TOLERANCE;
 		return true;
