@@ -232,7 +232,7 @@ void Solver::solve_newton(const Function& function,
 			char str[1024];
 			if (use_sparsity) {
 				if (iter == 0) {
-					this->log_function("Itr       f       max|g_i|     alpha    fac    tau    min(H_ii)");
+					this->log_function("Itr      f       max|g_i|   alpha    fac    tau   min(H_ii)");
 				}
 				std::sprintf(str, "%4d %+.3e %.3e %.3e %3d   %.1e %+.2e",
 					iter, fval, normg, alpha, factorizations, tau, mindiag);
@@ -260,7 +260,7 @@ void Solver::solve_newton(const Function& function,
 
 	if (this->log_function) {
 		char str[1024];
-		std::sprintf(str, " end %.3e %.3e", fval, normg);
+		std::sprintf(str, " end %+.3e %.3e", fval, normg);
 		this->log_function(str);
 	}
 
