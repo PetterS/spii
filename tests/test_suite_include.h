@@ -1,6 +1,14 @@
 // Include this function in a file defining the run_test
 // template function.
-
+//
+// Petter Strandmark 2012
+//
+// Test functions from
+// Jorge J. More, Burton S. Garbow and Kenneth E. Hillstrom,
+// "Testing unconstrained optimization software",
+// Transactions on Mathematical Software 7(1):17-41, 1981.
+// http://www.caam.rice.edu/~zhang/caam454/nls/MGH.pdf
+//
 struct Rosenbrock
 {
 	template<typename R>
@@ -16,6 +24,21 @@ TEST(Solver, Rosenbrock)
 {
 	double x[2] = {-1.2, 1.0};
 	double fval = run_test<Rosenbrock, 2>(x);
+
+	EXPECT_LT( std::fabs(x[0] - 1.0), 1e-9);
+	EXPECT_LT( std::fabs(x[1] - 1.0), 1e-9);
+	EXPECT_LT( std::fabs(fval), 1e-9);
+}
+
+TEST(Solver, RosenbrockFar)
+{
+	double x[2] = {-1e6, 1e6};
+
+	Solver solver;
+	create_solver(&solver);
+	solver.gradient_tolerance = 1e-40;
+	solver.maximum_iterations = 100000;
+	double fval = run_test<Rosenbrock, 2>(x, &solver);
 
 	EXPECT_LT( std::fabs(x[0] - 1.0), 1e-9);
 	EXPECT_LT( std::fabs(x[1] - 1.0), 1e-9);
@@ -357,5 +380,95 @@ TEST(Solver, Wood)
 	EXPECT_LT( std::fabs(x[1] - 1.0), 1e-8);
 	EXPECT_LT( std::fabs(x[2] - 1.0), 1e-8);
 	EXPECT_LT( std::fabs(x[3] - 1.0), 1e-8);
+	EXPECT_LT( std::fabs(fval), 1e-8);
+}
+
+
+//
+// Test functions from TEST_OPT
+// http://people.sc.fsu.edu/~jburkardt/m_src/test_opt/test_opt.html
+//
+
+// #38
+struct Bohachevsky1
+{
+	// f = x(1) * x(1) - 0.3 * cos ( 3.0 * pi * x(1) ) ...
+	//   + 2.0 * x(2) * x(2) - 0.4 * cos ( 4.0 * pi * x(2) ) ...
+	//   + 0.7;
+	template<typename R>
+	R operator()(const R* const x) const
+	{
+		return x[0] * x[0] - 0.3 * cos(3.0 * 3.141592 * x[0])
+			+ 2.0 * x[1] * x[1] - 0.4 * cos(4.0 * 3.141592 * x[1])
+			+ 0.7;
+	}
+};
+
+// #39
+struct Bohachevsky2
+{
+	template<typename R>
+	R operator()(const R* const x) const
+	{
+		return x[0]*x[0] + 2.0*x[1]*x[1]
+			-0.3*cos(3.0 * 3.141592 * x[0]) *
+				 cos( 4.0 * 3.141592 * x[1] ) + 0.3;
+	}
+};
+
+// #40
+struct Bohachevsky3
+{
+	template<typename R>
+	R operator()(const R* const x) const
+	{
+		return x[0]*x[0] + 2.0*x[1]*x[1]
+			- 0.3 * cos ( 3.0 * 3.141592 * x[0] )
+			+ cos ( 4.0 * 3.141592 * x[1] ) + 0.3;
+	}
+};
+
+TEST(Solver, Bohachevsky)
+{
+	double x[2];
+
+	// Only expect a local minimum where the gradient
+	// is small.
+	Solver solver;
+	solver.argument_improvement_tolerance = 0;
+	solver.function_improvement_tolerance = 0;
+
+	x[0] = 0.5;
+	x[1] = 1.0;
+	run_test<Bohachevsky1, 2>(x, &solver);
+	
+	x[0] = 0.6;
+	x[1] = 1.3;
+	run_test<Bohachevsky2, 2>(x, &solver);
+
+	x[0] = 0.5;
+	x[1] = 1.0;
+	run_test<Bohachevsky3, 2>(x, &solver);
+}
+
+
+// #43
+struct Himmelblau
+{
+	template<typename R>
+	R operator()(const R* const x) const
+	{
+		// f = ( x(1)^2 + x(2) - 11.0 )^2 + ( x(1) + x(2)^2 - 7.0 )^2;
+		R d1 = x[0]*x[0] + x[2]      - 11.0;
+		R d2 = x[0]      + x[1]*x[1] - 7.0;
+		return d1*d1 + d2*d2;
+	}
+};
+
+TEST(Solver, Himmelblau)
+{
+	double x[2] = {-1.3, 2.7};
+	double fval = run_test<Himmelblau, 2>(x);
+
 	EXPECT_LT( std::fabs(fval), 1e-8);
 }

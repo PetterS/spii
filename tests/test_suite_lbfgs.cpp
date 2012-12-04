@@ -17,8 +17,17 @@
 
 using namespace spii;
 
+void create_solver(Solver* solver)
+{
+	solver->maximum_iterations = 1000;
+	solver->function_improvement_tolerance = 1e-16;
+	solver->gradient_tolerance = 1e-12;
+	solver->argument_improvement_tolerance = 1e-16;
+	solver->lbfgs_history_size = 40;
+}
+
 template<typename Functor, int dimension>
-double run_test(double* var, Solver* solver = 0)
+double run_test(double* var, const Solver* solver = 0)
 {
 	Function f;
 	f.hessian_is_enabled = false;
@@ -27,15 +36,12 @@ double run_test(double* var, Solver* solver = 0)
 	f.add_term(new AutoDiffTerm<Functor, dimension>(new Functor()), var);
 
 	Solver own_solver;
+	create_solver(&own_solver);
+
 	if (solver == 0) {
 		solver = &own_solver;
 	}
 	SolverResults results;
-	solver->maximum_iterations = 1000;
-	solver->function_improvement_tolerance = 1e-16;
-	solver->gradient_tolerance = 1e-12;
-	solver->argument_improvement_tolerance = 1e-16;
-	solver->lbfgs_history_size = 40;
 	solver->solve_lbfgs(f, &results);
 	std::cerr << results;
 

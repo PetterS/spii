@@ -17,6 +17,11 @@
 
 using namespace spii;
 
+void create_solver(Solver* solver)
+{
+	// Use default solver settings.
+}
+
 template<typename Functor, int dimension>
 double run_test(double* var, const Solver* solver = 0)
 {
