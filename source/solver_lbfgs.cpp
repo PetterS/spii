@@ -64,6 +64,7 @@ void Solver::solve_lbfgs(const Function& function,
 	results->exit_condition = SolverResults::ERROR;
 	int iter = 0;
 	bool last_iteration_successful = true;
+	int number_of_line_search_failures = 0;
 	while (true) {
 
 		//
@@ -219,7 +220,7 @@ void Solver::solve_lbfgs(const Function& function,
 					iter, fval, std::fabs(fval - fprev), normg, alpha_step, H0, rho[0]);
 				this->log_function(str);
 			}
-			if (! last_iteration_successful) {
+			if (! last_iteration_successful || number_of_line_search_failures++ > 10) {
 				// Last iteration also failed. Exit with an error.
 				results->exit_condition = SolverResults::ERROR;
 				break;
