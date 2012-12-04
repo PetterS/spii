@@ -437,6 +437,9 @@ TEST(Solver, Bohachevsky)
 	Solver solver;
 	solver.argument_improvement_tolerance = 0;
 	solver.function_improvement_tolerance = 0;
+	//TODO: Investigate whether a better tolerance than
+	// 1e-8 can be achieved.
+	solver.gradient_tolerance = 1e-8;
 
 	x[0] = 0.5;
 	x[1] = 1.0;
@@ -459,7 +462,7 @@ struct Himmelblau
 	R operator()(const R* const x) const
 	{
 		// f = ( x(1)^2 + x(2) - 11.0 )^2 + ( x(1) + x(2)^2 - 7.0 )^2;
-		R d1 = x[0]*x[0] + x[2]      - 11.0;
+		R d1 = x[0]*x[0] + x[1]      - 11.0;
 		R d2 = x[0]      + x[1]*x[1] - 7.0;
 		return d1*d1 + d2*d2;
 	}
