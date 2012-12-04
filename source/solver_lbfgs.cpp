@@ -6,8 +6,6 @@
 #include <stdexcept>
 
 #include <Eigen/Dense>
-#include <Eigen/Eigenvalues>
-#include <Eigen/Sparse>
 
 #include <spii/spii.h>
 #include <spii/solver.h>
@@ -251,7 +249,7 @@ void Solver::solve_lbfgs(const Function& function,
 
 	if (this->log_function) {
 		char str[1024];
-		std::sprintf(str, " end %.3e %.3e", fval, normg);
+		std::sprintf(str, " end +%.3e           %.3e", fval, normg);
 		this->log_function(str);
 	}
 }
