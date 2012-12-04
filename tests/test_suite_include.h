@@ -414,7 +414,13 @@ struct Shubert
 TEST(Solver, Shubert)
 {
 	double x[2] = {0.5, 1.0};
-	run_test<Shubert, 2>(x);
+	// Only expect a local minimum where the gradient
+	// is small.
+	Solver solver;
+	create_solver(&solver);
+	solver.argument_improvement_tolerance = 0;
+	solver.function_improvement_tolerance = 0;
+	run_test<Shubert, 2>(x, &solver);
 }
 
 // #37
