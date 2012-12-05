@@ -389,6 +389,97 @@ TEST(Solver, Wood)
 // http://people.sc.fsu.edu/~jburkardt/m_src/test_opt/test_opt.html
 //-----------------------------------------------------------------
 
+// #29
+struct GoldsteinPricePolynomial
+{
+	template<typename R>
+	R operator()(const R* const x) const
+	{
+		R a = x[0] + x[1] + 1.0;
+
+		R b = 19.0 - 14.0 * x[0] + 3.0 * x[0] * x[0] - 14.0 * x[1] 
+			+ 6.0 * x[0] * x[1] + 3.0 * x[1] * x[1];
+
+		R c = 2.0 * x[0] - 3.0 * x[1];
+
+		R d = 18.0 - 32.0 * x[0] + 12.0 * x[0] * x[0] + 48.0 * x[1] 
+			- 36.0 * x[0] * x[1] + 27.0 * x[1] * x[1];
+
+		return ( 1.0 + a * a * b ) * ( 30.0 + c * c * d );
+	}
+};
+
+TEST(Solver, GoldsteinPricePolynomial)
+{
+	double x[2] = {-0.5, 0.25};
+	// Only expect a local minimum where the gradient
+	// is small.
+	Solver solver;
+	create_solver(&solver);
+	solver.argument_improvement_tolerance = 0;
+	solver.function_improvement_tolerance = 0;
+	solver.gradient_tolerance = 1e-10;
+	run_test<GoldsteinPricePolynomial, 2>(x, &solver);
+}
+
+// #30
+struct BraninRCOS
+{
+	template<typename R>
+	R operator()(const R* const x) const
+	{
+		const double pi = 3.141592653589793;
+		const double a  = 1.0;
+		const double d  = 6.0;
+		const double e  = 10.0;
+		const double b  = 5.1 / ( 4.0 * pi*pi );
+		const double c  = 5.0 / pi;
+		const double ff = 1.0 / ( 8.0 * pi );
+
+		R expr = ( x[1] - b * x[0]*x[0] + c * x[0] - d );
+		return a * expr * expr
+			+ e * ( 1.0 - ff ) * cos ( x[0] ) + e;
+	}
+};
+
+TEST(Solver, BraninRCOS)
+{
+	double x[2] = {-1.0, 1.0};
+	// Only expect a local minimum where the gradient
+	// is small.
+	Solver solver;
+	create_solver(&solver);
+	solver.argument_improvement_tolerance = 0;
+	solver.function_improvement_tolerance = 0;
+	solver.gradient_tolerance = 1e-10;
+	run_test<BraninRCOS, 2>(x, &solver);
+}
+
+// #34
+struct SixHumpCamelBack
+{
+	template<typename R>
+	R operator()(const R* const x) const
+	{
+		return ( 4.0 - 2.1 * x[0]*x[0] + x[0]*x[0]*x[0]*x[0] / 3.0 ) * x[0]*x[0] 
+	            + x[0] * x[1] + 4.0 * ( x[1]*x[1] - 1.0 ) * x[1]*x[1];
+	}
+};
+
+TEST(Solver, SixHumpCamelBack)
+{
+	double x[2] = {-1.5, 0.5};
+	// Only expect a local minimum where the gradient
+	// is small.
+	Solver solver;
+	create_solver(&solver);
+	solver.argument_improvement_tolerance = 0;
+	solver.function_improvement_tolerance = 0;
+	solver.gradient_tolerance = 1e-10;
+	run_test<SixHumpCamelBack, 2>(x, &solver);
+}
+
+
 // #35
 struct Shubert
 {
