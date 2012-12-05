@@ -46,7 +46,6 @@ double Solver::perform_linesearch(const Function& function,
 				this->log_function("Backtracking failed, returning zero step.");
 			}
 			return 0.0;
-			//return perform_linesearch(function, x, fval, g, -g, scratch, start_alpha);
 		}
 	}
 

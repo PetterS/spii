@@ -562,8 +562,38 @@ struct Powell3D
 
 TEST(Solver, Powell3D)
 {
-	double x[3] = {0.0, 1.0, 2.0};
+	// There appears to be numerical problems at
+	// x = (-1, -1, 3).
+	//
+	// Symbolic computation shows that the gradient indeed is 0
+	// at (-1, -1, 3), but the function returns a gradient whose
+	// maximum element is over 1e-8.
+	//
+	
+	double x[3] = {-1.0, -1.0, 3.0};
+	Function f;
+	f.add_variable(x, 3);
+	f.add_term(new AutoDiffTerm<Powell3D, 3>(new Powell3D()), x);
+	Eigen::VectorXd xvec(3);
+
+	xvec[0] = -1.0;
+	xvec[1] = -1.0;
+	xvec[2] =  3.0;
+	Eigen::VectorXd g;
+	f.evaluate(xvec, &g);
+	std::cerr << "g(-1, -1, 3)  = (" << g.transpose() << ")" << std::endl;
+
+	x[0] = 0.0;
+	x[1] = 1.0;
+	x[2] = 2.0;
 	double fval = run_test<Powell3D, 3>(x);
+
+	xvec[0] = x[0];
+	xvec[1] = x[1];
+	xvec[2] = x[2];
+	f.evaluate(xvec, &g);
+	std::printf("x = (%.16e, %.16e, %.16e\n", x[0], x[1], x[2]);
+	std::cerr << "g = (" << g.transpose() << ")" << std::endl;
 
 	// The webpage states that the optimal point is
 	// (1, 1, 1), but that seems incorrect.

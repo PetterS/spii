@@ -3,6 +3,7 @@
 #include <cstring>
 #include <iostream>
 #include <limits>
+#include <random>
 #include <stdexcept>
 
 #include <Eigen/Dense>
@@ -18,6 +19,11 @@ void Solver::solve_newton(const Function& function,
                    SolverResults* results) const
 {
 	double global_start_time = wall_time();
+
+	// Random number engine for random pertubation.
+	std::mt19937 prng(0);
+	std::uniform_real_distribution<double> uniform11(-1.0, 1.0);
+	auto rand11 = std::bind(uniform11, prng);
 
 	// Dimension of problem.
 	size_t n = function.get_number_of_scalars();
@@ -89,7 +95,6 @@ void Solver::solve_newton(const Function& function,
 	results->startup_time   = wall_time() - global_start_time;
 	results->exit_condition = SolverResults::ERROR;
 	int iter = 0;
-	bool last_iteration_successful = true;
 	while (true) {
 
 		//
@@ -119,7 +124,7 @@ void Solver::solve_newton(const Function& function,
 		start_time = wall_time();
 		if (this->check_exit_conditions(fval, fprev, normg,
 			                            normg0, x.norm(), normdx,
-			                            last_iteration_successful, results)) {
+			                            true, results)) {
 			break;
 		}
 		if (iter >= this->maximum_iterations) {
@@ -209,34 +214,35 @@ void Solver::solve_newton(const Function& function,
 		//
 		start_time = wall_time();
 		double start_alpha = 1.0;
-		if (! last_iteration_successful) {
-			p = -g;
-			double sumabsg = 0.0;
-			for (size_t i = 0; i < n; ++i) {
-				sumabsg += std::fabs(g[i]);
-			}
-			start_alpha = std::min(1.0, 1.0 / sumabsg);
-		}
 		double alpha = this->perform_linesearch(function, x, fval, g, p, &x2,
 		                                        start_alpha);
 
 		if (alpha <= 0) {
-			if (! last_iteration_successful) {
-				// Last iteration also failed. Exit with an error.
-				results->exit_condition = SolverResults::ERROR;
-				break;
+			// Attempts a simple steepest descent instead.
+			p = -g;
+			alpha = this->perform_linesearch(function, x, fval, g, p, &x2,
+		                                     1.0);
+			if (alpha <= 0) {
+				if (this->log_function) {
+					this->log_function("Steepest descent step failed. Numerical problems?");
+				}
+
+				// This happens in really rare cases with numerical problems or
+				// incorrectly defined objective functions. In the latter case,
+				// there is not much to do. In the former case, randomly perturbing
+				// x has been effective.
+				for (size_t i = 0; i < n; ++i) {
+					double random_number = double(std::rand()) / double(RAND_MAX);
+					x[i] = x[i] + 1e-6 * rand11() * x[i];
+				}
+				continue;
 			}
-
-			last_iteration_successful = false;
 		}
-		else {
-			// Record length of this step.
-			normdx = alpha * p.norm();
-			// Update current point.
-			x = x + alpha * p;
 
-			last_iteration_successful = true;
-		}
+		// Record length of this step.
+		normdx = alpha * p.norm();
+		// Update current point.
+		x = x + alpha * p;
 
 		results->backtracking_time += wall_time() - start_time;
 
