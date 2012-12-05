@@ -10,7 +10,7 @@
 
 using namespace spii;
 
-struct Banana
+struct Rosenbrock
 {
 	template<typename R>
 	R operator()(const R* const x) const
@@ -26,9 +26,10 @@ TEST(Solver, banana)
 	Function f;
 	double x[2] = {-1.2, 1.0};
 	f.add_variable(x, 2);
-	f.add_term(new AutoDiffTerm<Banana, 2>(new Banana()), x);
+	f.add_term(new AutoDiffTerm<Rosenbrock, 2>(new Rosenbrock()), x);
 
 	Solver solver;
+	solver.log_function = 0;
 	solver.maximum_iterations = 50;
 	SolverResults results;
 	solver.solve_newton(f, &results);
@@ -46,9 +47,10 @@ TEST(Solver, function_tolerance)
 	Function f;
 	double x[2] = {-1.2, 1.0};
 	f.add_variable(x, 2);
-	f.add_term(new AutoDiffTerm<Banana, 2>(new Banana()), x);
+	f.add_term(new AutoDiffTerm<Rosenbrock, 2>(new Rosenbrock()), x);
 
 	Solver solver;
+	solver.log_function = 0;
 	solver.maximum_iterations = 50;
 	solver.gradient_tolerance = 0;
 	solver.argument_improvement_tolerance = 0;
@@ -63,9 +65,10 @@ TEST(Solver, argument_improvement_tolerance)
 	Function f;
 	double x[2] = {-1.2, 1.0};
 	f.add_variable(x, 2);
-	f.add_term(new AutoDiffTerm<Banana, 2>(new Banana()), x);
+	f.add_term(new AutoDiffTerm<Rosenbrock, 2>(new Rosenbrock()), x);
 
 	Solver solver;
+	solver.log_function = 0;
 	solver.maximum_iterations = 50;
 	solver.gradient_tolerance = 0;
 	solver.function_improvement_tolerance = 0;
@@ -80,9 +83,10 @@ TEST(Solver, gradient_tolerance)
 	Function f;
 	double x[2] = {-1.2, 1.0};
 	f.add_variable(x, 2);
-	f.add_term(new AutoDiffTerm<Banana, 2>(new Banana()), x);
+	f.add_term(new AutoDiffTerm<Rosenbrock, 2>(new Rosenbrock()), x);
 
 	Solver solver;
+	solver.log_function = 0;
 	solver.maximum_iterations = 50;
 	solver.function_improvement_tolerance = 0;
 	solver.argument_improvement_tolerance = 0;
@@ -120,6 +124,7 @@ TEST(Solver, inf_nan)
 	f_inf.add_term(new AutoDiffTerm<InfFunctor, 1>(new InfFunctor()), x);
 
 	Solver solver;
+	solver.log_function = 0;
 	SolverResults results;
 
 	solver.solve_newton(f_nan, &results);
@@ -127,4 +132,67 @@ TEST(Solver, inf_nan)
 
 	solver.solve_newton(f_inf, &results);
 	EXPECT_EQ(results.exit_condition, SolverResults::FUNCTION_INFINITY);
+}
+
+TEST(Solver, L_GBFS)
+{
+	// Test that the L-BFGS solver follows a reference
+	// MATLAB implementation (minFunc) configured to 
+	// use the same history size and line search method.
+
+	std::vector<int>    iters;
+	std::vector<double> fvals;
+	iters.push_back(1); fvals.push_back(2.19820e+01);
+	iters.push_back(2); fvals.push_back(4.96361e+00);
+	iters.push_back(3); fvals.push_back(4.16118e+00);
+	iters.push_back(4); fvals.push_back(4.09480e+00);
+	iters.push_back(5); fvals.push_back(4.09165e+00);
+	iters.push_back(6); fvals.push_back(3.87014e+00);
+	iters.push_back(7); fvals.push_back(3.72822e+00);
+	iters.push_back(8); fvals.push_back(3.45143e+00);
+	iters.push_back(9); fvals.push_back(2.93307e+00);
+	iters.push_back(10); fvals.push_back(2.45070e+00);
+	iters.push_back(11); fvals.push_back(2.28498e+00);
+	iters.push_back(12); fvals.push_back(1.96226e+00);
+	iters.push_back(13); fvals.push_back(1.52784e+00);
+	iters.push_back(14); fvals.push_back(1.33065e+00);
+	iters.push_back(15); fvals.push_back(1.17817e+00);
+	iters.push_back(16); fvals.push_back(9.82334e-01);
+	iters.push_back(17); fvals.push_back(7.82560e-01);
+	iters.push_back(18); fvals.push_back(6.26596e-01);
+	iters.push_back(19); fvals.push_back(5.56740e-01);
+	iters.push_back(20); fvals.push_back(4.76314e-01);
+	iters.push_back(21); fvals.push_back(3.21285e-01);
+	iters.push_back(22); fvals.push_back(2.91320e-01);
+	iters.push_back(23); fvals.push_back(2.24196e-01);
+	iters.push_back(24); fvals.push_back(1.72268e-01);
+	iters.push_back(25); fvals.push_back(1.29991e-01);
+	iters.push_back(26); fvals.push_back(9.11752e-02);
+	iters.push_back(27); fvals.push_back(5.74927e-02);
+	iters.push_back(28); fvals.push_back(3.14319e-02);
+	iters.push_back(29); fvals.push_back(1.49973e-02);
+	iters.push_back(30); fvals.push_back(9.20225e-03);
+	iters.push_back(31); fvals.push_back(2.61646e-03);
+	iters.push_back(32); fvals.push_back(6.34734e-04);
+	iters.push_back(33); fvals.push_back(9.00566e-05);
+	iters.push_back(34); fvals.push_back(7.38860e-06);
+	iters.push_back(35); fvals.push_back(2.55965e-07);
+	iters.push_back(36); fvals.push_back(3.40434e-10);
+
+	for (int i = 0; i < iters.size(); ++i) {
+		double x[2] = {-1.2, 1.0};
+		Function f;
+		f.add_variable(x, 2);
+		f.add_term(new AutoDiffTerm<Rosenbrock, 2>(new Rosenbrock()), x);
+
+		Solver solver;
+		SolverResults results;
+		solver.log_function = 0;
+		solver.lbfgs_history_size = 10;
+		solver.maximum_iterations = iters[i];
+
+		solver.solve_lbfgs(f, &results);
+		double fval = f.evaluate();
+		EXPECT_LE( std::abs(fval - fvals[i]) / std::abs(fval), 1e-4);
+	}
 }
