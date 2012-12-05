@@ -23,6 +23,13 @@ double Solver::perform_linesearch(const Function& function,
 	double rho = 0.5;
 	double c = 1e-4;
 	double gTp = g.dot(p);
+	if (gTp != gTp) {
+		if (this->log_function) {
+			this->log_function("Backtracking encountered NaN, returning zero step.");
+		}
+		return 0.0;
+	}
+
 	int backtracking_attempts = 0;
 	while (true) {
 		*scratch = x + alpha * p;

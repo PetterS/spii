@@ -65,6 +65,7 @@ void Solver::solve_lbfgs(const Function& function,
 	int iter = 0;
 	bool last_iteration_successful = true;
 	int number_of_line_search_failures = 0;
+	int number_of_restarts = 0;
 	while (true) {
 
 		//
@@ -136,6 +137,7 @@ void Solver::solve_lbfgs(const Function& function,
 		// Compute search direction via L-BGFS two-loop recursion.
 		//
 		start_time = wall_time();
+		bool should_restart = false;
 
 		double H0 = 1.0;
 		if (iter > 0) {
@@ -144,6 +146,13 @@ void Solver::solve_lbfgs(const Function& function,
 			// case the line search will fail and L-BFGS will be restarted
 			// with a steepest descent step.
 			H0 = s[0]->dot(*y[0]) / y[0]->dot(*y[0]);
+
+			// If isinf(H0) || isnan(H0)
+			if (H0 ==  std::numeric_limits<double>::infinity() ||
+			    H0 == -std::numeric_limits<double>::infinity() ||
+			    H0 != H0) {
+				should_restart = true;
+			}
 		}
 
 		q = -g;
@@ -166,7 +175,6 @@ void Solver::solve_lbfgs(const Function& function,
 		// solve some badly scaled problems.
 		double restart_test = std::fabs(fval - fprev) / 
 		                      (std::fabs(fval) + std::fabs(fprev));
-		bool should_restart = false;
 		if (iter > 0 && iter % 100 == 0 && restart_test
 		                                   < this->lbfgs_restart_tolerance) {
 			should_restart = true;
@@ -178,9 +186,15 @@ void Solver::solve_lbfgs(const Function& function,
 		if (should_restart) {
 			char str[1024];
 			if (this->log_function) {
-				std::sprintf(str, "Restarting: fval = %.3e, deltaf = %.3e, max|g_i| = %.3e, test = %.3e",
-				             fval, std::fabs(fval - fprev), normg, restart_test);
-				this->log_function(str);
+				if (number_of_restarts <= 10) {
+					std::sprintf(str, "Restarting: fval = %.3e, deltaf = %.3e, max|g_i| = %.3e, test = %.3e",
+								 fval, std::fabs(fval - fprev), normg, restart_test);
+					this->log_function(str);
+				}
+				if (number_of_restarts == 10) {
+					this->log_function("NOTE: No more restarts will be reported.");
+				}
+				number_of_restarts++;
 			}
 			r = -g;
 			for (int h = 0; h < this->lbfgs_history_size; ++h) {
