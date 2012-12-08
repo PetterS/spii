@@ -5,6 +5,9 @@
 #ifdef __CYGWIN__
 	#define EXPECT_THROW(a,b)
 #endif
+#ifdef __GNUC__
+	#define EXPECT_THROW(a,b)
+#endif
 
 #include <spii/auto_diff_term.h>
 #include <spii/function.h>

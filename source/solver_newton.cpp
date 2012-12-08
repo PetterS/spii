@@ -267,7 +267,7 @@ void Solver::solve_newton(const Function& function,
 				if (iter == 0) {
 					this->log_function("Itr      f       max|g_i|   alpha    fac    tau   min(H_ii)");
 				}
-				std::sprintf(str, "%4d %+.3e %.3e %.3e %3d   %.1e %+.2e",
+				std::sprintf(str, "%4d %+10.3e %9.3e %9.3e %3d   %.1e %+.2e",
 					iter, fval, normg, alpha, factorizations, tau, mindiag);
 			}
 			else {
@@ -277,7 +277,7 @@ void Solver::solve_newton(const Function& function,
 				if (iter == 0) {
 					this->log_function("Itr      f       max|g_i|   ||H||     det(H)     alpha    fac  min(H_ii) ");
 				}
-				std::sprintf(str, "%4d %+.3e %.3e %.3e %+.3e %.3e %3d   %+.2e",
+				std::sprintf(str, "%4d %+10.3e %9.3e %9.3e %+10.3e %9.3e %3d   %+.2e",
 					iter, fval, normg, normH, detH, alpha, factorizations, mindiag);
 			}
 			this->log_function(str);
