@@ -196,3 +196,25 @@ TEST(Solver, L_GBFS)
 		EXPECT_LE( std::abs(fval - fvals[i]) / std::abs(fval), 1e-4);
 	}
 }
+
+TEST(Solver, NelderMead)
+{
+	Function f;
+	double x[2] = {-1.2, 1.0};
+	f.add_variable(x, 2);
+	f.add_term(new AutoDiffTerm<Rosenbrock, 2>(new Rosenbrock()), x);
+
+	Solver solver;
+	solver.maximum_iterations = 500;
+	solver.log_function = 0;
+	SolverResults results;
+	solver.solve_nelder_mead(f, &results);
+	solver.solve_newton(f, &results);
+
+	EXPECT_TRUE(results.exit_condition == SolverResults::ARGUMENT_TOLERANCE ||
+	            results.exit_condition == SolverResults::FUNCTION_TOLERANCE ||
+	            results.exit_condition == SolverResults::GRADIENT_TOLERANCE);
+	EXPECT_LT( std::fabs(x[0] - 1.0), 1e-9);
+	EXPECT_LT( std::fabs(x[0] - 1.0), 1e-9);
+	EXPECT_LT( std::fabs(f.evaluate()), 1e-9);
+}

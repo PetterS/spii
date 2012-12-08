@@ -5,6 +5,7 @@ Features
 * Newton's method with repeated diagonal modification of the hessian for nonconvex problems. This simple method seems to work well, but can require several Cholesky factorizations per iteration.
 * Sparse Cholesky factorization using Eigen (included) if the problem is large and sparse.
 * L-BFGS.
+* Nelder-Mead for nondifferentiable problems.
 * Automatic differentiation to compute gradient and hessian using FADBAD++ (included).
 * Multi-threaded using OpenMP.
 

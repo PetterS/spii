@@ -64,6 +64,9 @@ public:
 	void solve_lbfgs(const Function& function,
 	                 SolverResults* results) const;
 
+	void solve_nelder_mead(const Function& function,
+	                       SolverResults* results) const;
+
 	// Mode of operation. How the Hessian is stored.
 	// Default: AUTO.
 	enum {DENSE, SPARSE, AUTO} sparsity_mode;
