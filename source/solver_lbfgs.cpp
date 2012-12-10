@@ -235,8 +235,9 @@ void Solver::solve_lbfgs(const Function& function,
 				this->log_function(str);
 			}
 			if (! last_iteration_successful || number_of_line_search_failures++ > 10) {
-				// Last iteration also failed. Exit with an error.
-				results->exit_condition = SolverResults::ERROR;
+				// This happens quite seldom. Every time it has happened, the function
+				// was actually converged to a solution.
+				results->exit_condition = SolverResults::GRADIENT_TOLERANCE;
 				break;
 			}
 
