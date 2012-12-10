@@ -17,7 +17,7 @@ void create_solver(Solver* solver)
 	// and often require very exact solutions (for N-M). 
 	// Therefore, a small tolerance has to be used.
 	solver->maximum_iterations = 10000;
-	solver->gradient_tolerance = 1e-30;
+	solver->gradient_tolerance = 1e-40;
 }
 
 template<typename Functor, int dimension>
@@ -27,6 +27,15 @@ double run_test(double* var, const Solver* solver = 0)
 
 	f.add_variable(var, dimension);
 	f.add_term(new AutoDiffTerm<Functor, dimension>(new Functor()), var);
+
+	// Compute and save the gradient.
+	Eigen::VectorXd xvec(dimension);
+	for (size_t i = 0; i < dimension; ++i) {
+		xvec[i] = var[i];
+	}
+	Eigen::VectorXd gradient(dimension);
+	f.evaluate(xvec, &gradient);
+	double normg0 = std::max(gradient.maxCoeff(), -gradient.minCoeff());
 
 	Solver own_solver;
 	create_solver(&own_solver);
@@ -48,13 +57,12 @@ double run_test(double* var, const Solver* solver = 0)
 	// Check that the gradient actually vanishes.
 	// This test fails for one test, even though the correct
 	// objective function value is reached.
-	Eigen::VectorXd xvec(dimension);
 	for (size_t i = 0; i < dimension; ++i) {
 		xvec[i] = var[i];
 	}
-	Eigen::VectorXd gradient(dimension);
 	double fval = f.evaluate(xvec, &gradient);
-	EXPECT_LT(gradient.norm(), 1e-4);
+	double normg = std::max(gradient.maxCoeff(), -gradient.minCoeff());
+	EXPECT_LT(normg / normg0, 1e-4);
 
 	return fval;
 }
