@@ -289,25 +289,19 @@ struct Gulf
 	}
 };
 
-//
-// The Gluf function does not even evaluate to close to 0
-// at the globally optimal point. Hence this test is disabled.
-//
-/*
 TEST(Solver, Gulf)
 {
-	//double x[3] = {5, 2.5, 0.15};
-	double x[3] = {50, 25, 1.5}; // Global optimum.
-	Solver solver;
-	solver.maximum_iterations = 500;
-	double fval = run_test<Gulf<3>, 3>(x, &solver);
+	double x[3] = {5, 2.5, 0.15};
+	double fval = run_test<Gulf<3>, 3>(x);
 
-	EXPECT_LT( std::fabs(x[0] - 50.0), 1e-9);
-	EXPECT_LT( std::fabs(x[1] - 25.0), 1e-9);
-	EXPECT_LT( std::fabs(x[2] - 1.5),  1e-9);
-	EXPECT_LT( std::fabs(fval), 1e-9);
+	// The Gulf function does not evaluate to close to 0
+	// at the globally optimal point. Hence these tests
+	// are disabled.
+	//EXPECT_LT( std::fabs(x[0] - 50.0), 1e-9);
+	//EXPECT_LT( std::fabs(x[1] - 25.0), 1e-9);
+	//EXPECT_LT( std::fabs(x[2] - 1.5),  1e-9);
+	//EXPECT_LT( std::fabs(fval), 1e-9);
 }
-*/
 
 template<int m>
 struct Box
@@ -421,7 +415,6 @@ TEST(Solver, GoldsteinPricePolynomial)
 	create_solver(&solver);
 	solver.argument_improvement_tolerance = 0;
 	solver.function_improvement_tolerance = 0;
-	solver.gradient_tolerance = 1e-10;
 	run_test<GoldsteinPricePolynomial, 2>(x, &solver);
 }
 
@@ -514,7 +507,6 @@ TEST(Solver, Shubert)
 	create_solver(&solver);
 	solver.argument_improvement_tolerance = 0;
 	solver.function_improvement_tolerance = 0;
-	solver.gradient_tolerance = 1e-10;
 	run_test<Shubert, 2>(x, &solver);
 }
 
@@ -590,11 +582,14 @@ TEST(Solver, Bohachevsky)
 	// Only expect a local minimum where the gradient
 	// is small.
 	Solver solver;
+	create_solver(&solver);
 	solver.argument_improvement_tolerance = 0;
 	solver.function_improvement_tolerance = 0;
-	//TODO: Investigate whether a better tolerance than
-	// 1e-8 can be achieved.
-	solver.gradient_tolerance = 1e-8;
+
+
+	if (solver.gradient_tolerance >= 1e-16) {
+		solver.gradient_tolerance = 1e-8;
+	}
 
 	x[0] = 0.5;
 	x[1] = 1.0;
