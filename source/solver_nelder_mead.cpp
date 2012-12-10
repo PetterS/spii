@@ -47,6 +47,35 @@ namespace std
 
 namespace spii {
 
+void initialize_simplex(const Function& function,
+                        const Eigen::VectorXd& x0,
+                        std::vector<SimplexPoint>* simplex)
+{
+	size_t n = function.get_number_of_scalars();
+	Eigen::VectorXd absx0 = x0;
+	for (size_t i = 0; i < n; ++i) {
+		absx0[i] = std::abs(x0[i]);
+	}
+	double scale = std::max(absx0.maxCoeff(), 1.0);
+	const double nd = n;
+	double alpha1 = scale / (nd * std::sqrt(2.0)) * (std::sqrt(nd+1)- 1 + nd);
+	double alpha2 = scale / (nd * std::sqrt(2.0)) * (std::sqrt(nd+1) - 1);
+	Eigen::VectorXd alpha2_vec(x0.size());
+	alpha2_vec.setConstant(alpha2);
+
+	simplex->at(0).x = x0;
+	for (size_t i = 1; i < n + 1; ++i) {
+		simplex->at(i).x  = x0 + alpha2_vec;
+		simplex->at(i).x[i-1] = x0[i-1] + alpha1;
+	}
+
+	for (size_t i = 0; i < n + 1; ++i) {
+		simplex->at(i).value = function.evaluate(simplex->at(i).x);
+	}
+
+	std::sort(simplex->begin(), simplex->end());
+}
+
 void Solver::solve_nelder_mead(const Function& function,
                                SolverResults* results) const
 {
@@ -62,22 +91,7 @@ void Solver::solve_nelder_mead(const Function& function,
 	Eigen::VectorXd x;
 	function.copy_user_to_global(&x);
 
-	// TODO: Find a better initialization.
-	for (size_t i = 0; i < n + 1; ++i) {
-		simplex[i].x = x;
-		if (i < n) {
-			if (std::abs(x[i]) < 0.025) {
-				simplex[i].x[i] += 0.05;
-			}
-			else {
-				simplex[i].x[i] += 0.05 * x[i];
-			}
-		}
-
-		simplex[i].value = function.evaluate(simplex[i].x);
-	}
-
-	std::sort(simplex.begin(), simplex.end());
+	initialize_simplex(function, x, &simplex);
 
 	SimplexPoint mean_point;
 	SimplexPoint reflection_point;
@@ -90,7 +104,9 @@ void Solver::solve_nelder_mead(const Function& function,
 	double fmax  = std::numeric_limits<double>::quiet_NaN();
 	double fval  = std::numeric_limits<double>::quiet_NaN();
 	double fprev = std::numeric_limits<double>::quiet_NaN();
+	double area  = std::numeric_limits<double>::quiet_NaN();
 	double area0 = std::numeric_limits<double>::quiet_NaN();
+	double area1 = std::numeric_limits<double>::quiet_NaN();
 
 	Eigen::MatrixXd area_mat(n, n);
 
@@ -100,6 +116,7 @@ void Solver::solve_nelder_mead(const Function& function,
 	results->startup_time   = wall_time() - global_start_time;
 	results->exit_condition = SolverResults::ERROR;
 	int iter = 0;
+	int n_shrink_in_a_row = 0;
 	while (true) {
 
 		//
@@ -120,21 +137,13 @@ void Solver::solve_nelder_mead(const Function& function,
 		fmin = simplex[0].value;
 		fmax = simplex[n].value;
 
-		// Compute the area of the simplex.
-		for (size_t i = 0; i < n; ++i) {
-			area_mat.col(i) = simplex[i].x - simplex[n].x;
-		}
-		double area = std::abs(area_mat.determinant());
-		if (iter == 0) {
-			area0 = area;
-		}
-
 		const char* iteration_type = "n/a";
 
 		// Compute the reflexion point and evaluate it.
 		reflection_point.x = 2.0 * mean_point.x - simplex[n].x;
 		reflection_point.value = function.evaluate(reflection_point.x);
 
+		bool is_shrink = false;
 		if (simplex[0].value <= reflection_point.value &&
 			reflection_point.value < simplex[n - 1].value) {
 			// Reflected point is neither better nor worst in the
@@ -194,6 +203,7 @@ void Solver::solve_nelder_mead(const Function& function,
 					simplex[i].x = 0.5 * (simplex[0].x + simplex[i].x);
 					simplex[i].value = function.evaluate(simplex[i].x);
 					iteration_type = "Shrink";
+					is_shrink = true;
 				}
 			}
 		}
@@ -206,15 +216,50 @@ void Solver::solve_nelder_mead(const Function& function,
 		// Test stopping criteriea
 		//
 		start_time = wall_time();
+		
+		// Compute the area of the simplex.
+		for (size_t i = 0; i < n; ++i) {
+			area_mat.col(i) = simplex[i].x - simplex[n].x;
+		}
+		area = std::abs(area_mat.determinant());
+		if (iter == 0) {
+			area0 = area;
+			area1 = area;
+		}
+
 		if (area / area0 < this->gradient_tolerance) {
 			results->exit_condition = SolverResults::GRADIENT_TOLERANCE;
 			break;
 		}
+
+		if (is_shrink) {
+			n_shrink_in_a_row++;
+		}
+		else {
+			n_shrink_in_a_row = 0;
+		}
+		if (n_shrink_in_a_row > 50) {
+			results->exit_condition = SolverResults::GRADIENT_TOLERANCE;
+			break;
+		}
+
 		if (iter >= this->maximum_iterations) {
 			results->exit_condition = SolverResults::NO_CONVERGENCE;
 			break;
 		}
 		results->stopping_criteria_time += wall_time() - start_time;
+
+		//
+		// Restarting
+		//
+		//if (area / area1 < 1e-10) {
+		//	x = simplex[0].x;
+		//	initialize_simplex(function, x, &simplex);
+		//	area1 = area;
+		//	if (this->log_function) {
+		//		this->log_function("Restarted.");
+		//	}
+		//}
 
 		//
 		// Log the results of this iteration.
@@ -252,7 +297,7 @@ void Solver::solve_nelder_mead(const Function& function,
 
 	if (this->log_function) {
 		char str[1024];
-		std::sprintf(str, " end %+.3e", fval);
+		std::sprintf(str, " end %+.3e                       %.3e", fval, area);
 		this->log_function(str);
 	}
 }
