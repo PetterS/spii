@@ -227,7 +227,7 @@ void Solver::solve_nelder_mead(const Function& function,
 			area1 = area;
 		}
 
-		if (area / area0 < this->gradient_tolerance) {
+		if (area / area0 < this->area_tolerance) {
 			results->exit_condition = SolverResults::GRADIENT_TOLERANCE;
 			break;
 		}

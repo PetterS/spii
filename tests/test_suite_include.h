@@ -531,9 +531,9 @@ TEST(Solver, Easom)
 	double x[2] = {0.5, 1.0};
 	run_test<Easom, 2>(x, &solver);
 
-	// There seems to be other local minima.
-	//EXPECT_LT( std::fabs(x[0] - 3.141592653589793), 1e-8);
-	//EXPECT_LT( std::fabs(x[1] - 3.141592653589793), 1e-8);
+	// There seems to be other local minima, though.
+	EXPECT_LT( std::fabs(x[0] - 3.141592653589793), 1e-8);
+	EXPECT_LT( std::fabs(x[1] - 3.141592653589793), 1e-8);
 }
 
 // #38

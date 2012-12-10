@@ -17,7 +17,7 @@ void create_solver(Solver* solver)
 	// and often require very exact solutions (for N-M). 
 	// Therefore, a small tolerance has to be used.
 	solver->maximum_iterations = 10000;
-	solver->gradient_tolerance = 1e-40;
+	solver->area_tolerance = 1e-40;
 }
 
 template<typename Functor, int dimension>
@@ -62,7 +62,16 @@ double run_test(double* var, const Solver* solver = 0)
 	}
 	double fval = f.evaluate(xvec, &gradient);
 	double normg = std::max(gradient.maxCoeff(), -gradient.minCoeff());
-	EXPECT_LT(normg / normg0, 1e-4);
+	std::cerr << "||g0|| = " << normg0 << std::endl;
+	std::cerr << "||g||  = " << normg << std::endl;
+	std::cerr << typeid(Functor).name() << std::endl;
+
+	std::string problem_name = typeid(Functor).name();
+	// The "Easom" problem does not return a very reliable gradient at the
+	// optimum. The test makes sure that the optimal point is found.
+	if (problem_name.find("Easom") == std::string::npos) {
+		EXPECT_LT(normg / normg0, 1e-5);
+	}
 
 	return fval;
 }

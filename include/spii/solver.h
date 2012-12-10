@@ -91,6 +91,11 @@ public:
 	// if ||dx|| / (||x|| + tol) < tol. Default: 1e-12.
 	double argument_improvement_tolerance;
 
+	// Area tolerance (Nelder-Mead) The solver terminates if
+	// ||a|| / ||a0|| < tol, where ||.|| is the maximum
+	// norm. Default: 1e-12.
+	double area_tolerance;
+
 	// Number of vectors L-BFGS should save in its history.
 	// Default: 10.
 	int lbfgs_history_size;
