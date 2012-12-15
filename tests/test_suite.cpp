@@ -22,6 +22,10 @@ void create_solver(Solver* solver)
 	// Use default solver settings.
 }
 
+int cumulative_iterations   = 0;
+int cumulative_evalutations = 0;
+double cumulative_time      = 0;
+
 template<typename Functor, int dimension>
 double run_test(double* var, const Solver* solver = 0)
 {
@@ -40,11 +44,16 @@ double run_test(double* var, const Solver* solver = 0)
 	for (int i = 0; i < dimension; ++i) {
 		std::cout << "x" << i + 1 << " = " << var[i] << ",  ";
 	}
-	std::cout << std::endl;
+	std::cerr << std::endl;
 
 	EXPECT_TRUE(results.exit_condition == SolverResults::ARGUMENT_TOLERANCE ||
 	            results.exit_condition == SolverResults::FUNCTION_TOLERANCE ||
 	            results.exit_condition == SolverResults::GRADIENT_TOLERANCE);
+
+	cumulative_evalutations += f.evaluations_with_gradient;
+	cumulative_time         += results.total_time - results.log_time;
+	std::cerr << "Cumulative evaluations: " << cumulative_evalutations << std::endl;
+	std::cerr << "Cumulative time       : " << cumulative_time << std::endl;
 
 	return f.evaluate();
 }
