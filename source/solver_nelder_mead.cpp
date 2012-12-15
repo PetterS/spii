@@ -57,7 +57,7 @@ void initialize_simplex(const Function& function,
 		absx0[i] = std::abs(x0[i]);
 	}
 	double scale = std::max(absx0.maxCoeff(), 1.0);
-	const double nd = n;
+	const double nd = static_cast<double>(n);
 	double alpha1 = scale / (nd * std::sqrt(2.0)) * (std::sqrt(nd+1)- 1 + nd);
 	double alpha2 = scale / (nd * std::sqrt(2.0)) * (std::sqrt(nd+1) - 1);
 	Eigen::VectorXd alpha2_vec(x0.size());
