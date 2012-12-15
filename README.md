@@ -12,6 +12,11 @@ Features
 Compilation
 -----------
 Everything needed to compile the library and examples using CMake should be included. The unit tests require Google's testing framework.
+I have successfully compiled the library with the following compilers:
+* Visual Studio 2010
+* Visual Studio 2012
+* GCC 4.5 (Cygwin)
+* GCC 4.7 (Ubuntu)
 
 Benchmarks
 ----------
