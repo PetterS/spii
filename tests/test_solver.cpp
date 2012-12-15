@@ -21,18 +21,15 @@ struct Rosenbrock
 	}
 };
 
-TEST(Solver, banana)
+void test_method(Solver::Method method, const Solver& solver)
 {
 	Function f;
 	double x[2] = {-1.2, 1.0};
 	f.add_variable(x, 2);
 	f.add_term(new AutoDiffTerm<Rosenbrock, 2>(new Rosenbrock()), x);
 
-	Solver solver;
-	solver.log_function = 0;
-	solver.maximum_iterations = 50;
 	SolverResults results;
-	solver.solve_newton(f, &results);
+	solver.solve(f, method, &results);
 
 	EXPECT_TRUE(results.exit_condition == SolverResults::ARGUMENT_TOLERANCE ||
 	            results.exit_condition == SolverResults::FUNCTION_TOLERANCE ||
@@ -40,6 +37,37 @@ TEST(Solver, banana)
 	EXPECT_LT( std::fabs(x[0] - 1.0), 1e-9);
 	EXPECT_LT( std::fabs(x[0] - 1.0), 1e-9);
 	EXPECT_LT( std::fabs(f.evaluate()), 1e-9);
+}
+
+TEST(Solver, NEWTON)
+{
+	Solver solver;
+	solver.log_function = 0;
+	test_method(Solver::NEWTON, solver);
+}
+
+TEST(Solver, LBFGS)
+{
+	Solver solver;
+	solver.log_function = 0;
+	test_method(Solver::LBFGS, solver);
+}
+
+TEST(Solver, NELDER_MEAD)
+{
+	Solver solver;
+	solver.log_function = 0;
+	solver.maximum_iterations = 10000;
+	solver.area_tolerance = 1e-40;
+	test_method(Solver::NELDER_MEAD, solver);
+}
+
+TEST(Solver, PATTERN_SEARCH)
+{
+	Solver solver;
+	solver.log_function = 0;
+	solver.maximum_iterations = 100000;
+	test_method(Solver::PATTERN_SEARCH, solver);
 }
 
 TEST(Solver, function_tolerance)
@@ -134,7 +162,7 @@ TEST(Solver, inf_nan)
 	EXPECT_EQ(results.exit_condition, SolverResults::FUNCTION_INFINITY);
 }
 
-TEST(Solver, L_GBFS)
+TEST(Solver, L_GBFS_exact)
 {
 	// Test that the L-BFGS solver follows a reference
 	// MATLAB implementation (minFunc) configured to 
@@ -195,26 +223,4 @@ TEST(Solver, L_GBFS)
 		double fval = f.evaluate();
 		EXPECT_LE( std::abs(fval - fvals[i]) / std::abs(fval), 1e-4);
 	}
-}
-
-TEST(Solver, NelderMead)
-{
-	Function f;
-	double x[2] = {-1.2, 1.0};
-	f.add_variable(x, 2);
-	f.add_term(new AutoDiffTerm<Rosenbrock, 2>(new Rosenbrock()), x);
-
-	Solver solver;
-	solver.maximum_iterations = 500;
-	solver.log_function = 0;
-	SolverResults results;
-	solver.solve_nelder_mead(f, &results);
-	solver.solve_newton(f, &results);
-
-	EXPECT_TRUE(results.exit_condition == SolverResults::ARGUMENT_TOLERANCE ||
-	            results.exit_condition == SolverResults::FUNCTION_TOLERANCE ||
-	            results.exit_condition == SolverResults::GRADIENT_TOLERANCE);
-	EXPECT_LT( std::fabs(x[0] - 1.0), 1e-9);
-	EXPECT_LT( std::fabs(x[0] - 1.0), 1e-9);
-	EXPECT_LT( std::fabs(f.evaluate()), 1e-9);
 }

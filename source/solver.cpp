@@ -1,4 +1,6 @@
 
+#include <stdexcept>
+
 #include <spii/solver.h>
 
 namespace spii {
@@ -61,6 +63,27 @@ Solver::Solver()
 	#ifdef _MSC_VER
 		_set_output_format(_TWO_DIGIT_EXPONENT);
 	#endif
+}
+
+void Solver::solve(const Function& function,
+                   Method method,
+                   SolverResults* results) const
+{
+	if (method == NEWTON) {
+		solve_newton(function, results);
+	}
+	else if (method == LBFGS) {
+		solve_lbfgs(function, results);
+	}
+	else if (method == NELDER_MEAD) {
+		solve_nelder_mead(function, results);
+	}
+	else if (method == PATTERN_SEARCH) {
+		solve_pattern_search(function, results);
+	}
+	else {
+		throw std::runtime_error("Solver::solve: unknown method.");
+	}
 }
 
 }  // namespace spii
