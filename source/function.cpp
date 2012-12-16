@@ -26,7 +26,7 @@ Function::Function()
 
 	this->number_of_threads = omp_get_max_threads();
 
-	this->finalize_called = false;
+	this->local_storage_allocated = false;
 }
 
 Function::~Function()
@@ -40,7 +40,7 @@ Function::~Function()
 
 void Function::add_variable(double* variable, int dimension)
 {
-	this->finalize_called = false;
+	this->local_storage_allocated = false;
 
 	auto itr = variables.find(variable);
 	if (itr != variables.end()) {
@@ -59,7 +59,7 @@ void Function::add_variable(double* variable, int dimension)
 
 void Function::add_term(const Term* term, const std::vector<double*>& arguments)
 {
-	this->finalize_called = false;
+	this->local_storage_allocated = false;
 
 	if (term->number_of_variables() != arguments.size()) {
 		throw std::runtime_error("Function::add_term: incorrect number of arguments.");
@@ -103,11 +103,11 @@ void Function::add_term(const Term* term, const std::vector<double*>& arguments)
 
 void Function::set_number_of_threads(int num)
 {
-	this->finalize_called = false;
+	this->local_storage_allocated = false;
 	this->number_of_threads = num;
 }
 
-void Function::finalize() const
+void Function::allocate_local_storage() const
 {
 	size_t max_arity = 1;
 	int max_variable_dimension = 1;
@@ -129,7 +129,7 @@ void Function::finalize() const
 		}
 	}
 
-	this->finalize_called = true;
+	this->local_storage_allocated = true;
 }
 
 void Function::add_term(const Term* term, double* argument0)
@@ -280,8 +280,8 @@ double Function::evaluate(const Eigen::VectorXd& x,
 		throw std::runtime_error("Function::evaluate: Hessian computation is not enabled.");
 	}
 
-	if (! this->finalize_called) {
-		this->finalize();
+	if (! this->local_storage_allocated) {
+		this->allocate_local_storage();
 	}
 
 	// Copy values from the global vector x to the temporary storage
@@ -379,12 +379,16 @@ double Function::evaluate(const Eigen::VectorXd& x,
 {
 	this->evaluations_with_gradient++;
 
+	if (! hessian) {
+		throw std::runtime_error("Function::evaluate: hessian can not be null.");
+	}
+
 	if (! this->hessian_is_enabled) {
 		throw std::runtime_error("Function::evaluate: Hessian computation is not enabled.");
 	}
 
-	if (! this->finalize_called) {
-		this->finalize();
+	if (! this->local_storage_allocated) {
+		this->allocate_local_storage();
 	}
 
 	// Copy values from the global vector x to the temporary storage

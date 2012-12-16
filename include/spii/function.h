@@ -126,10 +126,6 @@ public:
 	void print_timing_information(std::ostream& out) const;
 
 protected:
-	// Allocates temporary storage for gradient evaluations.
-	// Should be called automatically at first evaluate()
-	void finalize() const;
-
 	// Copies variables from a global vector x to the Function's
 	// local storage.
 	void copy_global_to_local(const Eigen::VectorXd& x) const;
@@ -157,8 +153,12 @@ protected:
 	// Number of threads used for evaluation.
 	int number_of_threads;
 
+	// Allocates temporary storage for gradient evaluations.
+	// Should be called automatically at first evaluate()
+	void allocate_local_storage() const;
+
 	// If finalize has been called.
-	mutable bool finalize_called;
+	mutable bool local_storage_allocated;
 	// Has to be mutable because the temporary storage
 	// needs to be written to.
 	mutable std::vector< std::vector<Eigen::VectorXd> >
