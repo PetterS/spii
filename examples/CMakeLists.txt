@@ -10,4 +10,5 @@ ENDMACRO (SPII_EXAMPLE)
 
 SPII_EXAMPLE(fit_cir)
 SPII_EXAMPLE(fit_gaussian)
+SPII_EXAMPLE(lennard_jones)
 SPII_EXAMPLE(linear_programming)
