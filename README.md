@@ -8,6 +8,7 @@ Features
 * Nelder-Mead for nondifferentiable problems.
 * Automatic differentiation to compute gradient and hessian using FADBAD++ (included).
 * Multi-threaded using OpenMP.
+* Change of variables (experimental).
 
 Compilation
 -----------

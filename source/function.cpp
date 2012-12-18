@@ -36,24 +36,52 @@ Function::~Function()
 			delete *itr;
 		}
 	}
+
+	// Go through all variables and destroy all change of variables objects.
+	for (auto itr = variables.begin(); itr != variables.end(); ++itr) {
+		if (itr->second.change_of_variables) {
+			delete itr->second.change_of_variables;
+		}
+	}
 }
 
-void Function::add_variable(double* variable, int dimension)
+void Function::add_variable_internal(double* variable,
+                                     int dimension,
+                                     ChangeOfVariables* change_of_variables)
 {
 	this->local_storage_allocated = false;
 
 	auto itr = variables.find(variable);
 	if (itr != variables.end()) {
-		if (itr->second.dimension != dimension) {
+		if (itr->second.user_dimension != dimension) {
 			throw std::runtime_error("Function::add_variable: dimension mismatch.");
 		}
 		return;
 	}
 	AddedVariable& var_info = variables[variable];
-	var_info.dimension = dimension;
+	
+	var_info.change_of_variables = change_of_variables;
+	if (change_of_variables != NULL){
+		if (dimension != change_of_variables->x_dimension()) {
+			throw std::runtime_error("Function::add_variable: "
+			                         "dimension does not match the change of variables.");
+		}
+		var_info.user_dimension   = change_of_variables->x_dimension();
+		var_info.solver_dimension = change_of_variables->t_dimension();
+	}
+	else {
+		var_info.user_dimension   = dimension;
+		var_info.solver_dimension = dimension;
+	}
+
+	// Allocate local scratch spaces for evaluation.
+	// We need as much space as the dimension of x.
+	var_info.temp_space.resize(var_info.user_dimension);
+
+	// Give this variable a global index into a global
+	// state vector.
 	var_info.global_index = number_of_scalars;
-	var_info.temp_space.resize(dimension);
-	number_of_scalars += dimension;
+	number_of_scalars += var_info.solver_dimension;
 }
 
 
@@ -69,7 +97,8 @@ void Function::add_term(const Term* term, const std::vector<double*>& arguments)
 		if (var_itr == variables.end()) {
 			throw std::runtime_error("Function::add_term: unknown variable.");
 		}
-		if (var_itr->second.dimension != term->variable_dimension(var)) {
+		// The x-dimension of the variable must match what is expected by the term.
+		if (var_itr->second.user_dimension != term->variable_dimension(var)) {
 			throw std::runtime_error("Function::add_term: variable dimension does not match term.");
 		}
 	}
@@ -113,7 +142,7 @@ void Function::allocate_local_storage() const
 	int max_variable_dimension = 1;
 	for (auto itr = variables.begin(); itr != variables.end(); ++itr) {
 		max_variable_dimension = std::max(max_variable_dimension,
-		                                  itr->second.dimension);
+		                                  itr->second.user_dimension);
 	}
 	for (auto itr = terms.begin(); itr != terms.end(); ++itr) {
 		max_arity = std::max(max_arity, itr->user_variables.size());
@@ -229,8 +258,15 @@ void Function::copy_global_to_local(const Eigen::VectorXd& x) const
 	double start_time = wall_time();
 
 	for (auto itr = variables.begin(); itr != variables.end(); ++itr) {
-		for (int i = 0; i < itr->second.dimension; ++i) {
-			itr->second.temp_space[i] = x[itr->second.global_index + i];
+		if (itr->second.change_of_variables == NULL) {
+			for (int i = 0; i < itr->second.user_dimension; ++i) {
+				itr->second.temp_space[i] = x[itr->second.global_index + i];
+			}
+		}
+		else {
+			itr->second.change_of_variables->t_to_x(
+				&itr->second.temp_space[0],
+				&x[itr->second.global_index]);
 		}
 	}
 
@@ -243,8 +279,15 @@ void Function::copy_user_to_global(Eigen::VectorXd* x) const
 
 	x->resize(this->number_of_scalars);
 	for (auto itr = variables.begin(); itr != variables.end(); ++itr) {
-		for (int i = 0; i < itr->second.dimension; ++i) {
-			(*x)[itr->second.global_index + i] = itr->first[i];
+		if (itr->second.change_of_variables == NULL) {
+			for (int i = 0; i < itr->second.user_dimension; ++i) {
+				(*x)[itr->second.global_index + i] = itr->first[i];
+			}
+		}
+		else {
+			itr->second.change_of_variables->x_to_t(
+				&(*x)[itr->second.global_index],
+				itr->first);
 		}
 	}
 
@@ -256,8 +299,15 @@ void Function::copy_global_to_user(const Eigen::VectorXd& x) const
 	double start_time = wall_time();
 
 	for (auto itr = variables.begin(); itr != variables.end(); ++itr) {
-		for (int i = 0; i < itr->second.dimension; ++i) {
-			itr->first[i] = x[itr->second.global_index + i];
+		if (itr->second.change_of_variables == NULL) {
+			for (int i = 0; i < itr->second.user_dimension; ++i) {
+				itr->first[i] = x[itr->second.global_index + i];
+			}
+		}
+		else {
+			itr->second.change_of_variables->t_to_x(
+				itr->first,
+				&x[itr->second.global_index]);
 		}
 	}
 
@@ -323,10 +373,22 @@ double Function::evaluate(const Eigen::VectorXd& x,
 		// Put the gradient from the term into the thread's global gradient.
 		const auto& variables = terms[i].user_variables;
 		for (int var = 0; var < variables.size(); ++var) {
-			size_t global_offset = variables[var]->global_index;
-			for (int i = 0; i < variables[var]->dimension; ++i) {
-				this->thread_gradient_storage[t][global_offset + i] +=
-					this->thread_gradient_scratch[t][var][i];
+
+			if (variables[var]->change_of_variables == NULL) {
+				// No change of variables, just copy the gradient.
+				size_t global_offset = variables[var]->global_index;
+				for (int i = 0; i < variables[var]->user_dimension; ++i) {
+					this->thread_gradient_storage[t][global_offset + i] +=
+						this->thread_gradient_scratch[t][var][i];
+				}
+			}
+			else {
+				// Transform the gradient from user space to solver space.
+				size_t global_offset = variables[var]->global_index;
+				variables[var]->change_of_variables->update_gradient(
+					&this->thread_gradient_storage[t][global_offset],
+					&x[global_offset],
+					&this->thread_gradient_scratch[t][var][0]);
 			}
 		}
 	}
@@ -354,6 +416,11 @@ double Function::evaluate(const Eigen::VectorXd& x,
 		for (auto itr = terms.begin(); itr != terms.end(); ++itr) {
 			// Put the hessian into the global hessian.
 			for (int var0 = 0; var0 < itr->term->number_of_variables(); ++var0) {
+
+				if (itr->user_variables[var0]->change_of_variables != NULL) {
+					throw std::runtime_error("Change of variables not supported for Hessians");
+				}
+
 				size_t global_offset0 = itr->user_variables[var0]->global_index;
 				for (int var1 = 0; var1 < itr->term->number_of_variables(); ++var1) {
 					size_t global_offset1 = itr->user_variables[var1]->global_index;
@@ -428,8 +495,13 @@ double Function::evaluate(const Eigen::VectorXd& x,
 		// Put the gradient from the term into the thread's global gradient.
 		const auto& variables = terms[i].user_variables;
 		for (int var = 0; var < variables.size(); ++var) {
+
+			if (variables[var]->change_of_variables != NULL) {
+				throw std::runtime_error("Change of variables not supported for sparse Hessian");
+			}
+
 			size_t global_offset = variables[var]->global_index;
-			for (int i = 0; i < variables[var]->dimension; ++i) {
+			for (int i = 0; i < variables[var]->user_dimension; ++i) {
 				this->thread_gradient_storage[t][global_offset + i] +=
 					this->thread_gradient_scratch[t][var][i];
 			}

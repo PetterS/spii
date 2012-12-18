@@ -11,16 +11,35 @@ using std::size_t;
 
 #include <Eigen/SparseCore>
 
+#include <spii/auto_diff_change_of_variables.h>
+#include <spii/change_of_variables.h>
 #include <spii/term.h>
 
 namespace spii {
+
+// Note on change of variables.
+// The Function supports a change of variables, where the solver
+// will see one set of variables and the evaluation function
+// another. The variable change is specified with a ChangeOfVariables
+// object. Each variable has a 
+//
+//  * user_dimension   -- the dimension the Term object sees for
+//                        evaluation.
+//  * solver_dimension -- the dimension of the variables the solver
+//                        sees.
+//
+//  If no ChangeOfVariables is used, these will be equal and the
+//  solvers and terms will see identical values.
+//
 
 // These two structs are used by Function to store added
 // variables and terms.
 struct AddedVariable
 {
-	int dimension;
+	int user_dimension;
+	int solver_dimension;
 	size_t global_index;
+	ChangeOfVariables* change_of_variables;
 	mutable std::vector<double>  temp_space;
 };
 struct AddedTerm
@@ -53,7 +72,23 @@ public:
 
 	// Adds a variable to the function. All variables must be added
 	// before any terms containing them are added.
-	void add_variable(double* variable, int dimension);
+	void add_variable(double* variable,
+	                  int dimension)
+	{
+		add_variable_internal(variable, dimension);
+	}
+
+	// Adds a variable to the function, with a change of variables.
+	// Takes ownership of change and will delete it when the function
+	// is destroyed.
+	template<typename Change>
+	void add_variable(double* variable,
+	                  int dimension,
+					  Change* change)
+	{
+		add_variable_internal(variable, dimension,
+			 new AutoDiffChangeOfVariables<Change>(change));
+	}
 
 	// Returns the current number of variables the function contains.
 	size_t get_number_of_variables() const
@@ -126,6 +161,13 @@ public:
 	void print_timing_information(std::ostream& out) const;
 
 protected:
+
+	// Adds a variable to the function. All variables must be added
+	// before any terms containing them are added.
+	void add_variable_internal(double* variable,
+	                           int dimension,
+	                           ChangeOfVariables* change_of_variables = 0);
+
 	// Copies variables from a global vector x to the Function's
 	// local storage.
 	void copy_global_to_local(const Eigen::VectorXd& x) const;

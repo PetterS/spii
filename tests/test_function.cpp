@@ -10,6 +10,7 @@
 #endif
 
 #include <spii/auto_diff_term.h>
+#include <spii/constraints.h>
 #include <spii/function.h>
 
 using namespace spii;
@@ -126,6 +127,50 @@ TEST(Function, calls_term_destructor)
 
 	EXPECT_EQ(counter1, 1);
 	EXPECT_EQ(counter2, 1);
+}
+
+class DestructorChange
+{
+public:
+	DestructorChange(int* counter)
+	{
+		this->counter = counter;
+	}
+
+	~DestructorChange()
+	{
+		(*counter)++;
+	}
+
+	template<typename R>
+	void t_to_x(R* x, const R* t) const { }
+
+	template<typename R>
+	void x_to_t(R* t, const R* x) const { }
+
+	int x_dimension() const
+	{
+		return 1;
+	}
+
+	int t_dimension() const
+	{
+		return 1;
+	}
+private:
+	int* counter;
+};
+
+TEST(Function, calls_variable_change_destructor)
+{
+	Function* function = new Function;
+	double x[1];
+	int counter = 0;
+	function->add_variable(x, 1, new DestructorChange(&counter));
+
+	EXPECT_EQ(counter, 0);
+	delete function;
+	EXPECT_EQ(counter, 1);
 }
 
 TEST(Function, evaluate)
@@ -306,3 +351,177 @@ TEST(Function, evaluate_hessian)
 	EXPECT_DOUBLE_EQ(hessian(4,2), - 14.0 * (sin(xg[2]*xg[4]) + xg[2] * xg[4] * cos(xg[2]*xg[4])));
 }
 
+//
+//	x_i = exp(t_i)
+//  t_i = log(x_i)
+//
+template<int dimension>
+class ExpTransform
+{
+public:
+	template<typename R>
+	void t_to_x(R* x, const R* t) const
+	{
+		using std::exp;
+
+		for (size_t i = 0; i < dimension; ++i) {
+			x[i] = exp(t[i]);
+		}
+	}
+
+	template<typename R>
+	void x_to_t(R* t, const R* x) const
+	{
+		using std::log;
+
+		for (size_t i = 0; i < dimension; ++i) {
+			t[i] = log(x[i]);
+		}
+	}
+
+	int x_dimension() const
+	{
+		return dimension;
+	}
+
+	int t_dimension() const
+	{
+		return dimension;
+	}
+};
+
+TEST(Function, Parametrization_2_to_2)
+{
+	Function f1, f2;
+	double x[2];
+	f1.add_variable(x, 2);
+	f2.add_variable(x, 2, new ExpTransform<2>);
+	f1.add_term(new AutoDiffTerm<Term1, 2>(new Term1), x);
+	f2.add_term(new AutoDiffTerm<Term1, 2>(new Term1), x);
+
+	for (x[0] = 0.1; x[0] <= 10.0; x[0] += 0.1) {
+		x[1] = x[0] / 2.0 + 0.1;
+		EXPECT_NEAR(f1.evaluate(), f2.evaluate(), 1e-12);
+	}
+
+	// Term1 is 
+	// f(x1, x2) = sin(x1) + cos(x2) + 1.4 * x1*x2 + 1.0
+	//
+	// f(t1, t2) = sin(exp(t1)) + cos(exp(t2)) + 1.4 * exp(t1)*exp(t2) + 1.0
+	Eigen::VectorXd x_vec(2);
+	x_vec[0] = 3.0;
+	x_vec[1] = 4.0;
+	Eigen::VectorXd t(2);
+	t[0] = std::log(x_vec[0]);
+	t[1] = std::log(x_vec[1]);
+	Eigen::VectorXd x_gradient;
+	Eigen::VectorXd t_gradient;
+	double f1_val = f1.evaluate(x_vec, &x_gradient);
+	double f2_val = f2.evaluate(t, &t_gradient);
+	
+	// The function values must match.
+	EXPECT_NEAR(f1_val, f2_val, 1e-12);
+
+	// The gradient of f1 is straight-forward.
+	EXPECT_NEAR(x_gradient[0],  cos(x_vec[0]) + 1.4 * x_vec[1], 1e-12);
+	EXPECT_NEAR(x_gradient[1], -sin(x_vec[1]) + 1.4 * x_vec[0], 1e-12);
+
+	// The gradient of f2 is in the transformed space.
+	EXPECT_NEAR(t_gradient[0],  cos(exp(t[0]))*exp(t[0]) + 1.4 * exp(t[0]) * exp(t[1]), 1e-12);
+	EXPECT_NEAR(t_gradient[1], -sin(exp(t[1]))*exp(t[1]) + 1.4 * exp(t[0]) * exp(t[1]), 1e-12);
+}
+
+TEST(Function, Parametrization_1_1_to_1_1)
+{
+	Function f1, f2;
+	double x[1];
+	double y[1];
+	f1.add_variable(x, 1);
+	f1.add_variable(y, 1);
+	f2.add_variable(x, 1, new ExpTransform<1>);
+	f2.add_variable(y, 1, new ExpTransform<1>);
+	f1.add_term(new AutoDiffTerm<Term2, 1, 1>(new Term2), x, y);
+	f2.add_term(new AutoDiffTerm<Term2, 1, 1>(new Term2), x, y);
+
+	for (x[0] = 0.1; x[0] <= 10.0; x[0] += 0.1) {
+		y[0] = x[0] / 2.0 + 0.1;
+		EXPECT_NEAR(f1.evaluate(), f2.evaluate(), 1e-12);
+	}
+
+	// Term2 is 
+	// f(x, y) = log(x) + 3.0 * log(y);
+	//
+	// f(s, t) = s + 3.0 * t
+	Eigen::VectorXd xy(2);
+	xy[0] = 3.0;
+	xy[1] = 4.0;
+	Eigen::VectorXd st(2);
+	st[0] = std::log(xy[0]);
+	st[1] = std::log(xy[1]);
+	Eigen::VectorXd xy_gradient;
+	Eigen::VectorXd st_gradient;
+	double f1_val = f1.evaluate(xy, &xy_gradient);
+	double f2_val = f2.evaluate(st, &st_gradient);
+	
+	// The function values must match.
+	EXPECT_NEAR(f1_val, f2_val, 1e-12);
+
+	// The gradient of f1 is straight-forward.
+	EXPECT_NEAR(xy_gradient[0], 1.0 / xy[0], 1e-12);
+	EXPECT_NEAR(xy_gradient[1], 3.0 / xy[1], 1e-12);
+
+	// The gradient of f2 is in the transformed space.
+	EXPECT_NEAR(st_gradient[0],  1.0, 1e-12);
+	EXPECT_NEAR(st_gradient[1],  3.0, 1e-12);
+}
+
+class Circle
+{
+public:
+	template<typename R>
+	void t_to_x(R* x, const R* t) const
+	{
+		using std::cos;
+		using std::cin;
+
+		x[0] = cos(t[0]);
+		x[1] = sin(t[0]);
+	}
+
+	template<typename R>
+	void x_to_t(R* t, const R* x) const
+	{
+		using std::atan2;
+
+		t[0] = atan2(x[1], x[0]);
+	}
+
+	int x_dimension() const
+	{
+		return 2;
+	}
+
+	int t_dimension() const
+	{
+		return 1;
+	}
+};
+
+TEST(Function, Parametrization_2_to_1)
+{
+	Function f1, f2;
+	double x[2];
+	f1.add_variable(x, 2);
+	f2.add_variable(x, 2, new Circle);
+	f1.add_term(new AutoDiffTerm<Term1, 2>(new Term1), x);
+	f2.add_term(new AutoDiffTerm<Term1, 2>(new Term1), x);
+
+	EXPECT_EQ(f1.get_number_of_scalars(), 2);
+	EXPECT_EQ(f2.get_number_of_scalars(), 1);
+
+	for (double theta = 0.0; theta <= 6.0; theta += 0.5) {
+		x[0] = std::cos(theta);
+		x[1] = std::sin(theta);
+		EXPECT_NEAR(f1.evaluate(), f2.evaluate(), 1e-12);
+	}
+}

@@ -26,6 +26,7 @@ IF (${BUILD_TESTING})
   SPII_TEST(suite_large)
   SPII_TEST(suite_lbfgs)
   SPII_TEST(suite_nelder_mead)
+  SPII_TEST(suite_pattern_search)
   SPII_TEST(term)
 
 ENDIF (${BUILD_TESTING})

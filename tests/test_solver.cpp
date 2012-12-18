@@ -6,6 +6,7 @@
 #include <gtest/gtest.h>
 
 #include <spii/auto_diff_term.h>
+#include <spii/constraints.h>
 #include <spii/solver.h>
 
 using namespace spii;
@@ -223,4 +224,144 @@ TEST(Solver, L_GBFS_exact)
 		double fval = f.evaluate();
 		EXPECT_LE( std::abs(fval - fvals[i]) / std::abs(fval), 1e-4);
 	}
+}
+
+struct Quadratic2
+{
+	template<typename R>
+	R operator()(const R* const x) const
+	{
+		R d0 = x[0] - 2.0;
+		R d1 = x[1] + 7.0;
+		return 2 * d0*d0 + d1*d1;
+	}
+};
+
+struct Quadratic2Changed
+{
+	template<typename R>
+	R operator()(const R* const x) const
+	{
+		R d0 = exp(x[0]) - 2.0;
+		R d1 = exp(x[1]) + 7.0;
+		return 2 * d0*d0 + d1*d1;
+	}
+};
+
+
+//
+//	x_i = exp(t_i)
+//  t_i = log(x_i)
+//
+template<int dimension>
+class ExpTransform
+{
+public:
+	template<typename R>
+	void t_to_x(R* x, const R* t) const
+	{
+		using std::exp;
+
+		for (size_t i = 0; i < dimension; ++i) {
+			x[i] = exp(t[i]);
+		}
+	}
+
+	template<typename R>
+	void x_to_t(R* t, const R* x) const
+	{
+		using std::log;
+
+		for (size_t i = 0; i < dimension; ++i) {
+			t[i] = log(x[i]);
+		}
+	}
+
+	int x_dimension() const
+	{
+		return dimension;
+	}
+
+	int t_dimension() const
+	{
+		return dimension;
+	}
+};
+
+TEST(Solver, SimpleConstraints)
+{
+	double x[2] = {1, 1};
+	Function function;
+	function.add_variable(x, 2, new ExpTransform<2>);
+	function.add_term(
+		new AutoDiffTerm<Quadratic2, 2>(new Quadratic2), x);
+
+	double t[2] = {0, 0};
+	Function function_changed;
+	function_changed.add_variable(t, 2);
+	function_changed.add_term(
+		new AutoDiffTerm<Quadratic2Changed, 2>(new Quadratic2Changed), t);
+
+	Solver solver;
+	solver.log_function = 0;
+	SolverResults results;
+	results.exit_condition = SolverResults::NA;
+
+	int max_iter = 1;
+	while (! results.exit_success()) {
+		solver.maximum_iterations = max_iter++;
+
+		x[0] = x[1] = 1.0;
+		t[0] = std::log(x[0]);
+		t[1] = std::log(x[1]);
+		solver.solve_nelder_mead(function, &results);
+		solver.solve_nelder_mead(function_changed, &results);
+		EXPECT_NEAR(function.evaluate(), function_changed.evaluate(), 1e-12);
+
+		x[0] = x[1] = 1.0;
+		t[0] = std::log(x[0]);
+		t[1] = std::log(x[1]);
+		solver.solve_lbfgs(function, &results);
+		solver.solve_lbfgs(function_changed, &results);
+		EXPECT_NEAR(function.evaluate(), function_changed.evaluate(), 1e-12);
+	}
+
+	EXPECT_LT( std::abs(x[0] - 2.0), 1e-6);
+	EXPECT_LT( std::abs(x[1]), 1e-6);
+}
+
+TEST(Solver, PositiveConstraint)
+{
+	double x[2] = {1, 1};
+	Function function;
+	function.add_variable(x, 2, new GreaterThanZero(2));
+	function.add_term(
+		new AutoDiffTerm<Quadratic2, 2>(new Quadratic2), x);
+	
+	Solver solver;
+	solver.log_function = 0;
+	SolverResults results;
+	solver.solve_lbfgs(function, &results);
+
+	EXPECT_NEAR(x[0], 2.0, 1e-7);
+	EXPECT_NEAR(x[1], 0.0, 1e-7);
+}
+
+TEST(Solver, BoxConstraint)
+{
+	double x[2] = {1, 1};
+	Function function;
+	double a[2] = {0.0, -0.5};
+	double b[2] = {6.0, 10.0};
+	function.add_variable(x, 2, new Box(2, a, b));
+	function.add_term(
+		new AutoDiffTerm<Quadratic2, 2>(new Quadratic2), x);
+	
+	Solver solver;
+	solver.log_function = 0;
+	SolverResults results;
+	solver.solve_lbfgs(function, &results);
+
+	EXPECT_NEAR(x[0],  2.0, 1e-4);
+	EXPECT_NEAR(x[1], -0.5, 1e-4);
 }
