@@ -80,7 +80,6 @@ public:
 
 		// df/dt_j = dx_1/dt_j * df/dx_1 + ... + dx_n/dt_j *  df/dx_n)
 		for (int j = 0; j < n_t; ++j) {
-			t_gradient[j] = 0;
 			for (int i = 0; i < n_x; ++i) {
 				t_gradient[j] +=
 					x[i].d(j) * x_gradient[i];
