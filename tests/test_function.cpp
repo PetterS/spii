@@ -175,7 +175,7 @@ TEST(Function, calls_variable_change_destructor)
 
 TEST(Function, evaluate)
 {
-	
+
 	double x[2] = {1.0, 2.0};
 	double y[1] = {3.0};
 	double z[1] = {4.0};
@@ -187,7 +187,7 @@ TEST(Function, evaluate)
 
 	f.add_term(new AutoDiffTerm<Term1, 2>(new Term1), x);
 	f.add_term(new AutoDiffTerm<Term2, 1, 1>(new Term2), y, z);
-	
+
 	double fval = f.evaluate();
 	EXPECT_DOUBLE_EQ(fval, sin(x[0]) + cos(x[1]) + 1.4 * x[0]*x[1] + 1.0 +
 	                       log(y[0]) + 3.0 * log(z[0]));
@@ -195,7 +195,7 @@ TEST(Function, evaluate)
 
 TEST(Function, evaluate_x)
 {
-	
+
 	double x[2] = {1.0, 2.0};
 	double y[1] = {3.0};
 	double z[1] = {4.0};
@@ -207,7 +207,7 @@ TEST(Function, evaluate_x)
 
 	f.add_term(new AutoDiffTerm<Term1, 2>(new Term1), x);
 	f.add_term(new AutoDiffTerm<Term2, 1, 1>(new Term2), y, z);
-	
+
 	Eigen::VectorXd xg(4);
 	xg[0] = 6.0;
 	xg[1] = 7.0;
@@ -222,7 +222,7 @@ TEST(Function, evaluate_x)
 
 TEST(Function, evaluate_gradient)
 {
-	
+
 	double x[2] = {1.0, 2.0};
 	double y[1] = {3.0};
 	double z[1] = {4.0};
@@ -235,7 +235,7 @@ TEST(Function, evaluate_gradient)
 	f.add_term(new AutoDiffTerm<Term1, 2>(new Term1), x);
 	f.add_term(new AutoDiffTerm<Term1, 2>(new Term1), x);  // Add term twice for testing.
 	f.add_term(new AutoDiffTerm<Term2, 1, 1>(new Term2), y, z);
-	
+
 	Eigen::VectorXd xg(4);
 	xg[0] = 6.0;
 	xg[1] = 7.0;
@@ -290,7 +290,7 @@ public:
 
 TEST(Function, evaluate_hessian)
 {
-	
+
 	double x[3] = {1.0, 2.0, 3.0};
 	double y[2] = {3.0, 4.0};
 
@@ -301,7 +301,7 @@ TEST(Function, evaluate_hessian)
 	f.add_term(new AutoDiffTerm<Single3, 3>(new Single3), x);
 	f.add_term(new AutoDiffTerm<Single2, 2>(new Single2), y);
 	f.add_term(new AutoDiffTerm<Mixed3_2, 3, 2>(new Mixed3_2), x, y);
-	
+
 	Eigen::VectorXd xg(4);
 	xg[0] = 6.0; // x[0]
 	xg[1] = 7.0; // x[1]
@@ -328,7 +328,7 @@ TEST(Function, evaluate_hessian)
 	EXPECT_DOUBLE_EQ(hessian(2,0), 0.0);
 	EXPECT_DOUBLE_EQ(hessian(1,2), 0.0);
 	EXPECT_DOUBLE_EQ(hessian(2,1), 0.0);
-	
+
 	// Check the y part of hessian.
 	EXPECT_DOUBLE_EQ(hessian(3,3), 2.0 * 5.0);
 	EXPECT_DOUBLE_EQ(hessian(4,4), 2.0 * 7.0
@@ -404,7 +404,7 @@ TEST(Function, Parametrization_2_to_2)
 		EXPECT_NEAR(f1.evaluate(), f2.evaluate(), 1e-12);
 	}
 
-	// Term1 is 
+	// Term1 is
 	// f(x1, x2) = sin(x1) + cos(x2) + 1.4 * x1*x2 + 1.0
 	//
 	// f(t1, t2) = sin(exp(t1)) + cos(exp(t2)) + 1.4 * exp(t1)*exp(t2) + 1.0
@@ -418,7 +418,7 @@ TEST(Function, Parametrization_2_to_2)
 	Eigen::VectorXd t_gradient;
 	double f1_val = f1.evaluate(x_vec, &x_gradient);
 	double f2_val = f2.evaluate(t, &t_gradient);
-	
+
 	// The function values must match.
 	EXPECT_NEAR(f1_val, f2_val, 1e-12);
 
@@ -448,7 +448,7 @@ TEST(Function, Parametrization_1_1_to_1_1)
 		EXPECT_NEAR(f1.evaluate(), f2.evaluate(), 1e-12);
 	}
 
-	// Term2 is 
+	// Term2 is
 	// f(x, y) = log(x) + 3.0 * log(y);
 	//
 	// f(s, t) = s + 3.0 * t
@@ -462,7 +462,7 @@ TEST(Function, Parametrization_1_1_to_1_1)
 	Eigen::VectorXd st_gradient;
 	double f1_val = f1.evaluate(xy, &xy_gradient);
 	double f2_val = f2.evaluate(st, &st_gradient);
-	
+
 	// The function values must match.
 	EXPECT_NEAR(f1_val, f2_val, 1e-12);
 

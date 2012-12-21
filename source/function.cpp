@@ -59,7 +59,7 @@ void Function::add_variable_internal(double* variable,
 		return;
 	}
 	AddedVariable& var_info = variables[variable];
-	
+
 	var_info.change_of_variables = change_of_variables;
 	if (change_of_variables != NULL){
 		if (dimension != change_of_variables->x_dimension()) {
@@ -102,7 +102,7 @@ void Function::add_term(const Term* term, const std::vector<double*>& arguments)
 			throw std::runtime_error("Function::add_term: variable dimension does not match term.");
 		}
 	}
-	
+
 	added_terms.insert(term);
 
 	terms.push_back(AddedTerm());
@@ -359,14 +359,14 @@ double Function::evaluate(const Eigen::VectorXd& x,
 		if (hessian) {
 			// Evaluate the term and put its gradient and hessian
 			// into local storage.
-			value += terms[i].term->evaluate(&terms[i].temp_variables[0], 
+			value += terms[i].term->evaluate(&terms[i].temp_variables[0],
 											 &this->thread_gradient_scratch[t],
 											 &terms[i].hessian);
 		}
 		else {
 			// Evaluate the term and put its gradient into local
 			// storage.
-			value += terms[i].term->evaluate(&terms[i].temp_variables[0], 
+			value += terms[i].term->evaluate(&terms[i].temp_variables[0],
 											 &this->thread_gradient_scratch[t]);
 		}
 
@@ -392,7 +392,7 @@ double Function::evaluate(const Eigen::VectorXd& x,
 			}
 		}
 	}
-	
+
 	this->evaluate_with_hessian_time += wall_time() - start_time;
 	start_time = wall_time();
 
@@ -463,7 +463,7 @@ double Function::evaluate(const Eigen::VectorXd& x,
 	this->copy_global_to_local(x);
 
 	double start_time = wall_time();
-	
+
 	std::vector<Eigen::Triplet<double> > indices;
 	indices.reserve(this->number_of_hessian_elements);
 	this->number_of_hessian_elements = 0;
@@ -488,7 +488,7 @@ double Function::evaluate(const Eigen::VectorXd& x,
 
 		// Evaluate the term and put its gradient and hessian
 		// into local storage.
-		value += terms[i].term->evaluate(&terms[i].temp_variables[0], 
+		value += terms[i].term->evaluate(&terms[i].temp_variables[0],
 		                                 &this->thread_gradient_scratch[t],
 		                                 &terms[i].hessian);
 
@@ -507,7 +507,7 @@ double Function::evaluate(const Eigen::VectorXd& x,
 			}
 		}
 	}
-	
+
 	this->evaluate_with_hessian_time += wall_time() - start_time;
 	start_time = wall_time();
 

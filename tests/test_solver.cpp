@@ -166,7 +166,7 @@ TEST(Solver, inf_nan)
 TEST(Solver, L_GBFS_exact)
 {
 	// Test that the L-BFGS solver follows a reference
-	// MATLAB implementation (minFunc) configured to 
+	// MATLAB implementation (minFunc) configured to
 	// use the same history size and line search method.
 
 	std::vector<int>    iters;
@@ -337,7 +337,7 @@ TEST(Solver, PositiveConstraint)
 	function.add_variable(x, 2, new GreaterThanZero(2));
 	function.add_term(
 		new AutoDiffTerm<Quadratic2, 2>(new Quadratic2), x);
-	
+
 	Solver solver;
 	solver.log_function = 0;
 	SolverResults results;
@@ -356,7 +356,7 @@ TEST(Solver, BoxConstraint)
 	function.add_variable(x, 2, new Box(2, a, b));
 	function.add_term(
 		new AutoDiffTerm<Quadratic2, 2>(new Quadratic2), x);
-	
+
 	Solver solver;
 	solver.log_function = 0;
 	SolverResults results;

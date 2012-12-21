@@ -28,7 +28,7 @@ public:
 	                        std::vector< std::vector<Eigen::MatrixXd> >* hessian) const = 0;
 };
 
-template<int D0,int D1 = 0, int D2 = 0, int D3 = 0> 
+template<int D0,int D1 = 0, int D2 = 0, int D3 = 0>
 class SizedTerm :
 	public Term
 {

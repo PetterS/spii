@@ -35,7 +35,7 @@ struct SolverResults
 	{
 		return exit_condition == GRADIENT_TOLERANCE ||
 		       exit_condition == FUNCTION_TOLERANCE ||
-			   exit_condition == ARGUMENT_TOLERANCE;
+		       exit_condition == ARGUMENT_TOLERANCE;
 	}
 
 	double startup_time;
@@ -66,7 +66,7 @@ public:
 	             // second-order derivatives. Generally converges
 	             // quickly. It is slow and requires a lot of
 	             // memory if the Hessian is dense.
-	             NEWTON, 
+	             NEWTON,
 	             // L-BFGS. Requires only first-order derivatives
 	             // and generally converges quickly. Always uses
 	             // relatively little memory.
@@ -143,10 +143,10 @@ private:
 	bool check_exit_conditions(const double fval,
 	                           const double fprev,
 	                           const double gnorm,
-							   const double gnorm0,
+	                           const double gnorm0,
 	                           const double xnorm,
 	                           const double dxnorm,
-	                          const bool last_iteration_successful,
+	                           const bool last_iteration_successful,
 	                           SolverResults* results) const;
 
 	// Performs a line search from x along direction p. Returns
@@ -157,7 +157,7 @@ private:
 	                          const Eigen::VectorXd& g,
 	                          const Eigen::VectorXd& p,
 	                          Eigen::VectorXd* scratch,
-	                          const double start_alpha = 1.0) const;                     
+	                          const double start_alpha = 1.0) const;
 };
 
 #endif

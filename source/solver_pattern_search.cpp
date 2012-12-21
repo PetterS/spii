@@ -46,9 +46,6 @@ void Solver::solve_pattern_search(const Function& function,
 	results->startup_time   = wall_time() - global_start_time;
 	results->exit_condition = SolverResults::ERROR;
 	int iter = 0;
-	bool last_iteration_successful = true;
-	int number_of_line_search_failures = 0;
-	int number_of_restarts = 0;
 	while (true) {
 
 		//
@@ -84,7 +81,7 @@ void Solver::solve_pattern_search(const Function& function,
 				break;
 			}
 		}
-		
+
 		// If no point was found, decrease pattern size.
 		if (! success) {
 			pattern_size /= 2.0;

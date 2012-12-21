@@ -10,12 +10,12 @@ namespace spii {
 // This class allows for a change of variables to be added.
 // For example,
 //
-//    minimize f(x1, x2) 
+//    minimize f(x1, x2)
 //    subject to x1 >= 0
-// 
+//
 // can be formulated as
 //
-//    minimize f(exp(t), x2) 
+//    minimize f(exp(t), x2)
 //
 class ChangeOfVariables
 {

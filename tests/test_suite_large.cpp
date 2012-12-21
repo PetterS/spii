@@ -243,7 +243,7 @@ void test_trid()
 	std::cerr << results;
 
 	double fval = f.evaluate();
-	// Global optimum is 
+	// Global optimum is
 	//
 	//   x[i] = (i + 1) * (n - i)
 	//
@@ -270,17 +270,17 @@ void test_trid()
 	}
 }
 
-TEST(Newton, Trid10) 
+TEST(Newton, Trid10)
 {
 	test_trid<10, false>();
 }
 
-TEST(Newton, Trid1000) 
+TEST(Newton, Trid1000)
 {
 	test_trid<1000, false>();
 }
 
-TEST(Newton, Trid10000) 
+TEST(Newton, Trid10000)
 {
 	test_trid<10000, false>();
 }

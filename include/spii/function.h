@@ -21,7 +21,7 @@ namespace spii {
 // The Function supports a change of variables, where the solver
 // will see one set of variables and the evaluation function
 // another. The variable change is specified with a ChangeOfVariables
-// object. Each variable has a 
+// object. Each variable has a
 //
 //  * user_dimension   -- the dimension the Term object sees for
 //                        evaluation.
@@ -59,13 +59,13 @@ public:
 	// added to it. Default is for the function to delete them.
 	// Note that it is still safe to add the same term multiple
 	// times.
-	enum {DeleteTerms, DoNotDeleteTerms} term_deletion; 
+	enum {DeleteTerms, DoNotDeleteTerms} term_deletion;
 
 	// Specifies whether the function should be prepared to compute
 	// the Hessian matrix, which is is not needed for L-BFGS. This
 	// setting only affects the amount of temporary space allocated.
 	// Default: true.
-	bool hessian_is_enabled; 
+	bool hessian_is_enabled;
 
 	Function();
 	~Function();
@@ -130,18 +130,18 @@ public:
 	// Evaluation using a global vector.
 	double evaluate(const Eigen::VectorXd& x) const;
 
-	// Evaluate the function and compute the gradient at the point x. 
-	double evaluate(const Eigen::VectorXd& x, 
+	// Evaluate the function and compute the gradient at the point x.
+	double evaluate(const Eigen::VectorXd& x,
 	                Eigen::VectorXd* gradient) const;
 
 	// Evaluate the function and compute the gradient and Hessian matrix
 	// at the point x. Dense version.
-	double evaluate(const Eigen::VectorXd& x, 
+	double evaluate(const Eigen::VectorXd& x,
 	                Eigen::VectorXd* gradient,
 	                Eigen::MatrixXd* hessian) const;
 
 	// Same functionality as above, but for a sparse Hessian.
-	double evaluate(const Eigen::VectorXd& x, 
+	double evaluate(const Eigen::VectorXd& x,
 	                Eigen::VectorXd* gradient,
 	                Eigen::SparseMatrix<double>* hessian) const;
 
@@ -205,7 +205,7 @@ protected:
 	// needs to be written to.
 	mutable std::vector< std::vector<Eigen::VectorXd> >
 		thread_gradient_scratch;
-	mutable std::vector<Eigen::VectorXd> 
+	mutable std::vector<Eigen::VectorXd>
 		thread_gradient_storage;
 
 	// Stored how many element were used the last time the Hessian

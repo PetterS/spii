@@ -14,7 +14,7 @@ using namespace spii;
 void create_solver(Solver* solver)
 {
 	// The problems in the test suite are rather difficult
-	// and often require very exact solutions (for N-M). 
+	// and often require very exact solutions (for N-M).
 	// Therefore, a small tolerance has to be used.
 	solver->maximum_iterations = 10000;
 	solver->area_tolerance = 1e-40;

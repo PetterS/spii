@@ -68,9 +68,9 @@ int main()
 
 	Solver solver;
 	solver.sparsity_mode = Solver::DENSE;
-	solver.maximum_iterations = 100;
+	solver.maximum_iterations = 3000;
 	SolverResults results;
-	solver.solve_newton(potential, &results);
+	solver.solve(potential, Solver::LBFGS, &results);
 
 	std::cerr << results;
 	potential.print_timing_information(std::cout);

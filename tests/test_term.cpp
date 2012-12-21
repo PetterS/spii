@@ -29,7 +29,7 @@ class DFunc
 		F<T, 2> x(i_x), y(i_y);
 		x.diff(0);
 		y.diff(1);
-		Func func(); 
+		Func func();
 		F<T, 2> f(func(x,y));
 		o_dfdx = f.d(0);
 		o_dfdy = f.d(1);

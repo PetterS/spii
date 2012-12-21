@@ -86,7 +86,7 @@ public:
 			}
 		}
 	}
-						
+
 	void update_hessian() const;
 private:
 	Change* change;

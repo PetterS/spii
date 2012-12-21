@@ -8,10 +8,10 @@ namespace spii {
 double Solver::perform_linesearch(const Function& function,
                                   const Eigen::VectorXd& x,
                                   const double fval,
-								  const Eigen::VectorXd& g,
+                                  const Eigen::VectorXd& g,
                                   const Eigen::VectorXd& p,
                                   Eigen::VectorXd* scratch,
-								  const double start_alpha) const
+                                  const double start_alpha) const
 {
 	//
 	// Perform back-tracking line search.

@@ -80,7 +80,7 @@ void Solver::solve_lbfgs(const Function& function,
 			y_tmp = -g;
 		}
 		fval = function.evaluate(x, &g);
-		
+
 		normg = std::max(g.maxCoeff(), -g.minCoeff());
 		if (iter == 0) {
 			normg0 = normg;
@@ -97,7 +97,7 @@ void Solver::solve_lbfgs(const Function& function,
 			y_tmp += g;
 
 			double sTy = s_tmp.dot(y_tmp);
-			if (sTy > 1e-16) {		
+			if (sTy > 1e-16) {
 				// Shift all pointers one step back, discarding the oldest one.
 				Eigen::VectorXd* sh = s[this->lbfgs_history_size - 1];
 				Eigen::VectorXd* yh = y[this->lbfgs_history_size - 1];
@@ -158,7 +158,7 @@ void Solver::solve_lbfgs(const Function& function,
 		q = -g;
 
 		for (int h = 0; h < this->lbfgs_history_size; ++h) {
-			alpha[h] = rho[h] * s[h]->dot(q); 
+			alpha[h] = rho[h] * s[h]->dot(q);
 			q = q - alpha[h] * (*y[h]);
 		}
 
@@ -171,9 +171,9 @@ void Solver::solve_lbfgs(const Function& function,
 
 		// If the function improves very little, the approximated Hessian
 		// might be very bad. If this is the case, it is better to discard
-		// the history once in a while. This allows the solver to correctly 
+		// the history once in a while. This allows the solver to correctly
 		// solve some badly scaled problems.
-		double restart_test = std::fabs(fval - fprev) / 
+		double restart_test = std::fabs(fval - fprev) /
 		                      (std::fabs(fval) + std::fabs(fprev));
 		if (iter > 0 && iter % 100 == 0 && restart_test
 		                                   < this->lbfgs_restart_tolerance) {

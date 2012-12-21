@@ -394,12 +394,12 @@ struct GoldsteinPricePolynomial
 	{
 		R a = x[0] + x[1] + 1.0;
 
-		R b = 19.0 - 14.0 * x[0] + 3.0 * x[0] * x[0] - 14.0 * x[1] 
+		R b = 19.0 - 14.0 * x[0] + 3.0 * x[0] * x[0] - 14.0 * x[1]
 			+ 6.0 * x[0] * x[1] + 3.0 * x[1] * x[1];
 
 		R c = 2.0 * x[0] - 3.0 * x[1];
 
-		R d = 18.0 - 32.0 * x[0] + 12.0 * x[0] * x[0] + 48.0 * x[1] 
+		R d = 18.0 - 32.0 * x[0] + 12.0 * x[0] * x[0] + 48.0 * x[1]
 			- 36.0 * x[0] * x[1] + 27.0 * x[1] * x[1];
 
 		return ( 1.0 + a * a * b ) * ( 30.0 + c * c * d );
@@ -457,7 +457,7 @@ struct SixHumpCamelBack
 	template<typename R>
 	R operator()(const R* const x) const
 	{
-		return ( 4.0 - 2.1 * x[0]*x[0] + x[0]*x[0]*x[0]*x[0] / 3.0 ) * x[0]*x[0] 
+		return ( 4.0 - 2.1 * x[0]*x[0] + x[0]*x[0]*x[0]*x[0] / 3.0 ) * x[0]*x[0]
 	            + x[0] * x[1] + 4.0 * ( x[1]*x[1] - 1.0 ) * x[1]*x[1];
 	}
 };
@@ -595,7 +595,7 @@ TEST(Solver, Bohachevsky)
 	x[0] = 0.5;
 	x[1] = 1.0;
 	run_test<Bohachevsky1, 2>(x, &solver);
-	
+
 	x[0] = 0.6;
 	x[1] = 1.3;
 	run_test<Bohachevsky2, 2>(x, &solver);
@@ -661,7 +661,7 @@ TEST(Solver, Powell3D)
 	// at (-1, -1, 3), but the function returns a gradient whose
 	// maximum element is over 1e-8.
 	//
-	
+
 	double x[3] = {-1.0, -1.0, 3.0};
 	Function f;
 	f.add_variable(x, 3);
