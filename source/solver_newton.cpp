@@ -232,7 +232,6 @@ void Solver::solve_newton(const Function& function,
 				// there is not much to do. In the former case, randomly perturbing
 				// x has been effective.
 				for (size_t i = 0; i < n; ++i) {
-					double random_number = double(std::rand()) / double(RAND_MAX);
 					x[i] = x[i] + 1e-6 * rand11() * x[i];
 				}
 				continue;

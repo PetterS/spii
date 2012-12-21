@@ -103,10 +103,8 @@ void Solver::solve_nelder_mead(const Function& function,
 	double fmin  = std::numeric_limits<double>::quiet_NaN();
 	double fmax  = std::numeric_limits<double>::quiet_NaN();
 	double fval  = std::numeric_limits<double>::quiet_NaN();
-	double fprev = std::numeric_limits<double>::quiet_NaN();
 	double area  = std::numeric_limits<double>::quiet_NaN();
 	double area0 = std::numeric_limits<double>::quiet_NaN();
-	double area1 = std::numeric_limits<double>::quiet_NaN();
 
 	Eigen::MatrixXd area_mat(n, n);
 
@@ -224,7 +222,6 @@ void Solver::solve_nelder_mead(const Function& function,
 		area = std::abs(area_mat.determinant());
 		if (iter == 0) {
 			area0 = area;
-			area1 = area;
 		}
 
 		if (area / area0 < this->area_tolerance) {
@@ -287,7 +284,6 @@ void Solver::solve_nelder_mead(const Function& function,
 		}
 		results->log_time += wall_time() - start_time;
 
-		fprev = fmax;
 		iter++;
 	}
 
