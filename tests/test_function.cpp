@@ -123,10 +123,26 @@ TEST(Function, calls_term_destructor)
 	function->add_term(term1, x);
 	function->add_term(term2, x);
 
+	EXPECT_EQ(counter1, 0);
+	EXPECT_EQ(counter2, 0);
 	delete function;
-
 	EXPECT_EQ(counter1, 1);
 	EXPECT_EQ(counter2, 1);
+
+	Function* function2 = new Function;
+	function->add_variable(x, 1);
+
+	int counter3 = 0;
+	DestructorTerm* term3 = new DestructorTerm(&counter3);
+
+	function->add_term(term3, x);
+	function2->term_deletion = Function::DoNotDeleteTerms;
+
+	EXPECT_EQ(counter3, 0);
+	delete function2;
+	EXPECT_EQ(counter3, 0);
+	delete term3;
+	EXPECT_EQ(counter3, 1);
 }
 
 class DestructorChange
