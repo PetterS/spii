@@ -103,12 +103,9 @@ void Solver::solve_newton(const Function& function,
 		double start_time = wall_time();
 		if (use_sparsity) {
 			fval = function.evaluate(x, &g, &sparse_H);
-			//std::cerr << sparse_H << std::endl;
-			//std::cerr << sparse_H.nonZeros() << std::endl;
 		}
 		else {
 			fval = function.evaluate(x, &g, &H);
-			//std::cerr << H << std::endl;
 		}
 
 		normg = std::max(g.maxCoeff(), -g.minCoeff());
