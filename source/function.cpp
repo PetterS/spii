@@ -186,14 +186,9 @@ void Function::print_timing_information(std::ostream& out) const
 	out << "Function copy data time           : " << copy_time << '\n';
 }
 
-double Function::evaluate(const Eigen::VectorXd& x) const
+double Function::evaluate_from_local_storage() const
 {
 	this->evaluations_without_gradient++;
-
-	// Copy values from the global vector x to the temporary storage
-	// used for evaluating the term.
-	this->copy_global_to_local(x);
-
 	double start_time = wall_time();
 
 	double value = 0;
@@ -211,15 +206,22 @@ double Function::evaluate(const Eigen::VectorXd& x) const
 	return value;
 }
 
+double Function::evaluate(const Eigen::VectorXd& x) const
+{
+	// Copy values from the global vector x to the temporary storage
+	// used for evaluating the term.
+	this->copy_global_to_local(x);
+
+	return this->evaluate_from_local_storage();
+}
+
 double Function::evaluate() const
 {
-	// This overload copies a lot of data. First from user space
-	// to a global vector, then from the global vector to temporary
-	// storage.
-	Eigen::VectorXd x;
-	this->copy_user_to_global(&x);
+	// Copy the user state to the local storage
+	// for evaluation.
+	this->copy_user_to_local();
 
-	return evaluate(x);
+	return this->evaluate_from_local_storage();
 }
 
 void Function::create_sparse_hessian(Eigen::SparseMatrix<double>* H) const
@@ -308,6 +310,19 @@ void Function::copy_global_to_user(const Eigen::VectorXd& x) const
 			itr->second.change_of_variables->t_to_x(
 				itr->first,
 				&x[itr->second.global_index]);
+		}
+	}
+
+	this->copy_time += wall_time() - start_time;
+}
+
+void Function::copy_user_to_local() const
+{
+	double start_time = wall_time();
+
+	for (auto itr = variables.begin(); itr != variables.end(); ++itr) {
+		for (int i = 0; i < itr->second.user_dimension; ++i) {
+			itr->second.temp_space[i] = itr->first[i];
 		}
 	}
 

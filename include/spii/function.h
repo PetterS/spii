@@ -177,6 +177,12 @@ protected:
 	// Copies variables from a the storage provided by the user
 	// to a global vector x.
 	void copy_user_to_global(Eigen::VectorXd* x) const;
+	// Copies variables from a the storage provided by the user
+	// to the Function's local storage.
+	void copy_user_to_local() const;
+
+	// Evaluates the function at the point in the local storage.
+	double evaluate_from_local_storage() const;
 
 	// A set of all terms added to the function. This is
 	// used when the function is destructed.
