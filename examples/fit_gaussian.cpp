@@ -35,13 +35,12 @@ int main_function()
 
 	double mu    = 5.0;
 	double sigma = 3.0;
-	double logsigma;
 	std::cout << "mu = " << mu << ", sigma = " << sigma << std::endl;
 
 	Function f;
 	f.add_variable(&mu, 1);
 	f.add_variable(&sigma, 1, new GreaterThanZero(1));
-	
+
 	for (int i = 0; i < 10000; ++i) {
 		double sample = sigma*randn() + mu;
 		auto* llh = new NegLogLikelihood(sample);
