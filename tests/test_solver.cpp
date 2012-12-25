@@ -226,6 +226,56 @@ TEST(Solver, L_GBFS_exact)
 	}
 }
 
+TEST(Solver, Newton_exact)
+{
+	// Test that the Newton solver follows a reference
+	// MATLAB implementation (minFunc) configured to
+	// use the same line search method.
+
+	// The Rosenbrock function has a positive definite
+	// Hessian at eery iteration step, so this test does
+	// not test the iterative Cholesky factorization.
+
+	std::vector<int>    iters;
+	std::vector<double> fvals;
+	iters.push_back(1); fvals.push_back(4.73188e+000);
+	iters.push_back(2); fvals.push_back(4.08740e+000);
+	iters.push_back(3); fvals.push_back(3.22867e+000);
+	iters.push_back(4); fvals.push_back(3.21390e+000);
+	iters.push_back(5); fvals.push_back(1.94259e+000);
+	iters.push_back(6); fvals.push_back(1.60019e+000);
+	iters.push_back(7); fvals.push_back(1.17839e+000);
+	iters.push_back(8); fvals.push_back(9.22412e-001);
+	iters.push_back(9); fvals.push_back(5.97489e-001);
+	iters.push_back(10); fvals.push_back(4.52625e-001);
+	iters.push_back(11); fvals.push_back(2.80762e-001);
+	iters.push_back(12); fvals.push_back(2.11393e-001);
+	iters.push_back(13); fvals.push_back(8.90195e-002);
+	iters.push_back(14); fvals.push_back(5.15354e-002);
+	iters.push_back(15); fvals.push_back(1.99928e-002);
+	iters.push_back(16); fvals.push_back(7.16924e-003);
+	iters.push_back(17); fvals.push_back(1.06961e-003);
+	iters.push_back(18); fvals.push_back(7.77685e-005);
+	iters.push_back(19); fvals.push_back(2.82467e-007);
+	iters.push_back(20); fvals.push_back(8.51707e-012);
+
+	for (int i = 0; i < iters.size(); ++i) {
+		double x[2] = {-1.2, 1.0};
+		Function f;
+		f.add_variable(x, 2);
+		f.add_term(new AutoDiffTerm<Rosenbrock, 2>(new Rosenbrock()), x);
+
+		Solver solver;
+		SolverResults results;
+		solver.log_function = 0;
+		solver.maximum_iterations = iters[i];
+
+		solver.solve(f, Solver::NEWTON, &results);
+		double fval = f.evaluate();
+		EXPECT_LE( std::abs(fval - fvals[i]) / std::abs(fval), 1e-5);
+	}
+}
+
 struct Quadratic2
 {
 	template<typename R>
