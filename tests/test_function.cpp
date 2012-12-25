@@ -367,6 +367,40 @@ TEST(Function, evaluate_hessian)
 	EXPECT_DOUBLE_EQ(hessian(4,2), - 14.0 * (sin(xg[2]*xg[4]) + xg[2] * xg[4] * cos(xg[2]*xg[4])));
 }
 
+
+TEST(Function, evaluation_count)
+{
+
+	double x[3] = {1.0, 2.0, 3.0};
+	double y[2] = {3.0, 4.0};
+
+	Function f;
+	f.add_variable(x, 3);
+	f.add_variable(y, 2);
+
+	f.add_term(new AutoDiffTerm<Single3, 3>(new Single3), x);
+	f.add_term(new AutoDiffTerm<Single2, 2>(new Single2), y);
+	f.add_term(new AutoDiffTerm<Mixed3_2, 3, 2>(new Mixed3_2), x, y);
+
+	Eigen::VectorXd xg(4);
+	xg.setZero();
+	Eigen::VectorXd gradient;
+	Eigen::MatrixXd hessian;
+	Eigen::SparseMatrix<double> sparse_hessian;
+	f.create_sparse_hessian(&sparse_hessian);
+
+	f.evaluate();
+	f.evaluate();
+	f.evaluate(xg);
+	f.evaluate(xg, &gradient, &hessian);
+
+	EXPECT_EQ(f.evaluations_without_gradient, 3);
+	EXPECT_EQ(f.evaluations_with_gradient, 1);
+	f.evaluate(xg, &gradient, &hessian);
+	f.evaluate(xg, &gradient, &sparse_hessian);
+	EXPECT_EQ(f.evaluations_with_gradient, 3);
+}
+
 //
 //	x_i = exp(t_i)
 //  t_i = log(x_i)
@@ -415,6 +449,9 @@ TEST(Function, Parametrization_2_to_2)
 	f1.add_term(new AutoDiffTerm<Term1, 2>(new Term1), x);
 	f2.add_term(new AutoDiffTerm<Term1, 2>(new Term1), x);
 
+	EXPECT_EQ(f1.get_number_of_scalars(), 2);
+	EXPECT_EQ(f2.get_number_of_scalars(), 2);
+
 	for (x[0] = 0.1; x[0] <= 10.0; x[0] += 0.1) {
 		x[1] = x[0] / 2.0 + 0.1;
 		EXPECT_NEAR(f1.evaluate(), f2.evaluate(), 1e-12);
@@ -458,6 +495,9 @@ TEST(Function, Parametrization_1_1_to_1_1)
 	f2.add_variable(y, 1, new ExpTransform<1>);
 	f1.add_term(new AutoDiffTerm<Term2, 1, 1>(new Term2), x, y);
 	f2.add_term(new AutoDiffTerm<Term2, 1, 1>(new Term2), x, y);
+
+	EXPECT_EQ(f1.get_number_of_scalars(), 2);
+	EXPECT_EQ(f2.get_number_of_scalars(), 2);
 
 	for (x[0] = 0.1; x[0] <= 10.0; x[0] += 0.1) {
 		y[0] = x[0] / 2.0 + 0.1;
