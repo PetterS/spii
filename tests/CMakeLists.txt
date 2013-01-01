@@ -29,4 +29,11 @@ IF (${BUILD_TESTING})
   SPII_TEST(suite_pattern_search)
   SPII_TEST(term)
 
+  # The NIST tests are not part of the test suite that has to succeed, because
+  # the solver may end up in a local minimum.
+  ADD_EXECUTABLE(test_nist test_nist.cpp)
+    TARGET_LINK_LIBRARIES(test_nist spii ${GTEST_LIB} ${GTEST_MAIN_LIB})
+    set_target_properties(test_nist PROPERTIES COMPILE_DEFINITIONS "GTEST_HAS_TR1_TUPLE=0")
+    INCLUDE_DIRECTORIES(${GTEST_INCLUDE})
+
 ENDIF (${BUILD_TESTING})
