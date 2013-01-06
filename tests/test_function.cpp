@@ -5,7 +5,7 @@
 #ifdef __CYGWIN__
 	#define EXPECT_THROW(a,b)
 #endif
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(__clang__)
 	#define EXPECT_THROW(a,b)
 #endif
 
@@ -261,7 +261,7 @@ TEST(Function, evaluate_gradient)
 	Eigen::VectorXd gradient;
 	Eigen::MatrixXd hessian;
 
-	double fval = f.evaluate(xg, &gradient, &hessian);
+	f.evaluate(xg, &gradient, &hessian);
 	EXPECT_EQ(gradient.size(), 4);
 
 	// Check gradient values.
@@ -328,7 +328,7 @@ TEST(Function, evaluate_hessian)
 	Eigen::VectorXd gradient;
 	Eigen::MatrixXd hessian;
 
-	double fval = f.evaluate(xg, &gradient, &hessian);
+	f.evaluate(xg, &gradient, &hessian);
 	ASSERT_EQ(hessian.rows(), 5);
 	ASSERT_EQ(hessian.cols(), 5);
 

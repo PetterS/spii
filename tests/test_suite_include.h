@@ -59,7 +59,7 @@ struct FreudenStein_Roth
 TEST(Solver, FreudenStein_Roth)
 {
 	double x[2] = {0.5, -2.0};
-	double fval = run_test<FreudenStein_Roth, 2>(x);
+	run_test<FreudenStein_Roth, 2>(x);
 
 	// Can end up in local minima 48.9842...
 	//EXPECT_LT( std::fabs(x[0] - 5.0), 1e-9);
@@ -292,7 +292,7 @@ struct Gulf
 TEST(Solver, Gulf)
 {
 	double x[3] = {5, 2.5, 0.15};
-	double fval = run_test<Gulf<3>, 3>(x);
+	run_test<Gulf<3>, 3>(x);
 
 	// The Gulf function does not evaluate to close to 0
 	// at the globally optimal point. Hence these tests
@@ -625,7 +625,7 @@ struct Colville
 TEST(Solver, Colville)
 {
 	double x[4] = {-0.5, 1.0, -0.5, -1.0};
-	double fval = run_test<Colville, 4>(x);
+	run_test<Colville, 4>(x);
 
 	EXPECT_LT( std::fabs(x[0] - 1.0), 1e-8);
 	EXPECT_LT( std::fabs(x[1] - 1.0), 1e-8);
@@ -678,7 +678,7 @@ TEST(Solver, Powell3D)
 	x[0] = 0.0;
 	x[1] = 1.0;
 	x[2] = 2.0;
-	double fval = run_test<Powell3D, 3>(x);
+	run_test<Powell3D, 3>(x);
 
 	xvec[0] = x[0];
 	xvec[1] = x[1];
