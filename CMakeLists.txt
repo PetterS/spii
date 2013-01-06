@@ -114,6 +114,13 @@ IF (CMAKE_COMPILER_IS_GNUCXX)
   ADD_DEFINITIONS("-Wall -Wextra -Wno-unknown-pragmas -Wno-sign-compare -Wno-unused -Wno-unused-parameter")
 ENDIF (CMAKE_COMPILER_IS_GNUCXX)
 
+IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  MESSAGE("-- Enabling C++11 support for clang.")
+  ADD_DEFINITIONS("-std=c++11")
+
+  ADD_DEFINITIONS("-Wall -Wextra -Wno-unused-parameter")
+ENDIF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+
 IF (CMAKE_BUILD_TYPE STREQUAL "Release")
   IF (CMAKE_COMPILER_IS_GNUCXX)
       MESSAGE("-- Optimizing for release mode.")

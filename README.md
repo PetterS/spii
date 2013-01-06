@@ -18,6 +18,7 @@ I have successfully compiled the library with the following compilers:
 * Visual Studio 2012
 * GCC 4.5 (Cygwin)
 * GCC 4.7 (Ubuntu)
+* Clang 3.2 (Ubuntu)
 
 Benchmarks
 ----------

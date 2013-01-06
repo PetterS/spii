@@ -102,7 +102,7 @@ struct Colville
 TEST(Solver, Colville)
 {
 	double x[4] = {-0.5, 1.0, -0.5, -1.0};
-	double fval = run_test<Colville, 4>(x);
+	run_test<Colville, 4>(x);
 
 	EXPECT_LT( std::fabs(x[0] - 1.0), 1e-8);
 	EXPECT_LT( std::fabs(x[1] - 1.0), 1e-8);
