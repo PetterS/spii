@@ -364,7 +364,7 @@ struct Wood
 		R f4 = 1- x[2];
 		R f5 = sqrt(10.0) * (x[1] + x[3] - 2.0);
 		R f6 = 1.0 / sqrt(10.0) * (x[1] - x[3]);
-		return f1*f1 + f2*f2 + f3*f3 + f4*f4;
+		return f1*f1 + f2*f2 + f3*f3 + f4*f4 + f5*f5 + f6*f6;
 	}
 };
 
