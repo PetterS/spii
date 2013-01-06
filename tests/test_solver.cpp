@@ -40,24 +40,30 @@ void test_method(Solver::Method method, const Solver& solver)
 	EXPECT_LT( std::fabs(f.evaluate()), 1e-9);
 }
 
+// nullptr would have been better, but is not present
+// in gcc 4.5.
+namespace {
+auto no_log_function = [](const std::string&) { };
+} 
+
 TEST(Solver, NEWTON)
 {
 	Solver solver;
-	solver.log_function = 0;
+	solver.log_function = no_log_function;
 	test_method(Solver::NEWTON, solver);
 }
 
 TEST(Solver, LBFGS)
 {
 	Solver solver;
-	solver.log_function = 0;
+	solver.log_function = no_log_function;
 	test_method(Solver::LBFGS, solver);
 }
 
 TEST(Solver, NELDER_MEAD)
 {
 	Solver solver;
-	solver.log_function = 0;
+	solver.log_function = no_log_function;
 	solver.maximum_iterations = 10000;
 	solver.area_tolerance = 1e-40;
 	test_method(Solver::NELDER_MEAD, solver);
@@ -66,7 +72,7 @@ TEST(Solver, NELDER_MEAD)
 TEST(Solver, PATTERN_SEARCH)
 {
 	Solver solver;
-	solver.log_function = 0;
+	solver.log_function = no_log_function;
 	solver.maximum_iterations = 100000;
 	test_method(Solver::PATTERN_SEARCH, solver);
 }
@@ -79,7 +85,7 @@ TEST(Solver, function_tolerance)
 	f.add_term(new AutoDiffTerm<Rosenbrock, 2>(new Rosenbrock()), x);
 
 	Solver solver;
-	solver.log_function = 0;
+	solver.log_function = no_log_function;
 	solver.maximum_iterations = 50;
 	solver.gradient_tolerance = 0;
 	solver.argument_improvement_tolerance = 0;
@@ -97,7 +103,7 @@ TEST(Solver, argument_improvement_tolerance)
 	f.add_term(new AutoDiffTerm<Rosenbrock, 2>(new Rosenbrock()), x);
 
 	Solver solver;
-	solver.log_function = 0;
+	solver.log_function = no_log_function;
 	solver.maximum_iterations = 50;
 	solver.gradient_tolerance = 0;
 	solver.function_improvement_tolerance = 0;
@@ -115,7 +121,7 @@ TEST(Solver, gradient_tolerance)
 	f.add_term(new AutoDiffTerm<Rosenbrock, 2>(new Rosenbrock()), x);
 
 	Solver solver;
-	solver.log_function = 0;
+	solver.log_function = no_log_function;
 	solver.maximum_iterations = 50;
 	solver.function_improvement_tolerance = 0;
 	solver.argument_improvement_tolerance = 0;
@@ -153,7 +159,7 @@ TEST(Solver, inf_nan)
 	f_inf.add_term(new AutoDiffTerm<InfFunctor, 1>(new InfFunctor()), x);
 
 	Solver solver;
-	solver.log_function = 0;
+	solver.log_function = no_log_function;
 	SolverResults results;
 
 	solver.solve_newton(f_nan, &results);
@@ -216,7 +222,7 @@ TEST(Solver, L_GBFS_exact)
 
 		Solver solver;
 		SolverResults results;
-		solver.log_function = 0;
+		solver.log_function = no_log_function;
 		solver.lbfgs_history_size = 10;
 		solver.maximum_iterations = iters[i];
 
@@ -267,7 +273,7 @@ TEST(Solver, Newton_exact)
 
 		Solver solver;
 		SolverResults results;
-		solver.log_function = 0;
+		solver.log_function = no_log_function;
 		solver.maximum_iterations = iters[i];
 
 		solver.solve(f, Solver::NEWTON, &results);
@@ -353,7 +359,7 @@ TEST(Solver, SimpleConstraints)
 		new AutoDiffTerm<Quadratic2Changed, 2>(new Quadratic2Changed), t);
 
 	Solver solver;
-	solver.log_function = 0;
+	solver.log_function = no_log_function;
 	SolverResults results;
 	results.exit_condition = SolverResults::NA;
 
@@ -389,7 +395,7 @@ TEST(Solver, PositiveConstraint)
 		new AutoDiffTerm<Quadratic2, 2>(new Quadratic2), x);
 
 	Solver solver;
-	solver.log_function = 0;
+	solver.log_function = no_log_function;
 	SolverResults results;
 	solver.solve_lbfgs(function, &results);
 
@@ -408,7 +414,7 @@ TEST(Solver, BoxConstraint)
 		new AutoDiffTerm<Quadratic2, 2>(new Quadratic2), x);
 
 	Solver solver;
-	solver.log_function = 0;
+	solver.log_function = no_log_function;
 	SolverResults results;
 	solver.solve_lbfgs(function, &results);
 

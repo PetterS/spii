@@ -50,7 +50,11 @@ std::ostream& operator<<(std::ostream& out, const SolverResults& results)
 Solver::Solver()
 {
 	this->sparsity_mode = AUTO;
-	this->log_function = cerr_log_function;
+	this->log_function = []
+	                     (const std::string& msg)
+						 {
+							std::cerr << msg << std::endl;
+						 };
 	this->maximum_iterations = 100;
 	this->gradient_tolerance = 1e-12;
 	this->function_improvement_tolerance = 1e-12;

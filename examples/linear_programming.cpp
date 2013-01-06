@@ -3,6 +3,7 @@
 #include <iostream>
 #include <limits>
 #include <random>
+#include <cstddef>
 
 #include <spii/auto_diff_term.h>
 #include <spii/solver.h>
@@ -113,7 +114,8 @@ int main()
 	Solver solver;
 	solver.sparsity_mode = Solver::DENSE;
 	solver.maximum_iterations = 100;
-	solver.log_function = 0;
+	// nullptr does not work in gcc 4.5
+	solver.log_function = [](const std::string&) { };
 	SolverResults results;
 
 	for (int iter = 1; iter <= 8; ++iter) {

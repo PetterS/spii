@@ -302,10 +302,4 @@ void Solver::solve_newton(const Function& function,
 	}
 }
 
-
-void cerr_log_function(const std::string& log_message)
-{
-	std::cerr << log_message << std::endl;
-}
-
 }  // namespace spii
