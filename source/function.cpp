@@ -24,7 +24,11 @@ Function::Function()
 	this->write_gradient_hessian_time = 0;
 	this->copy_time                   = 0;
 
-	this->number_of_threads = omp_get_max_threads();
+	#ifdef USE_OPENMP
+		this->number_of_threads = omp_get_max_threads();
+	#else
+		this->number_of_threads = 1;
+	#endif
 
 	this->local_storage_allocated = false;
 }
@@ -132,8 +136,14 @@ void Function::add_term(const Term* term, const std::vector<double*>& arguments)
 
 void Function::set_number_of_threads(int num)
 {
-	this->local_storage_allocated = false;
-	this->number_of_threads = num;
+	#ifdef USE_OPENMP
+		if (num <= 0) {
+			throw std::runtime_error("Function::set_number_of_threads: "
+			                         "invalid number of threads.");
+		}
+		this->local_storage_allocated = false;
+		this->number_of_threads = num;
+	#endif
 }
 
 void Function::allocate_local_storage() const
@@ -369,7 +379,11 @@ double Function::evaluate(const Eigen::VectorXd& x,
 	#endif
 	for (int i = 0; i < terms.size(); ++i) {
 		// The thread number calling this iteration.
-		int t = omp_get_thread_num();
+		#ifdef USE_OPENMP
+			int t = omp_get_thread_num();
+		#else
+			int t = 0;
+		#endif
 
 		if (hessian) {
 			// Evaluate the term and put its gradient and hessian
@@ -499,7 +513,11 @@ double Function::evaluate(const Eigen::VectorXd& x,
 	#endif
 	for (int i = 0; i < terms.size(); ++i) {
 		// The thread number calling this iteration.
-		int t = omp_get_thread_num();
+		#ifdef USE_OPENMP
+			const int t = omp_get_thread_num();
+		#else
+			const int t = 0;
+		#endif
 
 		// Evaluate the term and put its gradient and hessian
 		// into local storage.
