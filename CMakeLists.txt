@@ -101,7 +101,9 @@ IF (NOT CMAKE_BUILD_TYPE)
     FORCE)
 ENDIF (NOT CMAKE_BUILD_TYPE)
 
-# C++11 gnu++
+#
+# gcc settings.
+#
 IF (CMAKE_COMPILER_IS_GNUCXX)
   MESSAGE("-- Enabling C++11 support for gcc.")
   IF (${BUILD_TESTING})
@@ -114,13 +116,29 @@ IF (CMAKE_COMPILER_IS_GNUCXX)
   ADD_DEFINITIONS("-Wall -Wextra -Wno-sign-compare -Wno-unused-parameter")
 ENDIF (CMAKE_COMPILER_IS_GNUCXX)
 
+#
+# Clang settings
+#
 IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   MESSAGE("-- Enabling C++11 support for clang.")
-  ADD_DEFINITIONS("-std=c++11")
+  IF (${BUILD_TESTING})
+    ADD_DEFINITIONS("-std=gnu++11")
+  ELSE (${BUILD_TESTING})
+    ADD_DEFINITIONS("-std=c++11")
+  ENDIF (${BUILD_TESTING})
 
   # Enable warnings for Clang.
   ADD_DEFINITIONS("-Wall -Wextra -Wno-sign-compare -Wno-unused-parameter")
 ENDIF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+
+#
+# MSVC settings
+#
+IF (MSVC)
+  # Disable deprecation warning for standard functions.
+  ADD_DEFINITIONS("/wd4996")
+ENDIF (MSVC)
+
 
 IF (CMAKE_BUILD_TYPE STREQUAL "Release")
   IF (CMAKE_COMPILER_IS_GNUCXX)

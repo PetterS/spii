@@ -1,8 +1,8 @@
 
 #include <gtest/gtest.h>
 
-// EXPECT_THROW gives errors on Cygwin. Disable for now.
-#ifdef __CYGWIN__
+// EXPECT_THROW gives errors with gcc. Disable for now.
+#if defined(__CYGWIN__) && !defined(__clang__)
 	#define EXPECT_THROW(a,b)
 #endif
 #if defined(__GNUC__) && !defined(__clang__)

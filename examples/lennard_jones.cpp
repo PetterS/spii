@@ -35,17 +35,17 @@ int main()
 	std::normal_distribution<double> normal;
 	auto randn = std::bind(normal, prng);
 
-	size_t N = -1;
+	int N = -1;
 	std::cout << "Enter N = ";
 	std::cin >> N;
 
 	Function potential;
 	std::vector<Eigen::Vector3d> points(N);
 
-	int n = std::ceil(std::pow(double(N), 1.0/3.0));
+	int n = int(std::ceil(std::pow(double(N), 1.0/3.0)));
 
 	// Initial position is a cubic grid with random pertubations.
-	for (size_t i = 0; i < N; ++i) {
+	for (int i = 0; i < N; ++i) {
 		int x =  i % n;
 		int y = (i / n) % n;
 		int z = (i / n) / n;
@@ -56,7 +56,7 @@ int main()
 		points[i][2] = z + 0.05 * randn();
 	}
 
-	for (size_t i = 0; i < N; ++i) {
+	for (int i = 0; i < N; ++i) {
 		for (int j = i + 1; j < N; ++j) {
 			potential.add_term(
 				new AutoDiffTerm<LennardJonesTerm, 3, 3>(
