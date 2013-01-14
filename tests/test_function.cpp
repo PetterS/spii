@@ -1,8 +1,8 @@
 
 #include <gtest/gtest.h>
 
-// EXPECT_THROW gives errors on Cygwin. Disable for now.
-#ifdef __CYGWIN__
+// EXPECT_THROW gives errors with gcc. Disable for now.
+#if defined(__CYGWIN__) && !defined(__clang__)
 	#define EXPECT_THROW(a,b)
 #endif
 #if defined(__GNUC__) && !defined(__clang__)
@@ -581,3 +581,47 @@ TEST(Function, Parametrization_2_to_1)
 		EXPECT_NEAR(f1.evaluate(), f2.evaluate(), 1e-12);
 	}
 }
+
+class ThrowsRuntimeError
+{
+public:
+	template<typename R>
+	R operator()(const R* const x) const
+	{
+		throw std::runtime_error("Error message");
+		return 0;
+	}
+};
+
+class ThrowsCString
+{
+public:
+	template<typename R>
+	R operator()(const R* const x) const
+	{
+		throw "Error";
+		return 0;
+	}
+};
+
+TEST(Function, rethrows_error)
+{
+	double x = 0;
+
+	Function f1;
+	f1.add_variable(&x, 1);
+	for (int i = 1; i < 40; ++i) {
+		f1.add_term(new AutoDiffTerm<ThrowsRuntimeError, 1>
+						(new ThrowsRuntimeError), &x);
+	}
+	EXPECT_THROW(f1.evaluate(), std::runtime_error);
+
+	Function f2;
+	f2.add_variable(&x, 1);
+	for (int i = 1; i < 40; ++i) {
+		f2.add_term(new AutoDiffTerm<ThrowsCString, 1>
+						(new ThrowsCString), &x);
+	}
+	EXPECT_THROW(f1.evaluate(), std::runtime_error);
+}
+
