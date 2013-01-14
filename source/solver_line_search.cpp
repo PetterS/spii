@@ -1,3 +1,4 @@
+// Petter Strandmark 2012.
 
 #include <Eigen/Dense>
 

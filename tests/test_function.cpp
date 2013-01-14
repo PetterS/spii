@@ -1,3 +1,4 @@
+// Petter Strandmark 2012-2013.
 
 #include <gtest/gtest.h>
 

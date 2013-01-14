@@ -1,4 +1,4 @@
-
+// Petter Strandmark 2012.
 
 #include <spii/solver.h>
 
