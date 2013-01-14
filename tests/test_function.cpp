@@ -614,7 +614,16 @@ TEST(Function, rethrows_error)
 		f1.add_term(new AutoDiffTerm<ThrowsRuntimeError, 1>
 						(new ThrowsRuntimeError), &x);
 	}
+	Eigen::VectorXd x_vec(1);
+	x_vec[0] = x;
+	Eigen::VectorXd g(1);
+	Eigen::MatrixXd H(1, 1);
+	Eigen::SparseMatrix<double> H_sparse;
 	EXPECT_THROW(f1.evaluate(), std::runtime_error);
+	EXPECT_THROW(f1.evaluate(x_vec), std::runtime_error);
+	EXPECT_THROW(f1.evaluate(x_vec, &g), std::runtime_error);
+	EXPECT_THROW(f1.evaluate(x_vec, &g, &H), std::runtime_error);
+	EXPECT_THROW(f1.evaluate(x_vec, &g, &H_sparse), std::runtime_error);
 
 	Function f2;
 	f2.add_variable(&x, 1);
@@ -622,6 +631,10 @@ TEST(Function, rethrows_error)
 		f2.add_term(new AutoDiffTerm<ThrowsCString, 1>
 						(new ThrowsCString), &x);
 	}
-	EXPECT_THROW(f1.evaluate(), std::runtime_error);
+	EXPECT_THROW(f2.evaluate(), std::runtime_error);
+	EXPECT_THROW(f2.evaluate(x_vec), std::runtime_error);
+	EXPECT_THROW(f2.evaluate(x_vec, &g), std::runtime_error);
+	EXPECT_THROW(f2.evaluate(x_vec, &g, &H), std::runtime_error);
+	EXPECT_THROW(f2.evaluate(x_vec, &g, &H_sparse), std::runtime_error);
 }
 
