@@ -205,12 +205,45 @@ double Function::evaluate_from_local_storage() const
 	// Go through and evaluate each term.
 	// OpenMP requires a signed data type as the loop variable.
 	#ifdef USE_OPENMP
-	#pragma omp parallel for reduction(+ : value) num_threads(this->number_of_threads)
+		// Each thread needs to store a specific error.
+		std::vector<std::string> evaluation_errors(this->number_of_threads);
+
+		#pragma omp parallel for reduction(+ : value) num_threads(this->number_of_threads)
 	#endif
 	for (int i = 0; i < terms.size(); ++i) {
+		#ifdef USE_OPENMP
+			// The thread number calling this iteration.
+			int t = omp_get_thread_num();
+			// We need to catch all exceptions before leaving
+			// the loop body.
+			try {
+		#endif
+
 		// Evaluate the term .
 		value += terms[i].term->evaluate(&terms[i].temp_variables[0]);
+
+		#ifdef USE_OPENMP
+			// We need to catch all exceptions before leaving
+			// the loop body.
+			}
+			catch (const std::exception& error) {
+				evaluation_errors[t] = error.what();
+			}
+			catch (...) {
+				evaluation_errors[t] = "Unknown exception (not an std::exception)";
+			}
+		#endif
 	}
+
+	#ifdef USE_OPENMP
+		// Now that we are outside the OpenMP block, we can
+		// rethrow exceptions.
+		for (auto itr = evaluation_errors.begin(); itr != evaluation_errors.end(); ++itr) {
+			if (itr->length() > 0) {
+				throw std::runtime_error(*itr);
+			}
+		}
+	#endif
 
 	this->evaluate_time += wall_time() - start_time;
 	return value;
@@ -375,12 +408,18 @@ double Function::evaluate(const Eigen::VectorXd& x,
 	// Go through and evaluate each term.
 	// OpenMP requires a signed data type as the loop variable.
 	#ifdef USE_OPENMP
-	#pragma omp parallel for reduction(+ : value) num_threads(this->number_of_threads)
+		// Each thread needs to store a specific error.
+		std::vector<std::string> evaluation_errors(this->number_of_threads);
+
+		#pragma omp parallel for reduction(+ : value) num_threads(this->number_of_threads)
 	#endif
 	for (int i = 0; i < terms.size(); ++i) {
-		// The thread number calling this iteration.
 		#ifdef USE_OPENMP
+			// The thread number calling this iteration.
 			int t = omp_get_thread_num();
+			// We need to catch all exceptions before leaving
+			// the loop body.
+			try {
 		#else
 			int t = 0;
 		#endif
@@ -420,7 +459,29 @@ double Function::evaluate(const Eigen::VectorXd& x,
 					&this->thread_gradient_scratch[t][var][0]);
 			}
 		}
+
+		#ifdef USE_OPENMP
+			// We need to catch all exceptions before leaving
+			// the loop body.
+			}
+			catch (const std::exception& error) {
+				evaluation_errors[t] = error.what();
+			}
+			catch (...) {
+				evaluation_errors[t] = "Unknown exception (not an std::exception)";
+			}
+		#endif
 	}
+
+	#ifdef USE_OPENMP
+		// Now that we are outside the OpenMP block, we can
+		// rethrow exceptions.
+		for (auto itr = evaluation_errors.begin(); itr != evaluation_errors.end(); ++itr) {
+			if (itr->length() > 0) {
+				throw std::runtime_error(*itr);
+			}
+		}
+	#endif
 
 	this->evaluate_with_hessian_time += wall_time() - start_time;
 	start_time = wall_time();
@@ -509,14 +570,20 @@ double Function::evaluate(const Eigen::VectorXd& x,
 	// Go through and evaluate each term.
 	// OpenMP requires a signed data type as the loop variable.
 	#ifdef USE_OPENMP
-	#pragma omp parallel for reduction(+ : value) num_threads(this->number_of_threads)
+		// Each thread needs to store a specific error.
+		std::vector<std::string> evaluation_errors(this->number_of_threads);
+
+		#pragma omp parallel for reduction(+ : value) num_threads(this->number_of_threads)
 	#endif
 	for (int i = 0; i < terms.size(); ++i) {
-		// The thread number calling this iteration.
 		#ifdef USE_OPENMP
-			const int t = omp_get_thread_num();
+			// The thread number calling this iteration.
+			int t = omp_get_thread_num();
+			// We need to catch all exceptions before leaving
+			// the loop body.
+			try {
 		#else
-			const int t = 0;
+			int t = 0;
 		#endif
 
 		// Evaluate the term and put its gradient and hessian
@@ -539,7 +606,29 @@ double Function::evaluate(const Eigen::VectorXd& x,
 					this->thread_gradient_scratch[t][var][i];
 			}
 		}
+
+		#ifdef USE_OPENMP
+			// We need to catch all exceptions before leaving
+			// the loop body.
+			}
+			catch (const std::exception& error) {
+				evaluation_errors[t] = error.what();
+			}
+			catch (...) {
+				evaluation_errors[t] = "Unknown exception (not an std::exception)";
+			}
+		#endif
 	}
+
+	#ifdef USE_OPENMP
+		// Now that we are outside the OpenMP block, we can
+		// rethrow exceptions.
+		for (auto itr = evaluation_errors.begin(); itr != evaluation_errors.end(); ++itr) {
+			if (itr->length() > 0) {
+				throw std::runtime_error(*itr);
+			}
+		}
+	#endif
 
 	this->evaluate_with_hessian_time += wall_time() - start_time;
 	start_time = wall_time();
