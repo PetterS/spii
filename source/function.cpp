@@ -1,5 +1,6 @@
 // Petter Strandmark 2012-2013.
 
+#include <exception>
 #include <iostream>
 #include <stdexcept>
 
@@ -207,7 +208,7 @@ double Function::evaluate_from_local_storage() const
 	// OpenMP requires a signed data type as the loop variable.
 	#ifdef USE_OPENMP
 		// Each thread needs to store a specific error.
-		std::vector<std::string> evaluation_errors(this->number_of_threads);
+		std::vector<std::exception_ptr> evaluation_errors(this->number_of_threads);
 
 		#pragma omp parallel for reduction(+ : value) num_threads(this->number_of_threads)
 	#endif
@@ -227,11 +228,8 @@ double Function::evaluate_from_local_storage() const
 			// We need to catch all exceptions before leaving
 			// the loop body.
 			}
-			catch (const std::exception& error) {
-				evaluation_errors[t] = error.what();
-			}
 			catch (...) {
-				evaluation_errors[t] = "Unknown exception (not an std::exception)";
+				evaluation_errors[t] = std::current_exception();
 			}
 		#endif
 	}
@@ -240,8 +238,10 @@ double Function::evaluate_from_local_storage() const
 		// Now that we are outside the OpenMP block, we can
 		// rethrow exceptions.
 		for (auto itr = evaluation_errors.begin(); itr != evaluation_errors.end(); ++itr) {
-			if (itr->length() > 0) {
-				throw std::runtime_error(*itr);
+			// VS 2010 does not have conversion to bool or
+			// operator !=.
+			if ( !(*itr == std::exception_ptr())) {
+				std::rethrow_exception(*itr);
 			}
 		}
 	#endif
@@ -410,7 +410,7 @@ double Function::evaluate(const Eigen::VectorXd& x,
 	// OpenMP requires a signed data type as the loop variable.
 	#ifdef USE_OPENMP
 		// Each thread needs to store a specific error.
-		std::vector<std::string> evaluation_errors(this->number_of_threads);
+		std::vector<std::exception_ptr> evaluation_errors(this->number_of_threads);
 
 		#pragma omp parallel for reduction(+ : value) num_threads(this->number_of_threads)
 	#endif
@@ -465,11 +465,8 @@ double Function::evaluate(const Eigen::VectorXd& x,
 			// We need to catch all exceptions before leaving
 			// the loop body.
 			}
-			catch (const std::exception& error) {
-				evaluation_errors[t] = error.what();
-			}
 			catch (...) {
-				evaluation_errors[t] = "Unknown exception (not an std::exception)";
+				evaluation_errors[t] = std::current_exception();
 			}
 		#endif
 	}
@@ -478,8 +475,10 @@ double Function::evaluate(const Eigen::VectorXd& x,
 		// Now that we are outside the OpenMP block, we can
 		// rethrow exceptions.
 		for (auto itr = evaluation_errors.begin(); itr != evaluation_errors.end(); ++itr) {
-			if (itr->length() > 0) {
-				throw std::runtime_error(*itr);
+			// VS 2010 does not have conversion to bool or
+			// operator !=.
+			if ( !(*itr == std::exception_ptr())) {
+				std::rethrow_exception(*itr);
 			}
 		}
 	#endif
@@ -572,7 +571,7 @@ double Function::evaluate(const Eigen::VectorXd& x,
 	// OpenMP requires a signed data type as the loop variable.
 	#ifdef USE_OPENMP
 		// Each thread needs to store a specific error.
-		std::vector<std::string> evaluation_errors(this->number_of_threads);
+		std::vector<std::exception_ptr> evaluation_errors(this->number_of_threads);
 
 		#pragma omp parallel for reduction(+ : value) num_threads(this->number_of_threads)
 	#endif
@@ -612,11 +611,8 @@ double Function::evaluate(const Eigen::VectorXd& x,
 			// We need to catch all exceptions before leaving
 			// the loop body.
 			}
-			catch (const std::exception& error) {
-				evaluation_errors[t] = error.what();
-			}
 			catch (...) {
-				evaluation_errors[t] = "Unknown exception (not an std::exception)";
+				evaluation_errors[t] = std::current_exception();
 			}
 		#endif
 	}
@@ -625,8 +621,10 @@ double Function::evaluate(const Eigen::VectorXd& x,
 		// Now that we are outside the OpenMP block, we can
 		// rethrow exceptions.
 		for (auto itr = evaluation_errors.begin(); itr != evaluation_errors.end(); ++itr) {
-			if (itr->length() > 0) {
-				throw std::runtime_error(*itr);
+			// VS 2010 does not have conversion to bool or
+			// operator !=.
+			if ( !(*itr == std::exception_ptr())) {
+				std::rethrow_exception(*itr);
 			}
 		}
 	#endif
