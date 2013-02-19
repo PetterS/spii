@@ -8,7 +8,6 @@ before_script:
   - cd ..
 compiler:
   - gcc
-  - clang
 script: 
   - mkdir build
   - cd build
