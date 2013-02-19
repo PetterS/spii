@@ -1,6 +1,18 @@
 language: cpp
+before_script:
+  - wget http://googletest.googlecode.com/files/gtest-1.6.0.zip
+  - unzip -q gtest-1.6.0.zip
+  - cd gtest-1.6.0
+  - cmake . 
+  - make
+  - cd ..
 compiler:
   - gcc
   - clang
-script: mkdir build && cd build && cmake .. && make
-
+script: 
+  - mkdir build
+  - cd build
+  - cmake -DBUILD_TESTING=ON -DGTEST_INCLUDE=gtest-1.6.0/include -DGTEST_LIB=gtest-1.6.0/libgtest.a -DGTEST_MAIN_LIB=gtest-1.6.0/libgtest_main.a  .. 
+  - make
+after_script: 
+  - make test
