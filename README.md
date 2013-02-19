@@ -1,5 +1,7 @@
 This is a library for unconstrained minimization of smooth functions with a large number of variables. I wrote this to get a better grasp of nonlinear optimization. I used the book ny Nocedal and Wright [1] as a reference.
 
+[![Build Status](https://travis-ci.org/PetterS/spii.png)](https://travis-ci.org/PetterS/spii)
+
 Features
 --------
 * Newton's method with repeated diagonal modification of the hessian for nonconvex problems. This simple method seems to work well, but can require several Cholesky factorizations per iteration.
