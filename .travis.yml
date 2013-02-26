@@ -13,5 +13,4 @@ script:
   - cd build
   - cmake -DBUILD_TESTING=ON -DGTEST_INCLUDE=../gtest-1.6.0/include -DGTEST_LIB=../gtest-1.6.0/libgtest.a -DGTEST_MAIN_LIB=../gtest-1.6.0/libgtest_main.a  .. 
   - make
-after_script: 
   - make test
