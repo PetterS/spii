@@ -158,6 +158,6 @@ private:
 	                          const double start_alpha = 1.0) const;
 };
 
-#endif
-
 }  // namespace spii
+
+#endif
