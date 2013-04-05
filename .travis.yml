@@ -4,6 +4,6 @@ compiler:
 script: 
   - mkdir build
   - cd build
-  - cmake .. 
+  - cmake -DOPENMP=OFF .. 
   - make
   - make test
