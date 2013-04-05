@@ -356,8 +356,6 @@ TEST(Newton, Barrier)
 	f.print_timing_information(sout);
 	INFO(sout.str());
 
-	CHECK(solver.maximum_iterations == 1010);
-
 	EXPECT_TRUE(results.exit_condition == SolverResults::ARGUMENT_TOLERANCE ||
 	            results.exit_condition == SolverResults::FUNCTION_TOLERANCE ||
 	            results.exit_condition == SolverResults::GRADIENT_TOLERANCE);
