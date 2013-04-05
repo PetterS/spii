@@ -82,13 +82,13 @@ TEST_CASE("FADBAD/differentiate_functor", "")
 	                 dfdx,dfdy,x,y);  // Evaluate function and derivatives
 
 	// Check all derivatives.
-	CHECK(f == y * sqrt(x) + sin(sqrt(x)));
-	CHECK(dfdx == (y + cos(sqrt(x))) / (2.0*sqrt(x)));
-	CHECK(dfdy == sqrt(x));
+	CHECK(Approx(f) == y * sqrt(x) + sin(sqrt(x)));
+	CHECK(Approx(dfdx) == (y + cos(sqrt(x))) / (2.0*sqrt(x)));
+	CHECK(Approx(dfdy) == sqrt(x));
 	CHECK(Approx(dfdxdx) == -(y + cos(sqrt(x)) + sqrt(x)*sin(sqrt(x)))/(4*pow(x,3.0/2.0)));
-	CHECK(dfdxdy == 1.0 / (2.0*sqrt(x)));
-	CHECK(dfdydx == 1.0 / (2.0*sqrt(x)));
-	CHECK(dfdydy == 0.0);
+	CHECK(Approx(dfdxdy) == 1.0 / (2.0*sqrt(x)));
+	CHECK(Approx(dfdydx) == 1.0 / (2.0*sqrt(x)));
+	CHECK(Approx(dfdydy) == 0.0);
 }
 
 class MyTerm: public SizedTerm<2, 3>
@@ -187,20 +187,20 @@ TEST_CASE("AutoDiffTerm/MyFunctor1", "")
 	double value2 = term.evaluate(&variables[0]);
 
 	// The two values must agree.
-	CHECK(value == value2);
+	CHECK(Approx(value) == value2);
 
 	// Test function value
-	CHECK(value == sin(x[0]) + cos(x[1]) + 1.4*x[0]*x[1] + 1.0);
+	CHECK(Approx(value) == sin(x[0]) + cos(x[1]) + 1.4*x[0]*x[1] + 1.0);
 
 	// Test gradient
-	CHECK(gradient[0](0) ==  cos(x[0]) + 1.4*x[1]);
-	CHECK(gradient[0](1) == -sin(x[1]) + 1.4*x[0]);
+	CHECK(Approx(gradient[0](0)) ==  cos(x[0]) + 1.4*x[1]);
+	CHECK(Approx(gradient[0](1)) == -sin(x[1]) + 1.4*x[0]);
 
 	// Test Hessian
-	CHECK(hessian[0][0](0,0) == -sin(x[0]));
-	CHECK(hessian[0][0](1,1) == -cos(x[1]));
-	CHECK(hessian[0][0](0,1) == 1.4);
-	CHECK(hessian[0][0](1,0) == 1.4);
+	CHECK(Approx(hessian[0][0](0,0)) == -sin(x[0]));
+	CHECK(Approx(hessian[0][0](1,1)) == -cos(x[1]));
+	CHECK(Approx(hessian[0][0](0,1)) == 1.4);
+	CHECK(Approx(hessian[0][0](1,0)) == 1.4);
 }
 
 class MyFunctor2
@@ -239,18 +239,18 @@ TEST_CASE("AutoDiffTerm/MyFunctor2", "")
 	double value2 = term.evaluate(&variables[0]);
 
 	// The two values must agree.
-	CHECK(value == value2);
+	CHECK(Approx(value) == value2);
 
 	// Test function value
-	CHECK(value == sin(x) + cos(y) + 1.4*x*y + 1.0);
+	CHECK(Approx(value) == sin(x) + cos(y) + 1.4*x*y + 1.0);
 
 	// Test gradient
-	CHECK(gradient[0](0) ==  cos(x) + 1.4*y);
-	CHECK(gradient[1](0) == -sin(y) + 1.4*x); 
+	CHECK(Approx(gradient[0](0)) ==  cos(x) + 1.4*y);
+	CHECK(Approx(gradient[1](0)) == -sin(y) + 1.4*x); 
 
 	// Test Hessian
-	CHECK(hessian[0][0](0,0) == -sin(x));
-	CHECK(hessian[1][1](0,0) == -cos(y));
-	CHECK(hessian[1][0](0,0) == 1.4);
-	CHECK(hessian[0][1](0,0) == 1.4);
+	CHECK(Approx(hessian[0][0](0,0)) == -sin(x));
+	CHECK(Approx(hessian[1][1](0,0)) == -cos(y));
+	CHECK(Approx(hessian[1][0](0,0)) == 1.4);
+	CHECK(Approx(hessian[0][1](0,0)) == 1.4);
 }
