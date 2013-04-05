@@ -14,7 +14,7 @@ Features
 
 Compilation
 -----------
-Everything needed to compile the library and examples using CMake should be included. The unit tests require Google's testing framework.
+Everything needed to compile the library, examples and tests using CMake should be included.
 All tests pass with the following compilers:
 * Visual Studio 2010
 * Visual Studio 2012
