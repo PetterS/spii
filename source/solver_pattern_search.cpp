@@ -44,7 +44,7 @@ void Solver::solve_pattern_search(const Function& function,
 	// START MAIN ITERATION
 	//
 	results->startup_time   = wall_time() - global_start_time;
-	results->exit_condition = SolverResults::ERROR;
+	results->exit_condition = SolverResults::INTERNAL_ERROR;
 	int iter = 0;
 	while (true) {
 

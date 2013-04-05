@@ -1,14 +1,16 @@
 // Petter Strandmark 2012-2013.
 
-#include <gtest/gtest.h>
+#define CATCH_CONFIG_MAIN
+#include <catch.hpp>
+#include <spii/google_test_compatibility.h>
 
 // EXPECT_THROW gives errors with gcc. Disable for now.
-#if defined(__CYGWIN__) && !defined(__clang__)
-	#define EXPECT_THROW(a,b)
-#endif
-#if defined(__GNUC__) && !defined(__clang__)
-	#define EXPECT_THROW(a,b)
-#endif
+//#if defined(__CYGWIN__) && !defined(__clang__)
+//	#define EXPECT_THROW(a,b)
+//#endif
+//#if defined(__GNUC__) && !defined(__clang__)
+//	#define EXPECT_THROW(a,b)
+//#endif
 
 #include <spii/auto_diff_term.h>
 #include <spii/constraints.h>
@@ -638,4 +640,5 @@ TEST(Function, rethrows_error)
 	EXPECT_THROW(f2.evaluate(x_vec, &g, &H), const char*);
 	EXPECT_THROW(f2.evaluate(x_vec, &g, &H_sparse), const char*);
 }
+
 

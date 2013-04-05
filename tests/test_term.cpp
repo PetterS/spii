@@ -1,6 +1,7 @@
 // Petter Strandmark 2012.
 
-#include <gtest/gtest.h>
+#define CATCH_CONFIG_MAIN
+#include <catch.hpp>
 
 #include <spii/auto_diff_term.h>
 #include <spii/term.h>
@@ -68,7 +69,7 @@ class DDFunc
 
 };
 
-TEST(FADBAD, differentiate_functor)
+TEST_CASE("FADBAD/differentiate_functor", "")
 {
 	using namespace std;
 	double f,dfdx,dfdy,
@@ -81,13 +82,13 @@ TEST(FADBAD, differentiate_functor)
 	                 dfdx,dfdy,x,y);  // Evaluate function and derivatives
 
 	// Check all derivatives.
-	EXPECT_DOUBLE_EQ(f, y * sqrt(x) + sin(sqrt(x)));
-	EXPECT_DOUBLE_EQ(dfdx, (y + cos(sqrt(x))) / (2.0*sqrt(x)));
-	EXPECT_DOUBLE_EQ(dfdy, sqrt(x));
-	EXPECT_DOUBLE_EQ(dfdxdx, -(y + cos(sqrt(x)) + sqrt(x)*sin(sqrt(x)))/(4*pow(x,3.0/2.0)));
-	EXPECT_DOUBLE_EQ(dfdxdy, 1.0 / (2.0*sqrt(x)));
-	EXPECT_DOUBLE_EQ(dfdydx, 1.0 / (2.0*sqrt(x)));
-	EXPECT_DOUBLE_EQ(dfdydy, 0.0);
+	CHECK(f == y * sqrt(x) + sin(sqrt(x)));
+	CHECK(dfdx == (y + cos(sqrt(x))) / (2.0*sqrt(x)));
+	CHECK(dfdy == sqrt(x));
+	CHECK(Approx(dfdxdx) == -(y + cos(sqrt(x)) + sqrt(x)*sin(sqrt(x)))/(4*pow(x,3.0/2.0)));
+	CHECK(dfdxdy == 1.0 / (2.0*sqrt(x)));
+	CHECK(dfdydx == 1.0 / (2.0*sqrt(x)));
+	CHECK(dfdydy == 0.0);
 }
 
 class MyTerm: public SizedTerm<2, 3>
@@ -112,17 +113,17 @@ public:
 	}
 };
 
-TEST(SizedTerm, number_of_variables)
+TEST_CASE("SizedTerm/number_of_variables", "")
 {
 	MyTerm term;
-	EXPECT_EQ(term.number_of_variables(), 2);
+	CHECK(term.number_of_variables() == 2);
 }
 
-TEST(SizedTerm, variable_dimension)
+TEST_CASE("SizedTerm/variable_dimension", "")
 {
 	MyTerm term;
-	EXPECT_EQ(term.variable_dimension(0), 2);
-	EXPECT_EQ(term.variable_dimension(1), 3);
+	CHECK(term.variable_dimension(0) == 2);
+	CHECK(term.variable_dimension(1) == 3);
 }
 
 class DestructorFunctor
@@ -148,13 +149,13 @@ private:
 	int* counter;
 };
 
-TEST(AutoDiffTerm, calls_functor_destructor)
+TEST_CASE("AutoDiffTerm/calls_functor_destructor", "")
 {
 	int counter = 0;
 	Term* term = new AutoDiffTerm<DestructorFunctor, 1>
 	                 (new DestructorFunctor(&counter));
 	delete term;
-	EXPECT_EQ(counter, 1);
+	CHECK(counter == 1);
 }
 
 class MyFunctor1
@@ -167,7 +168,7 @@ public:
 	}
 };
 
-TEST(AutoDiffTerm, MyFunctor1)
+TEST_CASE("AutoDiffTerm/MyFunctor1", "")
 {
 	AutoDiffTerm<MyFunctor1, 2> term(new MyFunctor1());
 
@@ -186,20 +187,20 @@ TEST(AutoDiffTerm, MyFunctor1)
 	double value2 = term.evaluate(&variables[0]);
 
 	// The two values must agree.
-	EXPECT_DOUBLE_EQ(value, value2);
+	CHECK(value == value2);
 
 	// Test function value
-	EXPECT_DOUBLE_EQ(value, sin(x[0]) + cos(x[1]) + 1.4*x[0]*x[1] + 1.0);
+	CHECK(value == sin(x[0]) + cos(x[1]) + 1.4*x[0]*x[1] + 1.0);
 
 	// Test gradient
-	EXPECT_DOUBLE_EQ(gradient[0](0),  cos(x[0]) + 1.4*x[1]);
-	EXPECT_DOUBLE_EQ(gradient[0](1), -sin(x[1]) + 1.4*x[0]);
+	CHECK(gradient[0](0) ==  cos(x[0]) + 1.4*x[1]);
+	CHECK(gradient[0](1) == -sin(x[1]) + 1.4*x[0]);
 
 	// Test Hessian
-	EXPECT_DOUBLE_EQ(hessian[0][0](0,0), -sin(x[0]));
-	EXPECT_DOUBLE_EQ(hessian[0][0](1,1), -cos(x[1]));
-	EXPECT_DOUBLE_EQ(hessian[0][0](0,1), 1.4);
-	EXPECT_DOUBLE_EQ(hessian[0][0](1,0), 1.4);
+	CHECK(hessian[0][0](0,0) == -sin(x[0]));
+	CHECK(hessian[0][0](1,1) == -cos(x[1]));
+	CHECK(hessian[0][0](0,1) == 1.4);
+	CHECK(hessian[0][0](1,0) == 1.4);
 }
 
 class MyFunctor2
@@ -212,7 +213,7 @@ public:
 	}
 };
 
-TEST(AutoDiffTerm, MyFunctor2)
+TEST_CASE("AutoDiffTerm/MyFunctor2", "")
 {
 	AutoDiffTerm<MyFunctor2, 1, 1> term(new MyFunctor2());
 
@@ -238,18 +239,18 @@ TEST(AutoDiffTerm, MyFunctor2)
 	double value2 = term.evaluate(&variables[0]);
 
 	// The two values must agree.
-	EXPECT_DOUBLE_EQ(value, value2);
+	CHECK(value == value2);
 
 	// Test function value
-	EXPECT_DOUBLE_EQ(value, sin(x) + cos(y) + 1.4*x*y + 1.0);
+	CHECK(value == sin(x) + cos(y) + 1.4*x*y + 1.0);
 
 	// Test gradient
-	EXPECT_DOUBLE_EQ(gradient[0](0),  cos(x) + 1.4*y);
-	EXPECT_DOUBLE_EQ(gradient[1](0), -sin(y) + 1.4*x);
+	CHECK(gradient[0](0) ==  cos(x) + 1.4*y);
+	CHECK(gradient[1](0) == -sin(y) + 1.4*x); 
 
 	// Test Hessian
-	EXPECT_DOUBLE_EQ(hessian[0][0](0,0), -sin(x));
-	EXPECT_DOUBLE_EQ(hessian[1][1](0,0), -cos(y));
-	EXPECT_DOUBLE_EQ(hessian[1][0](0,0), 1.4);
-	EXPECT_DOUBLE_EQ(hessian[0][1](0,0), 1.4);
+	CHECK(hessian[0][0](0,0) == -sin(x));
+	CHECK(hessian[1][1](0,0) == -cos(y));
+	CHECK(hessian[1][0](0,0) == 1.4);
+	CHECK(hessian[0][1](0,0) == 1.4);
 }

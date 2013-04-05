@@ -2,7 +2,7 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8.0)
 PROJECT(SPII C CXX)
 
-OPTION(BUILD_TESTING "Enable tests" OFF)
+OPTION(BUILD_TESTING "Enable tests" ON)
 OPTION(BUILD_EXAMPLES "Build examples" ON)
 
 SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
@@ -22,35 +22,6 @@ LIST(APPEND SEARCH_HEADERS /usr/local/homebrew/include) # Mac OS X
 LIST(APPEND SEARCH_HEADERS /opt/local/include)
 
 ENABLE_TESTING()
-IF (${BUILD_TESTING})
-
-  # Find Google's testing library headers
-  FIND_PATH(GTEST_INCLUDE NAMES gtest/gtest.h PATHS ${SEARCH_HEADERS})
-  IF (NOT EXISTS ${GTEST_INCLUDE})
-    MESSAGE(FATAL_ERROR
-            "Can't find Google's testing headers. Please specify: "
-            "-DGTEST_INCLUDE=...")
-  ENDIF (NOT EXISTS ${GTEST_INCLUDE})
-  MESSAGE("-- Found Google Test headers in: ${GTEST_INCLUDE}")
-
-  # Find Google's testing library
-  FIND_LIBRARY(GTEST_LIB NAMES gtest PATHS ${SEARCH_LIBS})
-  IF (NOT EXISTS ${GTEST_LIB})
-    MESSAGE(FATAL_ERROR
-              "Can't find Google Test gtest. Please specify: "
-              "-DGTEST_LIB=...")
-  ENDIF (NOT EXISTS ${GTEST_LIB})
-  MESSAGE("-- Found Google Test: ${GTEST_LIB}")
-
-  # Find Google's testing main library
-  FIND_LIBRARY(GTEST_MAIN_LIB NAMES gtest_main PATHS ${SEARCH_LIBS})
-  IF (NOT EXISTS ${GTEST_MAIN_LIB})
-    MESSAGE(FATAL_ERROR
-              "Can't find Google Test Main gtest_main. Please specify: "
-              "-DGTEST_MAIN_LIB=...")
-  ENDIF (NOT EXISTS ${GTEST_MAIN_LIB})
-  MESSAGE("-- Found Google Test Main: ${GTEST_MAIN_LIB}")
-ENDIF (${BUILD_TESTING})
 
 # Multithreading using OpenMP
 OPTION(OPENMP
@@ -71,6 +42,7 @@ ENDIF (${OPENMP})
 
 INCLUDE_DIRECTORIES(
   include
+  thirdparty/Catch
   thirdparty/FADBAD++
   thirdparty/Eigen
   )

@@ -23,19 +23,17 @@
 
 #include <Eigen/Dense>
 
-#include <gtest/gtest.h>
+#define CATCH_CONFIG_MAIN
+#include <catch.hpp>
 
 #include <spii/auto_diff_term.h>
 #include <spii/solver.h>
 
 using namespace spii;
 
-std::stringstream* sout = 0;
-void stringstream_log_function(const std::string& str)
+void info_log_function(const std::string& str)
 {
-	if (sout) {
-		*sout << str << std::endl;
-	}
+	INFO(str);
 }
 
 void skip_lines(std::istream* in, int num_lines)
@@ -162,14 +160,14 @@ template<typename Model, int num_variables>
 void run_problem_main(const std::string& filename, Solver::Method method)
 {
 	NISTProblem problem(filename);
-	ASSERT_EQ(problem.response.cols(), 1);
-	ASSERT_EQ(problem.initial_parameters.cols(), num_variables);
+	REQUIRE(problem.response.cols() == 1);
+	REQUIRE(problem.initial_parameters.cols() == num_variables);
 
 	// Run a test for each starting point provicded by the data file.
 	for (int start = 0; start < problem.initial_parameters.rows(); ++start) {
 		Eigen::VectorXd initial_parameters =
 			problem.initial_parameters.row(start);
-		ASSERT_EQ(initial_parameters.size(), num_variables);
+		REQUIRE(initial_parameters.size() == num_variables);
 
 		Function function;
 		function.add_variable(initial_parameters.data(), num_variables);
@@ -188,28 +186,17 @@ void run_problem_main(const std::string& filename, Solver::Method method)
 		solver.argument_improvement_tolerance = 1e-14;
 		solver.gradient_tolerance = 1e-12;
 		solver.area_tolerance = 1e-60;
-
-		// Log to an std::stringstream.
-		std::stringstream local_stream;
-		sout = &local_stream;
-		solver.log_function = stringstream_log_function;
+		solver.log_function = info_log_function;
 
 		SolverResults results;
 		solver.solve(function, method, &results);
-		sout = 0;
 
 		// Print the solver results to the log stringstream.
-		local_stream << results;
+		INFO(results);
 
 		const double optimum = problem.certified_cost;
 		int num_matching_digits = static_cast<int>(
 			-std::log10(fabs(function.evaluate() - optimum) / optimum));
-
-		// If the optimum was not reached, print the entire output of the
-		// solver.
-		if (num_matching_digits < 4) {
-			std::cerr << local_stream.str();
-		}
 
 		// If the optimum was reached, everything is OK.
 		if (num_matching_digits >= 4) {
@@ -217,13 +204,13 @@ void run_problem_main(const std::string& filename, Solver::Method method)
 		}
 
 		// Otherwise, reaching a stationaty point is enough.
-		EXPECT_EQ(results.exit_condition,
-		          SolverResults::GRADIENT_TOLERANCE);
+		CHECK(results.exit_condition ==
+		      SolverResults::GRADIENT_TOLERANCE);
 
 		// But for Nelder-Mead, a small area is not equivalent to a
 		// stationary point.
 		if (method == Solver::NELDER_MEAD) {
-			EXPECT_GE(num_matching_digits, 4);
+			CHECK(num_matching_digits >= 4);
 		}
 	}
 }
@@ -271,23 +258,26 @@ struct Problem                           \
 		return d*d;                      \
 	}                                    \
 };                                       \
-TEST(Newton_ ## Category, Problem)       \
+TEST_CASE(#Category "/" #Problem, "")    \
 {                                        \
-	run_problem<Problem>(                \
-		"nist/" #Problem ".dat",         \
-		Solver::NEWTON);                 \
-}                                        \
-TEST(LBFGS_ ## Category, Problem)        \
-{                                        \
-	run_problem<Problem>(                \
-		"nist/" #Problem ".dat",         \
-		Solver::LBFGS);                  \
-}                                        \
-TEST(NM_ ## Category, Problem)           \
-{                                        \
-	run_problem<Problem>(                \
-		"nist/" #Problem ".dat",         \
-		Solver::NELDER_MEAD);            \
+	SECTION("Newton", "")                \
+	{                                    \
+		run_problem<Problem>(            \
+			"nist/" #Problem ".dat",     \
+			Solver::NEWTON);             \
+	}                                    \
+	SECTION("LBFGS", "")                 \
+	{                                    \
+		run_problem<Problem>(            \
+			"nist/" #Problem ".dat",     \
+			Solver::LBFGS);              \
+	}                                    \
+	SECTION("NM", "")                    \
+	{                                    \
+		run_problem<Problem>(            \
+			"nist/" #Problem ".dat",     \
+			Solver::NELDER_MEAD);        \
+	}                                    \
 }
 
 const double kPi = 3.141592653589793238462643383279;

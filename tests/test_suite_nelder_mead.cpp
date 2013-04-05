@@ -4,12 +4,19 @@
 #include <iostream>
 #include <random>
 
-#include <gtest/gtest.h>
+#define CATCH_CONFIG_MAIN
+#include <catch.hpp>
+#include <spii/google_test_compatibility.h>
 
 #include <spii/auto_diff_term.h>
 #include <spii/solver.h>
 
 using namespace spii;
+
+void info_log_function(const std::string& str)
+{
+	INFO(str);
+}
 
 void create_solver(Solver* solver)
 {
@@ -18,6 +25,8 @@ void create_solver(Solver* solver)
 	// Therefore, a small tolerance has to be used.
 	solver->maximum_iterations = 10000;
 	solver->area_tolerance = 1e-40;
+
+	solver->log_function = info_log_function;
 }
 
 template<typename Functor, int dimension>
@@ -45,12 +54,13 @@ double run_test(double* var, const Solver* solver = 0)
 	}
 	SolverResults results;
 	solver->solve_nelder_mead(f, &results);
-	std::cerr << results;
+	INFO(results);
 
+	std::stringstream sout;
 	for (int i = 0; i < dimension; ++i) {
-		std::cout << "x" << i + 1 << " = " << var[i] << ",  ";
+		sout << "x" << i + 1 << " = " << var[i] << ",  ";
 	}
-	std::cout << std::endl;
+	INFO(sout.str());
 
 	EXPECT_TRUE(results.exit_condition == SolverResults::GRADIENT_TOLERANCE);
 
@@ -62,9 +72,9 @@ double run_test(double* var, const Solver* solver = 0)
 	}
 	double fval = f.evaluate(xvec, &gradient);
 	double normg = std::max(gradient.maxCoeff(), -gradient.minCoeff());
-	std::cerr << "||g0|| = " << normg0 << std::endl;
-	std::cerr << "||g||  = " << normg << std::endl;
-	std::cerr << typeid(Functor).name() << std::endl;
+	INFO("||g0|| = " << normg0);
+	INFO("||g||  = " << normg);
+	INFO(typeid(Functor).name());
 
 	std::string problem_name = typeid(Functor).name();
 	// The "Easom" problem does not return a very reliable gradient at the

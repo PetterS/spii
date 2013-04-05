@@ -28,7 +28,7 @@ struct SolverResults
 	      NO_CONVERGENCE,     // Maximum number of iterations reached.
 	      FUNCTION_NAN,       // Nan encountered.
 	      FUNCTION_INFINITY,  // Infinity encountered.
-	      ERROR,              // Internal error.
+	      INTERNAL_ERROR,     // Internal error.
 	      NA} exit_condition;
 
 	// Returns true if the exit_condition indicates convergence.

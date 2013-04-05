@@ -112,7 +112,7 @@ void Solver::solve_nelder_mead(const Function& function,
 	// START MAIN ITERATION
 	//
 	results->startup_time   = wall_time() - global_start_time;
-	results->exit_condition = SolverResults::ERROR;
+	results->exit_condition = SolverResults::INTERNAL_ERROR;
 	int iter = 0;
 	int n_shrink_in_a_row = 0;
 	while (true) {

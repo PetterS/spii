@@ -8,16 +8,11 @@ FILE(GLOB SPII_HEADERS *.h)
 IF (${BUILD_TESTING})
   MACRO (SPII_TEST NAME)
     ADD_EXECUTABLE(test_${NAME} test_${NAME}.cpp)
-    TARGET_LINK_LIBRARIES(test_${NAME} spii ${GTEST_LIB} ${GTEST_MAIN_LIB})
-
-    # There is a conflict in Google Test between tuples
-    # and Visual Studio 2012.
-    set_target_properties(test_${NAME} PROPERTIES COMPILE_DEFINITIONS "GTEST_HAS_TR1_TUPLE=0")
+    TARGET_LINK_LIBRARIES(test_${NAME} spii)
 
     INCLUDE_DIRECTORIES(${GTEST_INCLUDE})
     ADD_TEST(NAME test_${NAME}
-             COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/test_${NAME}
-             ${CMAKE_SOURCE_DIR}/data)
+             COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/test_${NAME})
   ENDMACRO (SPII_TEST)
 
   SPII_TEST(function)
@@ -32,8 +27,6 @@ IF (${BUILD_TESTING})
   # The NIST tests are not part of the test suite that has to succeed, because
   # the solver may end up in a local minimum.
   ADD_EXECUTABLE(test_nist test_nist.cpp)
-    TARGET_LINK_LIBRARIES(test_nist spii ${GTEST_LIB} ${GTEST_MAIN_LIB})
-    set_target_properties(test_nist PROPERTIES COMPILE_DEFINITIONS "GTEST_HAS_TR1_TUPLE=0")
-    INCLUDE_DIRECTORIES(${GTEST_INCLUDE})
+    TARGET_LINK_LIBRARIES(test_nist spii)
 
 ENDIF (${BUILD_TESTING})

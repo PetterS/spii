@@ -61,7 +61,7 @@ void Solver::solve_lbfgs(const Function& function,
 	// START MAIN ITERATION
 	//
 	results->startup_time   = wall_time() - global_start_time;
-	results->exit_condition = SolverResults::ERROR;
+	results->exit_condition = SolverResults::INTERNAL_ERROR;
 	int iter = 0;
 	bool last_iteration_successful = true;
 	int number_of_line_search_failures = 0;

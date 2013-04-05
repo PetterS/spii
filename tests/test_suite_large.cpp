@@ -5,12 +5,19 @@
 #include <random>
 #include <vector>
 
-#include <gtest/gtest.h>
+#define CATCH_CONFIG_MAIN
+#include <catch.hpp>
+#include <spii/google_test_compatibility.h>
 
 #include <spii/auto_diff_term.h>
 #include <spii/solver.h>
 
 using namespace spii;
+
+void info_log_function(const std::string& str)
+{
+	INFO(str);
+}
 
 // "An analysis of the behavior of a glass of genetic adaptive systems."
 // K.A. De Jong.  Ph.D. thesis, University of Michigan, 1975.
@@ -64,6 +71,7 @@ void test_rosenbrock()
 
 	Solver solver;
 	solver.maximum_iterations = 10000;
+	solver.log_function = info_log_function;
 	SolverResults results;
 	if (lbfgs) {
 		solver.solve_lbfgs(f, &results);
@@ -71,7 +79,7 @@ void test_rosenbrock()
 	else {
 		solver.solve_newton(f, &results);
 	}
-	std::cerr << results;
+	INFO(results);
 
 	EXPECT_TRUE(results.exit_condition == SolverResults::ARGUMENT_TOLERANCE ||
 	            results.exit_condition == SolverResults::FUNCTION_TOLERANCE ||
@@ -157,6 +165,7 @@ void test_Lennard_Jones()
 	Solver solver;
 	solver.maximum_iterations = 1000;
 	solver.function_improvement_tolerance = 1e-6;
+	solver.log_function = info_log_function;
 
 	// All points interact with all points, so the Hessian
 	// will be dense.
@@ -168,8 +177,10 @@ void test_Lennard_Jones()
 	else {
 		solver.solve_newton(potential, &results);
 	}
-	std::cerr << results;
-	potential.print_timing_information(std::cerr);
+	INFO(results);
+	std::stringstream sout;
+	potential.print_timing_information(sout);
+	INFO(sout.str());
 
 	EXPECT_TRUE(results.exit_condition == SolverResults::ARGUMENT_TOLERANCE ||
 	            results.exit_condition == SolverResults::FUNCTION_TOLERANCE ||
@@ -232,6 +243,8 @@ void test_trid()
 	solver.maximum_iterations = 100;
 	//solver.argument_improvement_tolerance = 1e-16;
 	//solver.gradient_tolerance = 1e-16;
+	solver.log_function = info_log_function;
+
 	SolverResults results;
 	if (lbfgs) {
 		solver.maximum_iterations = 1000;
@@ -240,7 +253,7 @@ void test_trid()
 	else {
 		solver.solve_newton(f, &results);
 	}
-	std::cerr << results;
+	INFO(results);
 
 	double fval = f.evaluate();
 	// Global optimum is
@@ -265,7 +278,7 @@ void test_trid()
 
 	if (n <= 10) {
 		for (size_t i = 0; i < n; ++i) {
-			std::cerr << "x[" << i << "] = " << x[i] << '\n';
+			INFO("x[" << i << "] = " << x[i]);
 		}
 	}
 }
@@ -333,11 +346,17 @@ TEST(Newton, Barrier)
 
 	Solver solver;
 	solver.maximum_iterations = 100;
+	solver.log_function = info_log_function;
+
 	SolverResults results;
 	solver.solve_newton(f, &results);
 
-	std::cerr << results;
-	f.print_timing_information(std::cerr);
+	INFO(results);
+	std::stringstream sout;
+	f.print_timing_information(sout);
+	INFO(sout.str());
+
+	CHECK(solver.maximum_iterations == 1010);
 
 	EXPECT_TRUE(results.exit_condition == SolverResults::ARGUMENT_TOLERANCE ||
 	            results.exit_condition == SolverResults::FUNCTION_TOLERANCE ||

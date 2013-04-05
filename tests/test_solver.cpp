@@ -4,7 +4,9 @@
 #include <limits>
 #include <random>
 
-#include <gtest/gtest.h>
+#define CATCH_CONFIG_MAIN
+#include <catch.hpp>
+#include <spii/google_test_compatibility.h>
 
 #include <spii/auto_diff_term.h>
 #include <spii/constraints.h>
@@ -37,7 +39,7 @@ void test_method(Solver::Method method, const Solver& solver)
 	            results.exit_condition == SolverResults::FUNCTION_TOLERANCE ||
 	            results.exit_condition == SolverResults::GRADIENT_TOLERANCE);
 	EXPECT_LT( std::fabs(x[0] - 1.0), 1e-9);
-	EXPECT_LT( std::fabs(x[0] - 1.0), 1e-9);
+	EXPECT_LT( std::fabs(x[1] - 1.0), 1e-9);
 	EXPECT_LT( std::fabs(f.evaluate()), 1e-9);
 }
 

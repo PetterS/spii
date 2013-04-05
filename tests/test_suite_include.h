@@ -673,7 +673,7 @@ TEST(Solver, Powell3D)
 	xvec[2] =  3.0;
 	Eigen::VectorXd g;
 	f.evaluate(xvec, &g);
-	std::cerr << "g(-1, -1, 3)  = (" << g.transpose() << ")" << std::endl;
+	INFO("g(-1, -1, 3)  = (" << g.transpose() << ")");
 
 	x[0] = 0.0;
 	x[1] = 1.0;
@@ -684,8 +684,10 @@ TEST(Solver, Powell3D)
 	xvec[1] = x[1];
 	xvec[2] = x[2];
 	f.evaluate(xvec, &g);
-	std::printf("x = (%.16e, %.16e, %.16e\n", x[0], x[1], x[2]);
-	std::cerr << "g = (" << g.transpose() << ")" << std::endl;
+	char tmpstr[1024];
+	std::sprintf(tmpstr, "x = (%.16e, %.16e, %.16e\n", x[0], x[1], x[2]);
+	INFO(tmpstr);
+	INFO("g = (" << g.transpose() << ")");
 
 	// The webpage states that the optimal point is
 	// (1, 1, 1), but that seems incorrect.
