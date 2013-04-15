@@ -6,7 +6,6 @@
 #include <catch.hpp>
 
 #include <spii/interval_term.h>
-#include <spii/global.h>
 #include <spii/solver.h>
 using namespace spii;
 
