@@ -155,7 +155,9 @@ public:
 	Interval<R>& operator /= (const Interval<R>& interval)
 	{
 		if (interval.lower <= 0 && interval.upper >= 0) {
-			return Interval<R>(-Interval<R>::infinity, Interval<R>::infinity);
+			this->lower = -Interval<R>::infinity;
+			this->upper =  Interval<R>::infinity;
+			return *this;
 		}
 		R a = this->lower / interval.lower;
 		R b = this->lower / interval.upper;
