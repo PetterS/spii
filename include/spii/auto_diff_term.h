@@ -154,7 +154,7 @@ public:
 		#endif
 	}
 
-private:
+protected:
 	const Functor* functor;
 };
 
@@ -344,7 +344,7 @@ public:
 		#endif
 	}
 
-private:
+protected:
 	const Functor* functor;
 };
 

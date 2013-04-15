@@ -3,6 +3,7 @@
 SET(SPII_INTERNAL_SRC
 	function.cpp
 	solver.cpp
+	solver_global.cpp
 	solver_line_search.cpp
 	solver_lbfgs.cpp
 	solver_nelder_mead.cpp

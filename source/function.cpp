@@ -59,11 +59,31 @@ void Function::add_variable_internal(double* variable,
 
 	auto itr = variables.find(variable);
 	if (itr != variables.end()) {
-		if (itr->second.user_dimension != dimension) {
+		AddedVariable& var_info = itr->second;
+
+		if (var_info.user_dimension != dimension) {
 			throw std::runtime_error("Function::add_variable: dimension mismatch.");
 		}
+
+		if (var_info.change_of_variables) {
+			delete itr->second.change_of_variables;
+		}
+
+		var_info.change_of_variables = change_of_variables;
+		if (change_of_variables != NULL) {
+			if (var_info.user_dimension != change_of_variables->x_dimension()) {
+				throw std::runtime_error("Function::add_variable: "
+			                             "x_dimension can not change.");
+			}
+			if (var_info.solver_dimension != change_of_variables->t_dimension()) {
+				throw std::runtime_error("Function::add_variable: "
+			                             "t_dimension can not change.");
+			}
+		}
+
 		return;
 	}
+
 	AddedVariable& var_info = variables[variable];
 
 	var_info.change_of_variables = change_of_variables;
@@ -674,6 +694,28 @@ double Function::evaluate(const Eigen::VectorXd& x,
 
 	this->write_gradient_hessian_time += wall_time() - start_time;
 
+	return value;
+}
+
+Interval<double> Function::evaluate(const std::vector<Interval<double>>& x) const
+{
+	this->evaluations_without_gradient++;
+	double start_time = wall_time();
+
+	std::vector<const Interval<double> *> scratch_space;
+
+	Interval<double> value = 0;
+	// Go through and evaluate each term.
+	for (int i = 0; i < terms.size(); ++i) {
+		// Evaluate the term.
+		scratch_space.clear();
+		for (auto var : terms[i].user_variables) {
+			scratch_space.push_back(&x[var->global_index]);
+		}
+		value += terms[i].term->evaluate_interval(&scratch_space[0]);
+	}
+
+	this->evaluate_time += wall_time() - start_time;
 	return value;
 }
 

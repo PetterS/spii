@@ -19,6 +19,9 @@ SolverResults::SolverResults()
 	this->backtracking_time         = 0;
 	this->log_time                  = 0;
 	this->total_time                = 0;
+
+	auto inf = std::numeric_limits<double>::infinity();
+	this->optimum = Interval<double>(-inf, inf);
 }
 
 std::ostream& operator<<(std::ostream& out, const SolverResults& results)

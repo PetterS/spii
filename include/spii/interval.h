@@ -1,10 +1,11 @@
-// Petter Strandmark 2012.
+// Petter Strandmark 2013.
 #ifndef SPII_INTERVAL_H
 #define SPII_INTERVAL_H
 
 #include <cmath>
 #include <iostream>
 #include <limits>
+#include <vector>
 
 namespace spii {
 
@@ -191,6 +192,8 @@ public:
 private:
 	R lower, upper;
 };
+
+typedef std::vector<Interval<double>> IntervalVector;
 
 template<typename R>
 const R Interval<R>::infinity = std::numeric_limits<R>::has_infinity ? 

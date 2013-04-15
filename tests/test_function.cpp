@@ -15,6 +15,7 @@
 #include <spii/auto_diff_term.h>
 #include <spii/constraints.h>
 #include <spii/function.h>
+#include <spii/interval_term.h>
 
 using namespace spii;
 
@@ -133,12 +134,12 @@ TEST(Function, calls_term_destructor)
 	EXPECT_EQ(counter2, 1);
 
 	Function* function2 = new Function;
-	function->add_variable(x, 1);
+	function2->add_variable(x, 1);
 
 	int counter3 = 0;
 	DestructorTerm* term3 = new DestructorTerm(&counter3);
 
-	function->add_term(term3, x);
+	function2->add_term(term3, x);
 	function2->term_deletion = Function::DoNotDeleteTerms;
 
 	EXPECT_EQ(counter3, 0);
@@ -641,4 +642,34 @@ TEST(Function, rethrows_error)
 	EXPECT_THROW(f2.evaluate(x_vec, &g, &H_sparse), const char*);
 }
 
+struct SimplePolynomial
+{
+	template<typename R>
+	R operator()(const R* const x) const
+	{
+		return  x[0]*x[0]*x[0]*x[0] - 20.0*x[0]*x[0]*x[0] + 150.0*x[0]*x[0] - 500.0*x[0] + 625.0;
+	}
+};
 
+TEST(Function, evaluate_interval)
+{
+	using namespace spii;
+
+	double x = 2.0;
+	IntervalVector x_interval;
+	x_interval.push_back(Interval<double>(2.0, 2.0));
+
+	Function f;
+	f.add_variable(&x, 1);
+	f.add_term(
+		new IntervalTerm<SimplePolynomial, 1>(
+			new SimplePolynomial),
+		&x);
+
+	EXPECT_DOUBLE_EQ(f.evaluate(), 81.0);
+
+	auto result = f.evaluate(x_interval);
+	Interval<double> expected(81, 81);
+	EXPECT_DOUBLE_EQ(result.get_lower(), expected.get_lower());
+	EXPECT_DOUBLE_EQ(result.get_upper(), expected.get_upper());
+}

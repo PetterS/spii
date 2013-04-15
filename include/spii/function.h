@@ -13,6 +13,7 @@ using std::size_t;
 
 #include <spii/auto_diff_change_of_variables.h>
 #include <spii/change_of_variables.h>
+#include <spii/interval.h>
 #include <spii/term.h>
 
 namespace spii {
@@ -144,6 +145,8 @@ public:
 	double evaluate(const Eigen::VectorXd& x,
 	                Eigen::VectorXd* gradient,
 	                Eigen::SparseMatrix<double>* hessian) const;
+
+	Interval<double> evaluate(const std::vector<Interval<double>>& x) const;
 
 	// Create a sparse matrix with the correct sparsity pattern.
 	void create_sparse_hessian(Eigen::SparseMatrix<double>* H) const;

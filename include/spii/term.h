@@ -6,6 +6,7 @@
 // so that the derivatives do not have to be explicitly computed.
 
 #include <cstddef>
+#include <stdexcept>
 #include <vector>
 using std::size_t;
 
@@ -13,6 +14,11 @@ using std::size_t;
 
 #include <badiff.h>
 #include <fadiff.h>
+
+#include <spii/interval.h>
+
+namespace spii
+{
 
 class Term
 {
@@ -26,6 +32,13 @@ public:
 	virtual double evaluate(double * const * const variables,
 	                        std::vector<Eigen::VectorXd>* gradient,
 	                        std::vector< std::vector<Eigen::MatrixXd> >* hessian) const = 0;
+
+	// This function only needs to be implemented if interval arithmetic is
+	// desired.
+	virtual Interval<double> evaluate_interval(const Interval<double> * const * const variables) const
+	{
+		throw std::runtime_error("evaluate_interval: Not implemented.");
+	};
 };
 
 template<int D0,int D1 = 0, int D2 = 0, int D3 = 0>
@@ -51,4 +64,5 @@ public:
 	}
 };
 
+}  // namespace spii
 #endif

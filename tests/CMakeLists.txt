@@ -15,6 +15,7 @@ IF (${BUILD_TESTING})
   ENDMACRO (SPII_TEST)
 
   SPII_TEST(function)
+  SPII_TEST(global)
   SPII_TEST(interval)
   SPII_TEST(solver)
   SPII_TEST(suite)

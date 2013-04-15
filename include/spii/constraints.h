@@ -34,7 +34,7 @@ public:
 	template<typename R>
 	void x_to_t(R* t, const R* x) const
 	{
-		using std::log;
+		using std::sqrt;
 
 		for (size_t i = 0; i < dimension; ++i) {
 			t[i] = sqrt(x[i]);
@@ -61,11 +61,11 @@ private:
 //	x = a + (b-a)*(1/pi * arctan(t) + 0.5)
 //  t = tan(((x - a) / (b - a) - 0.5) * pi)
 //
-class Interval
+class IntervalConstraint
 {
 public:
 
-	Interval(double a, double b)
+	IntervalConstraint(double a, double b)
 	{
 		if (b <= a) {
 			throw std::runtime_error("Interval: non-positive size");

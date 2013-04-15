@@ -48,6 +48,11 @@ struct SolverResults
 	double backtracking_time;
 	double log_time;
 	double total_time;
+
+	// The minimum value of the function being minimized is
+	// in this interval. This member is only set by global
+	// optmization solvers.
+	Interval<double> optimum;
 };
 
 std::ostream& operator<<(std::ostream& out, const SolverResults& results);
@@ -75,7 +80,10 @@ public:
 	             NELDER_MEAD,
 	             // For most problems, there is no reason to choose
 	             // pattern search over Nelder-Mead.
-	             PATTERN_SEARCH
+	             PATTERN_SEARCH,
+				 // (Experimental) Global optimization using interval
+				 // arithmetic.
+				 GLOBAL
 	            };
 
 	// Minimizes a function. The results of the minimization will
@@ -95,6 +103,10 @@ public:
 
 	void solve_pattern_search(const Function& function,
 	                          SolverResults* results) const;
+
+	void solve_global(const Function& function,
+	                  const IntervalVector& start_box,
+	                  SolverResults* results) const;
 
 	// Mode of operation. How the Hessian is stored.
 	// Default: AUTO.

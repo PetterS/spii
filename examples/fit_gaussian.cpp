@@ -1,4 +1,4 @@
-// Petter Strandmark 2012.
+// Petter Strandmark 2012--2013.
 
 #include <functional>
 #include <iostream>
@@ -6,6 +6,7 @@
 
 #include <spii/auto_diff_term.h>
 #include <spii/constraints.h>
+#include <spii/interval_term.h>
 #include <spii/solver.h>
 
 using namespace spii;
@@ -45,7 +46,7 @@ int main_function()
 	for (int i = 0; i < 10000; ++i) {
 		double sample = sigma*randn() + mu;
 		auto* llh = new NegLogLikelihood(sample);
-		f.add_term(new AutoDiffTerm<NegLogLikelihood, 1, 1>(llh), &mu, &sigma);
+		f.add_term(new IntervalTerm<NegLogLikelihood, 1, 1>(llh), &mu, &sigma);
 	}
 
 	mu    = 0.0;
@@ -55,6 +56,22 @@ int main_function()
 	solver.solve_lbfgs(f, &results);
 	std::cout << "Estimated:" << std::endl;
 	std::cout << "mu = " << mu << ", sigma = " << sigma << std::endl << std::endl;
+
+	// Remove the constraint on sigma.
+	f.add_variable(&sigma, 1);
+
+	Interval<double> start_mu(4.0, 6.0);
+	Interval<double> start_sigma(1.0, 10.0);
+	IntervalVector start_box;
+	start_box.push_back(start_mu);
+	start_box.push_back(start_sigma);
+	solver.maximum_iterations = 5000;
+	solver.solve_global(f, start_box, &results);
+	std::cout << results << std::endl;
+
+	std::cout << "Global optimization:" << std::endl;
+	std::cout << "mu = " << mu << ", sigma = " << sigma << std::endl << std::endl;
+
 	return 0;
 }
 
