@@ -31,11 +31,6 @@
 
 using namespace spii;
 
-void info_log_function(const std::string& str)
-{
-	INFO(str);
-}
-
 void skip_lines(std::istream* in, int num_lines)
 {
 	std::string str;
@@ -165,6 +160,8 @@ void run_problem_main(const std::string& filename, Solver::Method method)
 
 	// Run a test for each starting point provicded by the data file.
 	for (int start = 0; start < problem.initial_parameters.rows(); ++start) {
+		INFO("Start " << start + 1 << " of " << problem.initial_parameters.rows());
+
 		Eigen::VectorXd initial_parameters =
 			problem.initial_parameters.row(start);
 		REQUIRE(initial_parameters.size() == num_variables);
@@ -186,17 +183,22 @@ void run_problem_main(const std::string& filename, Solver::Method method)
 		solver.argument_improvement_tolerance = 1e-14;
 		solver.gradient_tolerance = 1e-12;
 		solver.area_tolerance = 1e-60;
-		solver.log_function = info_log_function;
+
+		std::stringstream sout;
+		solver.log_function = [&sout](const std::string& s) { sout << s << std::endl; };
 
 		SolverResults results;
 		solver.solve(function, method, &results);
 
 		// Print the solver results to the log stringstream.
+		INFO(sout.str());
 		INFO(results);
 
 		const double optimum = problem.certified_cost;
 		int num_matching_digits = static_cast<int>(
 			-std::log10(fabs(function.evaluate() - optimum) / optimum));
+
+		INFO("Number of matching digits: " << num_matching_digits);
 
 		// If the optimum was reached, everything is OK.
 		if (num_matching_digits >= 4) {
@@ -215,27 +217,19 @@ void run_problem_main(const std::string& filename, Solver::Method method)
 	}
 }
 
-template<typename Model>
-void run_problem(const std::string& filename, Solver::Method method)
-{
-	// This function reads the NIST data file and calls
-	// run_problem_main with the correct template parameter.
-	NISTProblem problem(filename);
-	switch (problem.initial_parameters.cols())
-	{
-		case 1: run_problem_main<Model, 1>(filename, method); break;
-		case 2: run_problem_main<Model, 2>(filename, method); break;
-		case 3: run_problem_main<Model, 3>(filename, method); break;
-		case 4: run_problem_main<Model, 4>(filename, method); break;
-		case 5: run_problem_main<Model, 5>(filename, method); break;
-		case 6: run_problem_main<Model, 6>(filename, method); break;
-		case 7: run_problem_main<Model, 7>(filename, method); break;
-		case 8: run_problem_main<Model, 8>(filename, method); break;
-		case 9: run_problem_main<Model, 9>(filename, method); break;
-		default: throw std::runtime_error("Too many params.");
-	}
-}
 
+// Hack to allow several test cases to be defined within a
+// single macro.
+#define TEST_CASE_2_I( Name, Desc ) \
+    static void INTERNAL_CATCH_UNIQUE_NAME( TestCaseFunction_catch_internal_2_ )(); \
+    namespace{ Catch::AutoReg INTERNAL_CATCH_UNIQUE_NAME( autoRegistrar_2 )( &INTERNAL_CATCH_UNIQUE_NAME(  TestCaseFunction_catch_internal_2_ ), Name, Desc, CATCH_INTERNAL_LINEINFO ); }\
+    static void INTERNAL_CATCH_UNIQUE_NAME(  TestCaseFunction_catch_internal_2_ )()
+#define TEST_CASE_3_I( Name, Desc ) \
+    static void INTERNAL_CATCH_UNIQUE_NAME( TestCaseFunction_catch_internal_3_ )(); \
+    namespace{ Catch::AutoReg INTERNAL_CATCH_UNIQUE_NAME( autoRegistrar_3 )( &INTERNAL_CATCH_UNIQUE_NAME(  TestCaseFunction_catch_internal_3_ ), Name, Desc, CATCH_INTERNAL_LINEINFO ); }\
+    static void INTERNAL_CATCH_UNIQUE_NAME(  TestCaseFunction_catch_internal_3_ )()
+#define TEST_CASE_2( Name, Desc ) TEST_CASE_2_I(Name, Desc)
+#define TEST_CASE_3( Name, Desc ) TEST_CASE_3_I(Name, Desc)
 
 #define NIST_TEST_START(Problem)         \
 struct Problem                           \
@@ -253,118 +247,115 @@ struct Problem                           \
 		const R y(y_param);              \
 		R d = y - (                      \
 
-#define NIST_TEST_END(Category, Problem) \
+#define NIST_TEST_END(Category, Problem, n) \
 		);                               \
 		return d*d;                      \
 	}                                    \
 };                                       \
-TEST_CASE(#Category "/" #Problem, "")    \
+TEST_CASE("Newton/" #Category "/" #Problem, "") \
 {                                        \
-	SECTION("Newton", "")                \
-	{                                    \
-		run_problem<Problem>(            \
+		run_problem_main<Problem, n>(    \
 			"nist/" #Problem ".dat",     \
 			Solver::NEWTON);             \
-	}                                    \
-	SECTION("LBFGS", "")                 \
-	{                                    \
-		run_problem<Problem>(            \
+}                                        \
+TEST_CASE_2("LBFGS/" #Category "/" #Problem, "") \
+{                                        \
+		run_problem_main<Problem, n>(    \
 			"nist/" #Problem ".dat",     \
 			Solver::LBFGS);              \
-	}                                    \
-	SECTION("NM", "")                    \
-	{                                    \
-		run_problem<Problem>(            \
+}                                        \
+TEST_CASE_3("NM/" #Category "/" #Problem, "")  \
+{                                        \
+		run_problem_main<Problem, n>(    \
 			"nist/" #Problem ".dat",     \
 			Solver::NELDER_MEAD);        \
-	}                                    \
 }
 
 const double kPi = 3.141592653589793238462643383279;
 
 NIST_TEST_START(Bennett5)
 	b[0] * pow(b[1] + x, R(-1.0) / b[2])
-NIST_TEST_END(Hard, Bennett5)
+NIST_TEST_END(Hard, Bennett5, 3)
 
 NIST_TEST_START(BoxBOD)
   b[0] * (R(1.0) - exp(-b[1] * x))
-NIST_TEST_END(Hard, BoxBOD)
+NIST_TEST_END(Hard, BoxBOD, 2)
 
 NIST_TEST_START(Chwirut1)
   exp(-b[0] * x) / (b[1] + b[2] * x)
-NIST_TEST_END(Easy, Chwirut1)
+NIST_TEST_END(Easy, Chwirut1, 3)
 
 NIST_TEST_START(Chwirut2)
   exp(-b[0] * x) / (b[1] + b[2] * x)
-NIST_TEST_END(Easy, Chwirut2)
+NIST_TEST_END(Easy, Chwirut2, 3)
 
 NIST_TEST_START(DanWood)
   b[0] * pow(x, b[1])
-NIST_TEST_END(Easy, DanWood)
+NIST_TEST_END(Easy, DanWood, 2)
 
 NIST_TEST_START(Gauss1)
   b[0] * exp(-b[1] * x) +
   b[2] * exp(-pow((x - b[3])/b[4], 2)) +
   b[5] * exp(-pow((x - b[6])/b[7],2))
-NIST_TEST_END(Easy, Gauss1)
+NIST_TEST_END(Easy, Gauss1, 8)
 
 NIST_TEST_START(Gauss2)
   b[0] * exp(-b[1] * x) +
   b[2] * exp(-pow((x - b[3])/b[4], 2)) +
   b[5] * exp(-pow((x - b[6])/b[7],2))
-NIST_TEST_END(Medium, Gauss2)
+NIST_TEST_END(Medium, Gauss2, 8)
 
 NIST_TEST_START(Gauss3)
   b[0] * exp(-b[1] * x) +
   b[2] * exp(-pow((x - b[3])/b[4], 2)) +
   b[5] * exp(-pow((x - b[6])/b[7],2))
-NIST_TEST_END(Medium, Gauss3)
+NIST_TEST_END(Medium, Gauss3, 8)
 
 NIST_TEST_START(Lanczos1)
   b[0] * exp(-b[1] * x) + b[2] * exp(-b[3] * x) + b[4] * exp(-b[5] * x)
-NIST_TEST_END(Medium, Lanczos1)
+NIST_TEST_END(Medium, Lanczos1, 6)
 
 NIST_TEST_START(Lanczos2)
   b[0] * exp(-b[1] * x) + b[2] * exp(-b[3] * x) + b[4] * exp(-b[5] * x)
-NIST_TEST_END(Medium, Lanczos2)
+NIST_TEST_END(Medium, Lanczos2, 6)
 
 NIST_TEST_START(Hahn1)
   (b[0] + b[1] * x + b[2] * x * x + b[3] * x * x * x) /
   (R(1.0) + b[4] * x + b[5] * x * x + b[6] * x * x * x)
-NIST_TEST_END(Medium, Hahn1)
+NIST_TEST_END(Medium, Hahn1, 7)
 
 NIST_TEST_START(Kirby2)
   (b[0] + b[1] * x + b[2] * x * x) /
   (R(1.0) + b[3] * x + b[4] * x * x)
-NIST_TEST_END(Medium, Kirby2)
+NIST_TEST_END(Medium, Kirby2, 5)
 
 NIST_TEST_START(MGH09)
   b[0] * (x * x + x * b[1]) / (x * x + x * b[2] + b[3])
-NIST_TEST_END(Hard, MGH09)
+NIST_TEST_END(Hard, MGH09, 4)
 
 NIST_TEST_START(MGH10)
   b[0] * exp(b[1] / (x + b[2]))
-NIST_TEST_END(Hard, MGH10)
+NIST_TEST_END(Hard, MGH10, 3)
 
 NIST_TEST_START(MGH17)
   b[0] + b[1] * exp(-x * b[3]) + b[2] * exp(-x * b[4])
-NIST_TEST_END(Medium, MGH17)
+NIST_TEST_END(Medium, MGH17, 5)
 
 NIST_TEST_START(Misra1a)
   b[0] * (R(1.0) - exp(-b[1] * x))
-NIST_TEST_END(Easy, Misra1a)
+NIST_TEST_END(Easy, Misra1a, 2)
 
 NIST_TEST_START(Misra1b)
   b[0] * (R(1.0) - R(1.0)/ ((R(1.0) + b[1] * x / 2.0) * (R(1.0) + b[1] * x / 2.0)))
-NIST_TEST_END(Easy, Misra1b)
+NIST_TEST_END(Easy, Misra1b, 2)
 
 NIST_TEST_START(Misra1c)
   b[0] * (R(1.0) - pow(R(1.0) + R(2.0) * b[1] * x, -0.5))
-NIST_TEST_END(Medium, Misra1c)
+NIST_TEST_END(Medium, Misra1c, 2)
 
 NIST_TEST_START(Misra1d)
   b[0] * b[1] * x / (R(1.0) + b[1] * x)
-NIST_TEST_END(Medium, Misra1d)
+NIST_TEST_END(Medium, Misra1d, 2)
 
 // FADBAD++ does not overload atan2.
 //NIST_TEST_START(Roszman1)
@@ -373,16 +364,16 @@ NIST_TEST_END(Medium, Misra1d)
 
 NIST_TEST_START(Rat42)
   b[0] / (R(1.0) + exp(b[1] - b[2] * x))
-NIST_TEST_END(Hard, Rat42)
+NIST_TEST_END(Hard, Rat42, 3)
 
 NIST_TEST_START(Rat43)
   b[0] / pow(R(1.0) + exp(b[1] - b[2] * x), R(1.0) / b[3])
-NIST_TEST_END(Hard, Rat43)
+NIST_TEST_END(Hard, Rat43, 4)
 
 NIST_TEST_START(Thurber)
   (b[0] + b[1] * x + b[2] * x * x  + b[3] * x * x * x) /
   (R(1.0) + b[4] * x + b[5] * x * x + b[6] * x * x * x)
-NIST_TEST_END(Hard, Thurber)
+NIST_TEST_END(Hard, Thurber, 7)
 
 NIST_TEST_START(ENSO)
   b[0] + b[1] * cos(R(2.0 * kPi) * x / R(12.0)) +
@@ -391,8 +382,8 @@ NIST_TEST_START(ENSO)
          b[5] * sin(R(2.0 * kPi) * x / b[3]) +
          b[7] * cos(R(2.0 * kPi) * x / b[6]) +
          b[8] * sin(R(2.0 * kPi) * x / b[6])
-NIST_TEST_END(Medium, ENSO)
+NIST_TEST_END(Medium, ENSO, 9)
 
 NIST_TEST_START(Eckerle4)
   b[0] / b[1] * exp(R(-0.5) * pow((x - b[2])/b[1], 2))
-NIST_TEST_END(Hard, Eckerle4)
+NIST_TEST_END(Hard, Eckerle4, 3)
