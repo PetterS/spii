@@ -13,18 +13,20 @@
 
 using namespace spii;
 
+std::stringstream global_string_stream;
 void info_log_function(const std::string& str)
 {
-	INFO(str);
+	global_string_stream << str << "\n";
 }
 
 void create_solver(Solver* solver)
 {
 	// The problems in the test suite are rather difficult
 	// and often require very exact solutions (for N-M).
-	// Therefore, a small tolerance has to be used.
-	solver->maximum_iterations = 10000;
-	solver->area_tolerance = 1e-40;
+	// Therefore, many iterations have to be used.
+	solver->maximum_iterations = 100000;
+	solver->area_tolerance   = 0;  // Not used.
+	solver->length_tolerance = 1e-20;
 
 	solver->log_function = info_log_function;
 }
@@ -53,7 +55,9 @@ double run_test(double* var, const Solver* solver = 0)
 		solver = &own_solver;
 	}
 	SolverResults results;
+	global_string_stream.str("");
 	solver->solve_nelder_mead(f, &results);
+	INFO(global_string_stream.str());
 	INFO(results);
 
 	std::stringstream sout;

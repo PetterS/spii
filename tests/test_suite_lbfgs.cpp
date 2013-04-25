@@ -19,9 +19,10 @@
 
 using namespace spii;
 
+std::stringstream global_string_stream;
 void info_log_function(const std::string& str)
 {
-	INFO(str);
+	global_string_stream << str << "\n";
 }
 
 void create_solver(Solver* solver)
@@ -51,7 +52,9 @@ double run_test(double* var, const Solver* solver = 0)
 		solver = &own_solver;
 	}
 	SolverResults results;
+	global_string_stream.str("");
 	solver->solve_lbfgs(f, &results);
+	INFO(global_string_stream.str());
 	INFO(results);
 
 	std::stringstream sout;

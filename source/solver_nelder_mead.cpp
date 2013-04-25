@@ -105,6 +105,8 @@ void Solver::solve_nelder_mead(const Function& function,
 	double fval  = std::numeric_limits<double>::quiet_NaN();
 	double area  = std::numeric_limits<double>::quiet_NaN();
 	double area0 = std::numeric_limits<double>::quiet_NaN();
+	double length  = std::numeric_limits<double>::quiet_NaN();
+	double length0 = std::numeric_limits<double>::quiet_NaN();
 
 	Eigen::MatrixXd area_mat(n, n);
 
@@ -216,15 +218,28 @@ void Solver::solve_nelder_mead(const Function& function,
 		start_time = wall_time();
 		
 		// Compute the area of the simplex.
+		length = 0;
 		for (size_t i = 0; i < n; ++i) {
 			area_mat.col(i) = simplex[i].x - simplex[n].x;
+			length = std::max(length, area_mat.col(i).norm());
 		}
 		area = std::abs(area_mat.determinant());
 		if (iter == 0) {
 			area0 = area;
+			length0 = length;
 		}
 
 		if (area / area0 < this->area_tolerance) {
+			results->exit_condition = SolverResults::GRADIENT_TOLERANCE;
+			break;
+		}
+
+		if (area == 0) {
+			results->exit_condition = SolverResults::GRADIENT_TOLERANCE;
+			break;
+		}
+
+		if (length / length0 < this->length_tolerance) {
 			results->exit_condition = SolverResults::GRADIENT_TOLERANCE;
 			break;
 		}
@@ -276,10 +291,10 @@ void Solver::solve_nelder_mead(const Function& function,
 		if (this->log_function && iter % log_interval == 0) {
 			char str[1024];
 				if (iter == 0) {
-					this->log_function("Itr     min(f)     avg(f)     max(f)    area     type");
+					this->log_function("Itr     min(f)     avg(f)     max(f)    area    length   type");
 				}
-				std::sprintf(str, "%4d %+.3e %+.3e %+.3e %.3e %s",
-					iter, fmin, fval, fmax, area, iteration_type);
+				std::sprintf(str, "%6d %+.3e %+.3e %+.3e %.3e %.3e %s",
+					iter, fmin, fval, fmax, area, length, iteration_type);
 			this->log_function(str);
 		}
 		results->log_time += wall_time() - start_time;
@@ -293,7 +308,7 @@ void Solver::solve_nelder_mead(const Function& function,
 
 	if (this->log_function) {
 		char str[1024];
-		std::sprintf(str, " end %+.3e                       %.3e", fval, area);
+		std::sprintf(str, " end   %+.3e                       %.3e %.3e", fval, area, length);
 		this->log_function(str);
 	}
 }

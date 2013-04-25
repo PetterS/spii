@@ -134,8 +134,13 @@ public:
 
 	// Area tolerance (Nelder-Mead) The solver terminates if
 	// ||a|| / ||a0|| < tol, where ||.|| is the maximum
-	// norm. Default: 1e-12.
+	// norm. Default: 0 (i.e. not used).
 	double area_tolerance;
+
+	// Length tolerance (Nelder-Mead) The solver terminates if
+	// ||a|| / ||a0|| < tol, where ||.|| is the maximum
+	// norm. Default: 1e-12.
+	double length_tolerance;
 
 	// Number of vectors L-BFGS should save in its history.
 	// Default: 10.
