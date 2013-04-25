@@ -42,6 +42,7 @@ ENDIF (${OPENMP})
 
 INCLUDE_DIRECTORIES(
   include
+  thirdparty/boost
   thirdparty/Catch
   thirdparty/FADBAD++
   thirdparty/Eigen
@@ -109,6 +110,7 @@ ENDIF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 IF (MSVC)
   # Disable deprecation warning for standard functions.
   ADD_DEFINITIONS("/wd4996")
+  ADD_DEFINITIONS("-DNOMINMAX=1")
 ENDIF (MSVC)
 
 
