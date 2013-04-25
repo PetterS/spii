@@ -1,6 +1,8 @@
 #ifndef SPII_GOOGLE_TEST_COMPATIBILITY
 #define SPII_GOOGLE_TEST_COMPATIBILITY
 
+#include <cmath>
+
 // Google Testing macros
 #define ASSERT_GE(a, b) REQUIRE((a) >= (b))
 #define ASSERT_LE(a, b) REQUIRE((a) <= (b))
