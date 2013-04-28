@@ -3,6 +3,9 @@
 //
 // Petter Strandmark 2012
 //
+
+
+// ----------------------------------------------------------------------
 // Test functions from
 // Jorge J. More, Burton S. Garbow and Kenneth E. Hillstrom,
 // "Testing unconstrained optimization software",
@@ -381,10 +384,33 @@ TEST(Solver, Wood)
 }
 
 
-//-----------------------------------------------------------------
+//---------------------------------------------------------------
+//
 // Test functions from TEST_OPT
 // http://people.sc.fsu.edu/~jburkardt/m_src/test_opt/test_opt.html
-//-----------------------------------------------------------------
+
+// #28
+struct SchafferFunctionF7
+{
+	template<typename R>
+	R operator()(const R* const x) const
+	{
+		using std::sqrt;
+		using std::sin;
+		using std::pow;
+
+		R r = r = sqrt (x[0]*x[0] + x[1]*x[1]);
+		R s = sin (R(50.0) * pow(r, 0.2));
+		return sqrt (r) * (R(1.0) + s*s);
+	}
+};
+
+TEST(Solver, SchafferFunctionF7)
+{
+	double x[2] = {-5.0, 10.0};
+	run_test<SchafferFunctionF7, 2>(x);
+	// Global minimum is 0,0.
+}
 
 // #29
 struct GoldsteinPricePolynomial
@@ -717,10 +743,14 @@ TEST(Solver, Himmelblau)
 	EXPECT_LT( std::fabs(fval), 1e-8);
 }
 
-
-// 22 in 
+// ----------------------------------------------------------------------
+//
 // UCTP - Test Problems for Unconstrained Optimization. Report IMM-REP-2000-17,
 // Department of Mathematical Modelling, DTU. November 2000.
+//
+// All problems except one is a nonlinear least-squares problem.
+//
+// #22
 template<int n>
 struct ExpAndSquares
 {
@@ -778,3 +808,6 @@ TEST(Solver, ExpAndSquares50)
 {
 	test_exp_and_squares<20>(1e-5);
 }
+
+// ----------------------------------------------------------------------
+
