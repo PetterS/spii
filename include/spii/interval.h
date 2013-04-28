@@ -306,6 +306,13 @@ Interval<R> sqrt(const Interval<R>& arg)
 }
 
 template<typename R>
+Interval<R> exp(const Interval<R>& arg)
+{
+	using std::exp;
+	return Interval<R>(exp(arg.get_lower()), exp(arg.get_upper()));
+}
+
+template<typename R>
 Interval<R> log(const Interval<R>& arg)
 {
 	using std::log;
