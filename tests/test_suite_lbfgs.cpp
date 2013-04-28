@@ -70,4 +70,7 @@ double run_test(double* var, const Solver* solver = 0)
 	return f.evaluate();
 }
 
-#include "test_suite_include.h"
+#include "suite_more_et_al.h"
+#include "suite_test_opt.h"
+#include "suite_uctp.h"
+
