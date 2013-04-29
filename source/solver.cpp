@@ -71,6 +71,8 @@ Solver::Solver()
 	this->line_search_c = 1e-4;
 	this->line_search_rho = 0.5;
 
+	this->factorization_method = BKP;
+
 	#ifdef _MSC_VER
 		_set_output_format(_TWO_DIGIT_EXPONENT);
 	#endif

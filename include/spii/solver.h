@@ -57,6 +57,14 @@ struct SolverResults
 
 std::ostream& operator<<(std::ostream& out, const SolverResults& results);
 
+class FactorizationCache
+{
+public:
+	FactorizationCache(int n);
+	~FactorizationCache();
+	void* data;
+};
+
 class Solver
 {
 public:
@@ -157,6 +165,12 @@ public:
 	double line_search_c;    // default: 1e-4.
 	double line_search_rho;  // default: 0.5.
 
+	// The default factorization method is the BKP block
+	// diagonal modification (Nocedal and Wright, p. 55).
+	// Alternatively, it is possible to use iterative diagonal
+	// modification of the Hessian. This is also used for
+	// sparse systems.
+	enum {BKP, ITERATIVE} factorization_method;
 private:
 
 	// Computes a Newton step given a function, a gradient and a
@@ -179,6 +193,14 @@ private:
 	                          const Eigen::VectorXd& p,
 	                          Eigen::VectorXd* scratch,
 	                          const double start_alpha = 1.0) const;
+
+	// Performs a BKP block diagonal factorization, modifies it, and
+	// solvers the linear system.
+	void BKP_dense(const Eigen::MatrixXd& H,
+	               const Eigen::VectorXd& g,
+	               const FactorizationCache& cache,
+	               Eigen::VectorXd* p,
+	               SolverResults* results) const;
 };
 
 }  // namespace spii

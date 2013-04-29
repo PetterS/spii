@@ -31,6 +31,7 @@ void create_solver(Solver* solver)
 	// Use default solver settings.
 
 	solver->log_function = info_log_function;
+	//solver->factorization_method = Solver::ITERATIVE;
 }
 
 int cumulative_iterations   = 0;

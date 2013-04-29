@@ -92,6 +92,8 @@ void Solver::solve_newton(const Function& function,
 	}
 	int num_factorization_failures = 0;
 
+	FactorizationCache factorization_cache(n);
+
 	//
 	// START MAIN ITERATION
 	//
@@ -144,84 +146,91 @@ void Solver::solve_newton(const Function& function,
 		}
 		results->stopping_criteria_time += wall_time() - start_time;
 
-		//
-		// Attempt repeated Cholesky factorization until the Hessian
-		// becomes positive semidefinite.
-		//
-		start_time = wall_time();
 
 		int factorizations = 0;
 		double tau;
 		double mindiag = 0;
 
-		double beta = 1.0;
+		if (use_sparsity || this->factorization_method == ITERATIVE) {
+			//
+			// Attempt repeated Cholesky factorization until the Hessian
+			// becomes positive semidefinite.
+			//
+			//start_time = wall_time();
+			double beta = 1.0;
 
-		Eigen::VectorXd dH;
-		if (use_sparsity) {
-			dH = sparse_H.diagonal();
-		}
-		else {
-			dH = H.diagonal();
-		}
-		mindiag = dH.minCoeff();
-
-		if (mindiag > 0) {
-			tau = 0;
-		}
-		else {
-			tau = -mindiag + beta;
-		}
-		while (true) {
-			// Add tau*I to the Hessian.
-			if (tau > 0) {
-				for (size_t i = 0; i < n; ++i) {
-					if (use_sparsity) {
-						int ii = static_cast<int>(i);
-						sparse_H.coeffRef(ii, ii) = dH(i) + tau;
-					}
-					else {
-						H(i, i) = dH(i) + tau;
-					}
-				}
-			}
-			// Attempt Cholesky factorization.
-			bool success;
+			Eigen::VectorXd dH;
 			if (use_sparsity) {
-				sparse_factorization->factorize(sparse_H);
-				success = sparse_factorization->info() == Eigen::Success;
+				dH = sparse_H.diagonal();
 			}
 			else {
-				factorization->compute(H);
-				success = factorization->info() == Eigen::Success;
+				dH = H.diagonal();
 			}
-			factorizations++;
-			// Check for success.
-			if (success) {
-				break;
-			}
-			tau = std::max(2*tau, beta);
+			mindiag = dH.minCoeff();
 
-			if (factorizations > 100) {
-				throw std::runtime_error("Solver::solve: factorization failed.");
+			if (mindiag > 0) {
+				tau = 0;
 			}
-		}
+			else {
+				tau = -mindiag + beta;
+			}
+			while (true) {
+				// Add tau*I to the Hessian.
+				if (tau > 0) {
+					for (size_t i = 0; i < n; ++i) {
+						if (use_sparsity) {
+							int ii = static_cast<int>(i);
+							sparse_H.coeffRef(ii, ii) = dH(i) + tau;
+						}
+						else {
+							H(i, i) = dH(i) + tau;
+						}
+					}
+				}
+				// Attempt Cholesky factorization.
+				bool success;
+				if (use_sparsity) {
+					sparse_factorization->factorize(sparse_H);
+					success = sparse_factorization->info() == Eigen::Success;
+				}
+				else {
+					factorization->compute(H);
+					success = factorization->info() == Eigen::Success;
+				}
+				factorizations++;
+				// Check for success.
+				if (success) {
+					break;
+				}
+				tau = std::max(2*tau, beta);
+
+				if (factorizations > 100) {
+					throw std::runtime_error("Solver::solve: factorization failed.");
+				}
+			}
 		
 
-		results->matrix_factorization_time += wall_time() - start_time;
+			results->matrix_factorization_time += wall_time() - start_time;
 
-		//
-		// Solve linear system to obtain search direction.
-		//
-		start_time = wall_time();
+			//
+			// Solve linear system to obtain search direction.
+			//
+			start_time = wall_time();
 
-		if (use_sparsity) {
-			p = sparse_factorization->solve(-g);
+			if (use_sparsity) {
+				p = sparse_factorization->solve(-g);
+			}
+			else {
+				p = factorization->solve(-g);
+			}
+
+			results->linear_solver_time += wall_time() - start_time;
 		}
 		else {
-			p = factorization->solve(-g);
+			// Performs a BKP block diagonal factorization, modifies it, and
+			// solvers the linear system.
+			this->BKP_dense(H, g, factorization_cache, &p, results);
 		}
-
-		results->linear_solver_time += wall_time() - start_time;
 
 		//
 		// Perform line search.

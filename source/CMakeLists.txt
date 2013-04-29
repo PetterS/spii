@@ -8,6 +8,7 @@ SET(SPII_INTERNAL_SRC
 	solver_lbfgs.cpp
 	solver_nelder_mead.cpp
 	solver_newton.cpp
+	solver_newton_factorization.cpp
 	solver_pattern_search.cpp
 	solver_stopping_criteria.cpp
 	term.cpp
