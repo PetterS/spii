@@ -129,6 +129,12 @@ void Solver::solve_newton(const Function& function,
 			normg0 = normg;
 		}
 
+		// Check for NaN.
+		if (normg != normg) {
+			results->exit_condition = SolverResults::FUNCTION_NAN;
+			break;
+		}
+
 		results->function_evaluation_time += wall_time() - start_time;
 
 		//
@@ -242,12 +248,6 @@ void Solver::solve_newton(const Function& function,
 
 		if (alpha <= 0) {
 
-			// Check for NaN.
-			if (normg != normg) {
-				results->exit_condition = SolverResults::FUNCTION_NAN;
-				break;
-			}
-
 			// Attempt a simple steepest descent instead.
 			p = -g;
 			alpha = this->perform_linesearch(function, x, fval, g, p, &x2,
@@ -296,10 +296,10 @@ void Solver::solve_newton(const Function& function,
 				double normH = H.norm();
 
 				if (iter == 0) {
-					this->log_function("Itr      f       max|g_i|   ||H||     det(H)     alpha    fac  min(H_ii) ");
+					this->log_function("Itr      f       max|g_i|   ||H||     det(H)     alpha ");
 				}
-				std::sprintf(str, "%4d %+10.3e %9.3e %9.3e %+10.3e %9.3e %3d   %+.2e",
-					iter, fval, normg, normH, detH, alpha, factorizations, mindiag);
+				std::sprintf(str, "%4d %+10.3e %9.3e %9.3e %+10.3e %9.3e",
+					iter, fval, normg, normH, detH, alpha);
 			}
 			this->log_function(str);
 		}
