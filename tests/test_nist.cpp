@@ -150,7 +150,6 @@ public:
 	double certified_cost;
 };
 
-
 template<typename Model, int num_variables>
 void run_problem_main(const std::string& filename, Solver::Method method)
 {
@@ -184,6 +183,16 @@ void run_problem_main(const std::string& filename, Solver::Method method)
 		solver.gradient_tolerance = 1e-12;
 		solver.area_tolerance = 1e-60;
 
+		if (method == Solver::NEWTON) {
+			solver.maximum_iterations = 5000;
+			solver.function_improvement_tolerance = 0;
+			solver.argument_improvement_tolerance = 0;
+			solver.gradient_tolerance = 1e-12;
+
+			solver.line_search_c = 1e-2;
+			solver.line_search_rho = 0.5;
+		}
+
 		std::stringstream sout;
 		solver.log_function = [&sout](const std::string& s) { sout << s << std::endl; };
 
@@ -193,6 +202,9 @@ void run_problem_main(const std::string& filename, Solver::Method method)
 		// Print the solver results to the log stringstream.
 		INFO(sout.str());
 		INFO(results);
+		for (int i = 0; i < num_variables; ++i) {
+			INFO("b[" << i << "] = " << initial_parameters[i]);
+		}
 
 		const double optimum = problem.certified_cost;
 		int num_matching_digits = static_cast<int>(
@@ -202,10 +214,11 @@ void run_problem_main(const std::string& filename, Solver::Method method)
 
 		// If the optimum was reached, everything is OK.
 		if (num_matching_digits >= 4) {
+			CHECK(num_matching_digits >= 4);  // To log the test.
 			continue;
 		}
 
-		// Otherwise, reaching a stationaty point is enough.
+		// Otherwise, reaching a stationary point is enough.
 		CHECK(results.exit_condition ==
 		      SolverResults::GRADIENT_TOLERANCE);
 
@@ -358,9 +371,9 @@ NIST_TEST_START(Misra1d)
 NIST_TEST_END(Medium, Misra1d, 2)
 
 // FADBAD++ does not overload atan2.
-//NIST_TEST_START(Roszman1)
-//  b[0] - b[1] * x - atan2(b[2], (x - b[3]))/R(kPi)
-//NIST_TEST_END(Medium, Roszman1)
+NIST_TEST_START(Roszman1)
+  b[0] - b[1] * x - atan(b[2] / (x - b[3]))/R(kPi)
+NIST_TEST_END(Medium, Roszman1, 4)
 
 NIST_TEST_START(Rat42)
   b[0] / (R(1.0) + exp(b[1] - b[2] * x))
