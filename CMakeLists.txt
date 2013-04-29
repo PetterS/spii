@@ -46,6 +46,7 @@ INCLUDE_DIRECTORIES(
   thirdparty/Catch
   thirdparty/FADBAD++
   thirdparty/Eigen
+  thirdparty/meschach
   )
 
 FILE(GLOB SPII_HEADERS ${CMAKE_SOURCE_DIR}/include/spii/*.h)
@@ -142,6 +143,7 @@ ELSE (${BUILD_EXAMPLES})
   MESSAGE("-- Do not build any example.")
 ENDIF (${BUILD_EXAMPLES})
 
+ADD_SUBDIRECTORY(thirdparty/meschach)
 ADD_SUBDIRECTORY(data)
 ADD_SUBDIRECTORY(source)
 ADD_SUBDIRECTORY(tests)
