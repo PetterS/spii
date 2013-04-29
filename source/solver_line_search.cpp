@@ -21,8 +21,8 @@ double Solver::perform_linesearch(const Function& function,
 	// Starting value for alpha during line search. Newton and
 	// quasi-Newton methods should choose 1.0.
 	double alpha = start_alpha;
-	double rho = 0.5;
-	double c = 1e-4;
+	double rho = this->line_search_rho;
+	double c = this->line_search_c;
 	double gTp = g.dot(p);
 	if (gTp != gTp) {
 		if (this->log_function) {
@@ -42,7 +42,7 @@ double Solver::perform_linesearch(const Function& function,
 		alpha *= rho;
 
 		backtracking_attempts++;
-		if (backtracking_attempts > 100) {
+		if (backtracking_attempts > 1000) {
 			if (this->log_function) {
 				this->log_function("Backtracking failed, returning zero step.");
 			}

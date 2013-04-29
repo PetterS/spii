@@ -151,6 +151,12 @@ public:
 	// Default: 1e-6.
 	double lbfgs_restart_tolerance;
 
+	// The line search is completed when
+	//   f(x + alpha * p) <= f(x) + c * alpha * gTp.
+	// In each iteration, alpha *= rho.
+	double line_search_c;    // default: 1e-4.
+	double line_search_rho;  // default: 0.5.
+
 private:
 
 	// Computes a Newton step given a function, a gradient and a

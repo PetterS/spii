@@ -68,6 +68,9 @@ Solver::Solver()
 	this->lbfgs_history_size = 10;
 	this->lbfgs_restart_tolerance = 1e-6;
 
+	this->line_search_c = 1e-4;
+	this->line_search_rho = 0.5;
+
 	#ifdef _MSC_VER
 		_set_output_format(_TWO_DIGIT_EXPONENT);
 	#endif
