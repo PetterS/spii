@@ -32,6 +32,7 @@
 static	char	rcsid[] = "$Id: solve.c,v 1.3 1994/01/13 05:29:57 des Exp $";
 
 #include	<stdio.h>
+#include	<math.h>
 #include        "matrix2.h"
 #include	<math.h>
 

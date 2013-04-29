@@ -32,6 +32,7 @@
 static	char	rcsid[] = "$Id: lufactor.c,v 1.7 1994/03/13 23:08:25 des Exp $";
 
 #include	<stdio.h>
+#include	<math.h>
 #include	"matrix.h"
 #include        "matrix2.h"
 #include	<math.h>

@@ -90,7 +90,6 @@ void Solver::solve_newton(const Function& function,
 		// to analyze it once.
 		sparse_factorization->analyzePattern(sparse_H);
 	}
-	int num_factorization_failures = 0;
 
 	FactorizationCache factorization_cache(n);
 
@@ -154,7 +153,7 @@ void Solver::solve_newton(const Function& function,
 
 
 		int factorizations = 0;
-		double tau;
+		double tau = 0;
 		double mindiag = 0;
 
 		if (use_sparsity || this->factorization_method == ITERATIVE) {

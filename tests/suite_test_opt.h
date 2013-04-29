@@ -19,7 +19,7 @@ struct SchafferFunctionF7
 		using std::sin;
 		using std::pow;
 
-		R r = r = sqrt (x[0]*x[0] + x[1]*x[1]);
+		R r = sqrt (x[0]*x[0] + x[1]*x[1]);
 		R s = sin (R(50.0) * pow(r, 0.2));
 		return sqrt (r) * (R(1.0) + s*s);
 	}
