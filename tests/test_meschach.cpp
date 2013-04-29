@@ -38,25 +38,49 @@ TEST_CASE("BKP-dense", "")
 
 	int n = 4;
 
-	MatrixXd Amat(4, 4);
-	Amat.row(0) << 1, 2, 3, 1;
-	Amat.row(1) << 2, 6, 1, 8;
-	Amat.row(2) << 9, 8, 7, 6;
-	Amat.row(3) << 9, 9, 1, 6;
+	VectorXd x(4), b(4);
+	b << 1, 2, 3, 4;
 
-	auto A = Eigen_to_Meschach(Amat);
-	m_foutput(stderr, A);
+	MatrixXd A(4, 4);
+	A.row(0) << 1, 2, 3, 1;
+	A.row(1) << 2, 6, 1, 8;
+	A.row(2) << 3, 1, 7, 6;
+	A.row(3) << 1, 8, 6, 6;
+	REQUIRE((A - A.transpose()).norm() == 0);
 
+	// Sanity check.
+	x = A.lu().solve(b);
+	INFO(x);
+	CHECK((A * x - b).norm() <= 1e-10);
+
+	// Convert matrix to Meschach format.
+	auto Amat = Eigen_to_Meschach(A);
+	m_foutput(stderr, Amat);
+
+	// Factorize the matrix.
 	PERM* pivot  = px_get(4);
 	PERM* block = px_get(4);
-	BKPfactor(A, pivot, block);
+	BKPfactor(Amat, pivot, block);
 
-	m_foutput(stderr, A);
+	// Print the results.
+	m_foutput(stderr, Amat);
 	px_foutput(stderr, block);
 	px_foutput(stderr, pivot);
-
-
 	cerr << endl << endl;
+
+	// Solve the linear system.
+	VEC* bvec = v_get(4);
+	VEC* xvec = v_get(4);
+	for (int i = 0; i < 4; ++i) {
+		bvec->ve[i] = b(i);
+	}
+	xvec = BKPsolve(Amat, pivot, block, bvec, 0);
+	for (int i = 0; i < 4; ++i) {
+		x(i) = xvec->ve[i];
+	}
+	INFO(x);
+	INFO(A * x);
+	CHECK((A * x - b).norm() <= 1e-10);
 
 	MatrixXd B(4, 4);
 	MatrixXd Q(4, 4);
@@ -69,11 +93,12 @@ TEST_CASE("BKP-dense", "")
 
 	double delta = 1e-10;
 
+	// Extract the block diagonal matrix.
 	int onebyone;
 	for (int i = 0; i < n; i = onebyone ? i+1 : i+2 ) {
 		onebyone = ( block->pe[i] == i );
 		if ( onebyone ) {
-		    B(i, i) = m_entry(A,i,i);
+		    B(i, i) = m_entry(Amat,i,i);
 			lambda(i) = B(i, i);
 			if (lambda(i) >= delta) {
 				tau(i) = 0;
@@ -84,9 +109,9 @@ TEST_CASE("BKP-dense", "")
 			Q(i, i) = 1;
 		}
 		else {
-		    auto a11 = m_entry(A,i,i);
-		    auto a22 = m_entry(A,i+1,i+1);
-		    auto a12 = m_entry(A,i+1,i);
+		    auto a11 = m_entry(Amat,i,i);
+		    auto a22 = m_entry(Amat,i+1,i+1);
+		    auto a12 = m_entry(Amat,i+1,i);
 			B(i,   i)   = a11;
 			B(i+1, i)   = a12;
 			B(i,   i+1) = a12;
@@ -120,8 +145,9 @@ TEST_CASE("BKP-dense", "")
 	cerr << "F = Q*tau*Q^T = \n" << F << endl << endl;
 	cerr << "B + F = \n" << B + F << endl << endl;
 
-
-	m_free(A);
+	v_free(bvec);
+	v_free(xvec);
+	m_free(Amat);
 	px_free(pivot);
 	px_free(block);
 }
