@@ -5,8 +5,8 @@ This is a library for unconstrained minimization of smooth functions with a larg
 Features
 --------
 * Newton's method 
-**Bunch-Kaufman-Parlett factorization and block diagonal modification. This is a very robust method of dealing with non-convex functions.
-**The sparse solver uses repeated diagonal modification of the hessian for nonconvex problems. This simple method seems to work well, but can require several Cholesky factorizations per iteration and is not as robust as B-K-P.
+    * Bunch-Kaufman-Parlett factorization and block diagonal modification. This is a robust method of dealing with non-convex functions.
+    * The sparse solver uses repeated diagonal modification of the hessian for nonconvex problems. This simple method seems to work well, but can require several Cholesky factorizations per iteration and is not as robust as B-K-P.
 * Sparse Cholesky factorization using Eigen (included) if the problem is large and sparse.
 * L-BFGS.
 * Nelder-Mead for nondifferentiable problems.
