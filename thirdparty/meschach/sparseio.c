@@ -84,7 +84,6 @@ SPMAT  *A;
 
 /* sp_foutput2 -- print out sparse matrix **as a dense matrix**
 	-- see output format used in matrix.h etc */
-/******************************************************************
 void    sp_foutput2(fp,A)
 FILE    *fp;
 SPMAT  *A;
@@ -120,7 +119,6 @@ SPMAT  *A;
 		fprintf(fp,"\n");
 	}
 }
-******************************************************************/
 
 /* sp_dump -- prints ALL relevant information about the sparse matrix A */
 void    sp_dump(fp,A)
