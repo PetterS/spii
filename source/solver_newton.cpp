@@ -3,6 +3,7 @@
 #include <cstring>
 #include <iostream>
 #include <limits>
+#include <memory>
 #include <random>
 #include <stdexcept>
 
@@ -21,7 +22,7 @@ void Solver::solve_newton(const Function& function,
 	double global_start_time = wall_time();
 
 	// Random number engine for random pertubation.
-	std::mt19937 prng(0);
+	std::mt19937 prng(unsigned(1));
 	std::uniform_real_distribution<double> uniform11(-1.0, 1.0);
 	auto rand11 = std::bind(uniform11, prng);
 
@@ -75,19 +76,21 @@ void Solver::solve_newton(const Function& function,
 	// p will store the search direction.
 	Eigen::VectorXd p(function.get_number_of_scalars());
 
-	// Dense Cholesky factorizer.
-	Eigen::LLT<Eigen::MatrixXd>* factorization = 0;
-	// Sparse Cholesky factorizer.
-	Eigen::SimplicialLLT<Eigen::SparseMatrix<double> >* sparse_factorization = 0;
+	// Dense and sparse Cholesky factorizers.
+	typedef Eigen::LLT<Eigen::MatrixXd> LLT;
+	typedef Eigen::SimplicialLLT<Eigen::SparseMatrix<double> > SparseLLT;
+	std::unique_ptr<LLT> factorization;
+	std::unique_ptr<SparseLLT> sparse_factorization;
 	if (!use_sparsity) {
-		factorization = new Eigen::LLT<Eigen::MatrixXd>(n);
+		factorization.reset(new LLT(n));
 	}
 	else {
-		sparse_factorization = new Eigen::SimplicialLLT<Eigen::SparseMatrix<double> >;
+		sparse_factorization.reset(new SparseLLT);
 		// The sparsity pattern of H is always the same. Therefore, it is enough
 		// to analyze it once.
 		sparse_factorization->analyzePattern(sparse_H);
 	}
+	int num_factorization_failures = 0;
 
 	//
 	// START MAIN ITERATION
@@ -96,6 +99,17 @@ void Solver::solve_newton(const Function& function,
 	results->exit_condition = SolverResults::INTERNAL_ERROR;
 	int iter = 0;
 	while (true) {
+
+		int log_interval = 1;
+		if (iter > 30) {
+			log_interval = 10;
+		}
+		if (iter > 200) {
+			log_interval = 100;
+		}
+		if (iter > 2000) {
+			log_interval = 1000;
+		}
 
 		//
 		// Evaluate function and derivatives.
@@ -138,6 +152,8 @@ void Solver::solve_newton(const Function& function,
 
 		int factorizations = 0;
 		double tau;
+		double mindiag = 0;
+
 		double beta = 1.0;
 
 		Eigen::VectorXd dH;
@@ -147,7 +163,7 @@ void Solver::solve_newton(const Function& function,
 		else {
 			dH = H.diagonal();
 		}
-		double mindiag = dH.minCoeff();
+		mindiag = dH.minCoeff();
 
 		if (mindiag > 0) {
 			tau = 0;
@@ -189,6 +205,7 @@ void Solver::solve_newton(const Function& function,
 				throw std::runtime_error("Solver::solve: factorization failed.");
 			}
 		}
+		
 
 		results->matrix_factorization_time += wall_time() - start_time;
 
@@ -215,11 +232,19 @@ void Solver::solve_newton(const Function& function,
 		                                        start_alpha);
 
 		if (alpha <= 0) {
-			// Attempts a simple steepest descent instead.
+
+			// Check for NaN.
+			if (normg != normg) {
+				results->exit_condition = SolverResults::FUNCTION_NAN;
+				break;
+			}
+
+			// Attempt a simple steepest descent instead.
 			p = -g;
 			alpha = this->perform_linesearch(function, x, fval, g, p, &x2,
-		                                     1.0);
+			                                 1.0);
 			if (alpha <= 0) {
+
 				if (this->log_function) {
 					this->log_function("Steepest descent step failed. Numerical problems?");
 				}
@@ -231,7 +256,8 @@ void Solver::solve_newton(const Function& function,
 				for (size_t i = 0; i < n; ++i) {
 					x[i] = x[i] + 1e-6 * rand11() * x[i];
 				}
-				continue;
+				
+				alpha = 0;
 			}
 		}
 
@@ -247,16 +273,6 @@ void Solver::solve_newton(const Function& function,
 		//
 		start_time = wall_time();
 
-		int log_interval = 1;
-		if (iter > 30) {
-			log_interval = 10;
-		}
-		if (iter > 200) {
-			log_interval = 100;
-		}
-		if (iter > 2000) {
-			log_interval = 1000;
-		}
 		if (this->log_function && iter % log_interval == 0) {
 			char str[1024];
 			if (use_sparsity) {
@@ -291,14 +307,6 @@ void Solver::solve_newton(const Function& function,
 		char str[1024];
 		std::sprintf(str, " end %+.3e %.3e", fval, normg);
 		this->log_function(str);
-	}
-
-	if (factorization) {
-		delete factorization;
-	}
-
-	if (sparse_factorization) {
-		delete sparse_factorization;
 	}
 }
 
