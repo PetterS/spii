@@ -125,7 +125,13 @@ namespace Catch {
         SourceLineInfo( const std::string& _file, std::size_t _line )
         :   file( _file ),
             line( _line )
-        {}
+        {
+			std::stringstream sin(file);
+			std::string tmp;
+			while (std::getline(sin, tmp, '\\')) {
+				file = tmp;
+			}
+		}
         SourceLineInfo( const SourceLineInfo& other )
         :   file( other.file ),
             line( other.line )
