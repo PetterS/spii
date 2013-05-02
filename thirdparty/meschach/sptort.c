@@ -34,7 +34,7 @@
 #include	"sparse2.h"
 #include        "iter.h"
 
-#define	errmesg(mesg)	printf("Error: %s error: line %d\n",mesg,__LINE__)
+#define	errmesg(mesg)	{printf("Error: %s error: line %d\n",mesg,__LINE__); return 1;}
 #define notice(mesg)	printf("# Testing %s...\n",mesg);
 
 /* for iterative methods */
@@ -85,7 +85,7 @@ SPMAT	*A;
 }
 
 
-void	main(argc, argv)
+int	main(argc, argv)
 int	argc;
 char	*argv[];
 {
@@ -477,6 +477,8 @@ char	*argv[];
 
     printf("# Done testing (%s)\n",argv[0]);
     mem_info();
+
+    return 0;
 }
     
 

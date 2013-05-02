@@ -35,7 +35,7 @@ static char rcsid[] = "$Id: torture.c,v 1.6 1994/08/25 15:22:11 des Exp $";
 #include	<math.h>
 #include        "matlab.h"
 
-#define	errmesg(mesg)	printf("Error: %s error: line %d\n",mesg,__LINE__)
+#define	errmesg(mesg)	{printf("Error: %s error: line %d\n",mesg,__LINE__); return 1;}
 #define notice(mesg)	printf("# Testing %s...\n",mesg);
 
 static char *test_err_list[] = {
@@ -396,14 +396,14 @@ char	*argv[];
     /* MATLAB save/load */
     notice("MATLAB save/load");
     A = m_resize(A,12,11);
-    if ( (fp=fopen(SAVE_FILE,"w")) == (FILE *)NULL )
+    if ( (fp=fopen(SAVE_FILE,"wb")) == (FILE *)NULL )
 	printf("Cannot perform MATLAB save/load test\n");
     else
     {
 	m_rand(A);
 	m_save(fp, A, name);
 	fclose(fp);
-	if ( (fp=fopen(SAVE_FILE,"r")) == (FILE *)NULL )
+	if ( (fp=fopen(SAVE_FILE,"rb")) == (FILE *)NULL )
 	    printf("Cannot open save file \"%s\"\n",SAVE_FILE);
 	else
 	{

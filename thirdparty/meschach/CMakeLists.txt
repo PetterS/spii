@@ -75,3 +75,15 @@ INSTALL(TARGETS meschach
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib)
+
+ADD_EXECUTABLE(test_meschach_torture torture.c)
+    TARGET_LINK_LIBRARIES(test_meschach_torture meschach)
+
+ADD_TEST(NAME meschach_torture
+         COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/test_meschach_torture)
+
+ADD_EXECUTABLE(test_meschach_sptort sptort.c)
+    TARGET_LINK_LIBRARIES(test_meschach_sptort meschach)
+
+ADD_TEST(NAME meschach_sptort
+         COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/test_meschach_sptort)
