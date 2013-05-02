@@ -43,10 +43,10 @@ ENDIF (${OPENMP})
 INCLUDE_DIRECTORIES(
   include
   thirdparty/boost
-  thirdparty/Catch
+  SYSTEM thirdparty/Catch
   thirdparty/FADBAD++
   thirdparty/Eigen
-  thirdparty/meschach
+  SYSTEM thirdparty/meschach
   )
 
 FILE(GLOB SPII_HEADERS ${CMAKE_SOURCE_DIR}/include/spii/*.h)
@@ -80,14 +80,10 @@ ENDIF (NOT CMAKE_BUILD_TYPE)
 #
 IF (CMAKE_COMPILER_IS_GNUCXX)
   MESSAGE("-- Enabling C++11 support for gcc.")
-  IF (${BUILD_TESTING})
-    ADD_DEFINITIONS("-std=gnu++0x")
-  ELSE (${BUILD_TESTING})
-    ADD_DEFINITIONS("-std=c++0x")
-  ENDIF (${BUILD_TESTING})
 
-  # GCC is not strict enough by default, so enable most of the warnings.
-  ADD_DEFINITIONS("-Wall -Wextra -Wno-sign-compare -Wno-unused-parameter")
+  # No warnings for C. The Meschach library contains really old code.
+  set(CMAKE_C_FLAGS   "-w")
+  set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -std=c++0x")
 ENDIF (CMAKE_COMPILER_IS_GNUCXX)
 
 #
@@ -96,8 +92,8 @@ ENDIF (CMAKE_COMPILER_IS_GNUCXX)
 IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   MESSAGE("-- Enabling C++11 support for clang.")
 
-  # Enable warnings for Clang.
-  set(CMAKE_C_FLAGS   "-Wall -Wextra -Wno-sign-compare -Wno-unused-parameter")
+  # No warnings for C. The Meschach library contains really old code.
+  set(CMAKE_C_FLAGS   "-w")
   set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -std=c++11")
 ENDIF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 
