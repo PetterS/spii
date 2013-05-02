@@ -95,14 +95,10 @@ ENDIF (CMAKE_COMPILER_IS_GNUCXX)
 #
 IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   MESSAGE("-- Enabling C++11 support for clang.")
-  IF (${BUILD_TESTING})
-    ADD_DEFINITIONS("-std=gnu++11")
-  ELSE (${BUILD_TESTING})
-    ADD_DEFINITIONS("-std=c++11")
-  ENDIF (${BUILD_TESTING})
 
   # Enable warnings for Clang.
-  ADD_DEFINITIONS("-Wall -Wextra -Wno-sign-compare -Wno-unused-parameter")
+  set(CMAKE_C_FLAGS   "-Wall -Wextra -Wno-sign-compare -Wno-unused-parameter")
+  set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -std=c++11")
 ENDIF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 
 #

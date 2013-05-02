@@ -30,6 +30,7 @@
 
 /* For BSD 4.[23] environments: using bcopy() and bzero() */
 
+#include "err.h"
 #include "machine.h"
 
 #ifndef MEM_COPY
@@ -479,8 +480,10 @@ int	Aj0, Bj0, Cj0;
 	for ( j = 0; j < n; j++ )
 	    C[i][Cj0+j] += alpha*Mdot(p,&(A[i][Aj0]),&(B[j][Bj0]));
     ****************************************/
-    for ( i = 0; i < m; i++ )
-	Mmv(n,p,alpha,&(A[i][Aj0]),B,Bj0,&(C[i][Cj0]));
+    /*for ( i = 0; i < m; i++ )
+	Mmv(n,p,alpha,&(A[i][Aj0]),B,Bj0,&(C[i][Cj0]));*/
+	/* The lines above do not compile with Clang */
+	error(E_INTERN, "Mmmtr");
 }
 
 /* Mmtrmtr -- C <- C + alpha.A^T.B^T */
