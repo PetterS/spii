@@ -27,6 +27,10 @@ All tests pass with the following compilers:
 * Clang 3.1 (Cygwin)
 Earlier compilers will probably not work.
 
+You can check travis.yml for the commands used to build the library and run all tests on Ubuntu.
+It is even easier on Windows. The status of the automatic builds using gcc and Clang is [![Build Status](https://travis-ci.org/PetterS/spii.png)](https://travis-ci.org/PetterS/spii).
+
+
 Benchmarks
 ----------
 The tests include the first 14 problems from a standard set of difficult small problems [2].
