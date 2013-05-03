@@ -79,7 +79,7 @@ INSTALL(TARGETS meschach
 ADD_EXECUTABLE(test_meschach_torture torture.c)
     TARGET_LINK_LIBRARIES(test_meschach_torture meschach)
     IF (NOT MSVC)
-      TARGET_LINK_LIBRARIES(test_meschach_sptort m)
+      TARGET_LINK_LIBRARIES(test_meschach_torture m)
     ENDIF (NOT MSVC)
 
 ADD_TEST(NAME meschach_torture
