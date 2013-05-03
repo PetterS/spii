@@ -84,6 +84,9 @@ ADD_TEST(NAME meschach_torture
 
 ADD_EXECUTABLE(test_meschach_sptort sptort.c)
     TARGET_LINK_LIBRARIES(test_meschach_sptort meschach)
+    IF (NOT MSVC)
+      TARGET_LINK_LIBRARIES(test_meschach_sptort m)
+    ENDIF (NOT MSVC)
 
 ADD_TEST(NAME meschach_sptort
          COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/test_meschach_sptort)
