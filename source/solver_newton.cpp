@@ -235,6 +235,7 @@ void Solver::solve_newton(const Function& function,
 			// Performs a BKP block diagonal factorization, modifies it, and
 			// solvers the linear system.
 			this->BKP_dense(H, g, factorization_cache, &p, results);
+			factorizations = 1;
 		}
 
 		//
@@ -245,7 +246,7 @@ void Solver::solve_newton(const Function& function,
 		double alpha = this->perform_linesearch(function, x, fval, g, p, &x2,
 		                                        start_alpha);
 
-		if (alpha <= 0) {
+		if (alpha <= 1e-15) {
 
 			// Attempt a simple steepest descent instead.
 			p = -g;
@@ -295,10 +296,10 @@ void Solver::solve_newton(const Function& function,
 				double normH = H.norm();
 
 				if (iter == 0) {
-					this->log_function("Itr      f       max|g_i|   ||H||     det(H)     alpha ");
+					this->log_function("Itr      f       max|g_i|   ||H||     det(H)     alpha    fac");
 				}
-				std::sprintf(str, "%4d %+10.3e %9.3e %9.3e %+10.3e %9.3e",
-					iter, fval, normg, normH, detH, alpha);
+				std::sprintf(str, "%4d %+10.3e %9.3e %9.3e %+10.3e %9.3e %3d",
+					iter, fval, normg, normH, detH, alpha, factorizations);
 			}
 			this->log_function(str);
 		}

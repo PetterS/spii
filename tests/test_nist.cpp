@@ -14,6 +14,7 @@
 // 
 
 #include <cmath>
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <random>
@@ -77,13 +78,25 @@ void get_and_split_line(std::istream* in, std::vector<std::string>* tokens)
 class NISTProblem
 {
 public:
-	NISTProblem(const std::string& filename)
+	NISTProblem(std::string filename)
 	{
 		std::ifstream fin(filename);
 		if (!fin) {
-			std::string error = "Failed to open ";
-			error += filename;
-			throw std::runtime_error(error.c_str());
+			// Perhaps we are running the command from the root
+			// project folder.
+			filename = "bin/" + filename;
+			fin.open(filename);
+			if (!fin) {
+				// Perhaps we are running the command from the test
+				// project folder.
+				filename = "../" + filename;
+				fin.open(filename);
+				if (!fin) {
+					std::string error = "Failed to open ";
+					error += filename;
+					throw std::runtime_error(error.c_str());
+				}
+			}
 		}
 		std::vector<std::string> tokens;
 
@@ -187,10 +200,15 @@ void run_problem_main(const std::string& filename, Solver::Method method)
 			solver.maximum_iterations = 5000;
 			solver.function_improvement_tolerance = 0;
 			solver.argument_improvement_tolerance = 0;
-			solver.gradient_tolerance = 1e-12;
+			solver.gradient_tolerance = 1e-9;
 
 			solver.line_search_c = 1e-2;
 			solver.line_search_rho = 0.5;
+		}
+		else if (method == Solver::LBFGS) {
+			solver.function_improvement_tolerance = 0;
+			solver.argument_improvement_tolerance = 0;
+			solver.gradient_tolerance = 1e-7;
 		}
 
 		std::stringstream sout;
@@ -276,13 +294,13 @@ TEST_CASE_2("LBFGS/" #Category "/" #Problem, "") \
 		run_problem_main<Problem, n>(    \
 			"nist/" #Problem ".dat",     \
 			Solver::LBFGS);              \
-}                                        \
-TEST_CASE_3("NM/" #Category "/" #Problem, "")  \
-{                                        \
-		run_problem_main<Problem, n>(    \
-			"nist/" #Problem ".dat",     \
-			Solver::NELDER_MEAD);        \
-}
+}                                        
+//TEST_CASE_3("NM/" #Category "/" #Problem, "")  \
+//{                                        \
+//		run_problem_main<Problem, n>(    \
+//			"nist/" #Problem ".dat",     \
+//			Solver::NELDER_MEAD);        \
+//}
 
 const double kPi = 3.141592653589793238462643383279;
 
@@ -370,7 +388,6 @@ NIST_TEST_START(Misra1d)
   b[0] * b[1] * x / (R(1.0) + b[1] * x)
 NIST_TEST_END(Medium, Misra1d, 2)
 
-// FADBAD++ does not overload atan2.
 NIST_TEST_START(Roszman1)
   b[0] - b[1] * x - atan(b[2] / (x - b[3]))/R(kPi)
 NIST_TEST_END(Medium, Roszman1, 4)
