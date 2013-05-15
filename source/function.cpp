@@ -4,8 +4,13 @@
 #include <iostream>
 #include <stdexcept>
 
+#ifdef USE_OPENMP
+	#include <omp.h>
+#endif
+
 #include <spii/function.h>
 #include <spii/spii.h>
+
 
 namespace spii {
 
