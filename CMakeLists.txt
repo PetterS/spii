@@ -82,8 +82,9 @@ IF (CMAKE_COMPILER_IS_GNUCXX)
   MESSAGE("-- Enabling C++11 support for gcc.")
 
   # No warnings for C. The Meschach library contains really old code.
-  set(CMAKE_C_FLAGS   "-w")
-  set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -std=c++0x")
+  # -fPIC for building a shared library.
+  set(CMAKE_C_FLAGS   "-w -fPIC")
+  set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -std=c++0x -fPIC")
 ENDIF (CMAKE_COMPILER_IS_GNUCXX)
 
 #
@@ -93,8 +94,9 @@ IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   MESSAGE("-- Enabling C++11 support for clang.")
 
   # No warnings for C. The Meschach library contains really old code.
-  set(CMAKE_C_FLAGS   "-w")
-  set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -std=c++11")
+  # -fPIC for building a shared library.
+  set(CMAKE_C_FLAGS   "-w -fPIC")
+  set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -std=c++11 -fPIC")
 ENDIF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 
 #
