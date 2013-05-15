@@ -8,7 +8,7 @@ MACRO (SPII_EXAMPLE NAME)
   TARGET_LINK_LIBRARIES(${NAME} spii)
 ENDMACRO (SPII_EXAMPLE)
 
-SPII_EXAMPLE(bundle_adjustment)
+#SPII_EXAMPLE(bundle_adjustment)
 SPII_EXAMPLE(ellipse)
 SPII_EXAMPLE(fit_cir)
 SPII_EXAMPLE(fit_gaussian)
