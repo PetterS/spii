@@ -34,7 +34,8 @@ void midpoint(const IntervalVector& x, Eigen::VectorXd* x_mid)
 double volume(const IntervalVector& x)
 {
 	double vol = 1.0;
-	for (const auto& interval : x) {
+	for (auto itr = x.begin(); itr != x.end(); ++itr) {
+		const auto& interval = *itr;
 		vol *= interval.get_upper() - interval.get_lower();
 	}
 	return vol;
@@ -139,12 +140,13 @@ void Solver::solve_global(const Function& function,
 	using namespace std;
 	double global_start_time = wall_time();
 
+	/*
 	for (auto itr = function.variables.begin(); itr != function.variables.end(); ++itr) {
 		if (itr->second.change_of_variables != 0) {
 			throw std::runtime_error("Solver::solve_global: "
 				"function can not have change of variables.");
 		}
-	}
+	}*/
 
 	IntervalQueue queue;
 	GlobalQueueEntry entry;
@@ -258,7 +260,8 @@ void Solver::solve_global(const Function& function,
 
 	function.copy_global_to_user(best_x);
 
-	results->optimum = Interval<double>(lower_bound, upper_bound);
+	results->optimum_lower = lower_bound;
+	results->optimum_upper = upper_bound;
 	results->total_time = wall_time() - global_start_time;
 }
 

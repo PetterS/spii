@@ -6,11 +6,13 @@
 
 #include <cstddef>
 #include <map>
+#include <memory>
 #include <set>
 using std::size_t;
 
 #include <Eigen/SparseCore>
 
+#include <spii/spii.h>
 #include <spii/auto_diff_change_of_variables.h>
 #include <spii/change_of_variables.h>
 #include <spii/interval.h>
@@ -33,26 +35,7 @@ namespace spii {
 //  solvers and terms will see identical values.
 //
 
-// These two structs are used by Function to store added
-// variables and terms.
-struct AddedVariable
-{
-	int user_dimension;
-	int solver_dimension;
-	size_t global_index;
-	ChangeOfVariables* change_of_variables;
-	mutable std::vector<double>  temp_space;
-};
-struct AddedTerm
-{
-	const Term* term;
-	std::vector<AddedVariable*> user_variables;
-	// Temporary storage for a point and hessian.
-	mutable std::vector<double*> temp_variables;
-	mutable std::vector< std::vector<Eigen::MatrixXd> > hessian;
-};
-
-class Function
+class SPII_API Function
 {
 friend class Solver;
 public:
@@ -73,11 +56,7 @@ public:
 
 	// Adds a variable to the function. All variables must be added
 	// before any terms containing them are added.
-	void add_variable(double* variable,
-	                  int dimension)
-	{
-		add_variable_internal(variable, dimension);
-	}
+	void add_variable(double* variable, int dimension);
 
 	// Adds a variable to the function, with a change of variables.
 	// Takes ownership of change and will delete it when the function
@@ -92,17 +71,11 @@ public:
 	}
 
 	// Returns the current number of variables the function contains.
-	size_t get_number_of_variables() const
-	{
-		return variables.size();
-	}
+	size_t get_number_of_variables() const;
 
 	// Returns the current number of scalars the function contains.
 	// (each variable contains of one or several scalars.)
-	size_t get_number_of_scalars() const
-	{
-		return number_of_scalars;
-	}
+	size_t get_number_of_scalars() const;
 
 	// Sets the number of threads the Function should use when evaluating.
 	// Default: number of cores available.
@@ -120,10 +93,7 @@ public:
 	void add_term(const Term* term, double* argument1, double* argument2);
 
 	// Returns the current number of terms contained in the function.
-	size_t get_number_of_terms() const
-	{
-		return terms.size();
-	}
+	size_t get_number_of_terms() const;
 
 	// Evaluation using the data in the user-provided space.
 	double evaluate() const;
@@ -148,6 +118,14 @@ public:
 
 	Interval<double> evaluate(const std::vector<Interval<double>>& x) const;
 
+	// Copies variables from a global vector x to the storage
+	// provided by the user.
+	void copy_global_to_user(const Eigen::VectorXd& x) const;
+
+	// Copies variables from a the storage provided by the user
+	// to a global vector x.
+	void copy_user_to_global(Eigen::VectorXd* x) const;
+
 	// Create a sparse matrix with the correct sparsity pattern.
 	void create_sparse_hessian(Eigen::SparseMatrix<double>* H) const;
 
@@ -163,63 +141,20 @@ public:
 	// Prints the recorded timing information.
 	void print_timing_information(std::ostream& out) const;
 
-protected:
+private:
 
-	// Adds a variable to the function. All variables must be added
-	// before any terms containing them are added.
+	// Present here because it is called by a templated function above.
 	void add_variable_internal(double* variable,
 	                           int dimension,
 	                           ChangeOfVariables* change_of_variables = 0);
 
-	// Copies variables from a global vector x to the Function's
-	// local storage.
-	void copy_global_to_local(const Eigen::VectorXd& x) const;
-	// Copies variables from a global vector x to the storage
-	// provided by the user.
-	void copy_global_to_user(const Eigen::VectorXd& x) const;
-	// Copies variables from a the storage provided by the user
-	// to a global vector x.
-	void copy_user_to_global(Eigen::VectorXd* x) const;
-	// Copies variables from a the storage provided by the user
-	// to the Function's local storage.
-	void copy_user_to_local() const;
+	// Disallow copying for now.
+	Function(const Function&);
 
-	// Evaluates the function at the point in the local storage.
-	double evaluate_from_local_storage() const;
-
-	// A set of all terms added to the function. This is
-	// used when the function is destructed.
-	std::set<const Term*> added_terms;
-
-	// All variables added to the function.
-	std::map<double*, AddedVariable> variables;
-
-	// Each variable can have several dimensions. This member
-	// keeps track of the total number of scalars.
-	size_t number_of_scalars;
-
-	// All terms added to the function.
-	std::vector<AddedTerm> terms;
-
-	// Number of threads used for evaluation.
-	int number_of_threads;
-
-	// Allocates temporary storage for gradient evaluations.
-	// Should be called automatically at first evaluate()
-	void allocate_local_storage() const;
-
-	// If finalize has been called.
-	mutable bool local_storage_allocated;
-	// Has to be mutable because the temporary storage
-	// needs to be written to.
-	mutable std::vector< std::vector<Eigen::VectorXd> >
-		thread_gradient_scratch;
-	mutable std::vector<Eigen::VectorXd>
-		thread_gradient_storage;
-
-	// Stored how many element were used the last time the Hessian
-	// was created.
-	mutable size_t number_of_hessian_elements;
+	class Implementation;
+	// unique_pointer would have been nice, but there are issues
+	// with sharing these objects across DLL boundaries in VC++.
+	Implementation* impl;
 };
 
 }  // namespace spii

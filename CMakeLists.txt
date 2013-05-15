@@ -103,6 +103,8 @@ ENDIF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 IF (MSVC)
   # Disable deprecation warning for standard functions.
   ADD_DEFINITIONS("/wd4996")
+  # To get rid of annoying min and max macros if windows.h
+  # is included.
   ADD_DEFINITIONS("-DNOMINMAX=1")
 ENDIF (MSVC)
 

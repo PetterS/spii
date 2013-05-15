@@ -9,14 +9,109 @@
 
 namespace spii {
 
-Function::Function()
+// These two structs are used by Function to store added
+// variables and terms.
+struct AddedVariable
 {
-	this->number_of_scalars = 0;
+	int user_dimension;
+	int solver_dimension;
+	size_t global_index;
+	ChangeOfVariables* change_of_variables;
+	mutable std::vector<double>  temp_space;
+};
+struct AddedTerm
+{
+	const Term* term;
+	std::vector<AddedVariable*> user_variables;
+	// Temporary storage for a point and hessian.
+	mutable std::vector<double*> temp_variables;
+	mutable std::vector< std::vector<Eigen::MatrixXd> > hessian;
+};
+
+class Function::Implementation
+{
+public:
+	Implementation(Function* function_interface) :
+		interface(function_interface) { };
+
+	// Implemenations of functions in the public interface.
+	double evaluate(const Eigen::VectorXd& x,
+	                Eigen::VectorXd* gradient,
+	                Eigen::MatrixXd* hessian) const;
+	double evaluate(const Eigen::VectorXd& x,
+	                Eigen::VectorXd* gradient,
+	                Eigen::SparseMatrix<double>* hessian) const;
+	Interval<double> evaluate(const std::vector<Interval<double>>& x) const;
+
+	// Adds a variable to the function. All variables must be added
+	// before any terms containing them are added.
+	void add_variable_internal(double* variable,
+	                           int dimension,
+	                           ChangeOfVariables* change_of_variables = 0);
+
+	// Copies variables from a global vector x to the Function's
+	// local storage.
+	void copy_global_to_local(const Eigen::VectorXd& x) const;
+	// Copies variables from a global vector x to the storage
+	// provided by the user.
+	void copy_global_to_user(const Eigen::VectorXd& x) const;
+	// Copies variables from a the storage provided by the user
+	// to a global vector x.
+	void copy_user_to_global(Eigen::VectorXd* x) const;
+	// Copies variables from a the storage provided by the user
+	// to the Function's local storage.
+	void copy_user_to_local() const;
+
+	// Evaluates the function at the point in the local storage.
+	double evaluate_from_local_storage() const;
+
+	// A set of all terms added to the function. This is
+	// used when the function is destructed.
+	std::set<const Term*> added_terms;
+
+	// All variables added to the function.
+	std::map<double*, AddedVariable> variables;
+
+	// Each variable can have several dimensions. This member
+	// keeps track of the total number of scalars.
+	size_t number_of_scalars;
+
+	// All terms added to the function.
+	std::vector<AddedTerm> terms;
+
+	// Number of threads used for evaluation.
+	int number_of_threads;
+
+	// Allocates temporary storage for gradient evaluations.
+	// Should be called automatically at first evaluate()
+	void allocate_local_storage() const;
+
+	// If finalize has been called.
+	mutable bool local_storage_allocated;
+	// Has to be mutable because the temporary storage
+	// needs to be written to.
+	mutable std::vector< std::vector<Eigen::VectorXd> >
+		thread_gradient_scratch;
+	mutable std::vector<Eigen::VectorXd>
+		thread_gradient_storage;
+
+	// Stored how many element were used the last time the Hessian
+	// was created.
+	mutable size_t number_of_hessian_elements;
+
+private:
+	Function* interface;
+};
+
+Function::Function() :
+	impl(new Function::Implementation(this))
+{
+	impl->number_of_scalars = 0;
 	this->term_deletion = DeleteTerms;
 
 	this->hessian_is_enabled = true;
 
-	this->number_of_hessian_elements = 0;
+	impl->number_of_hessian_elements = 0;
 
 	this->evaluations_without_gradient = 0;
 	this->evaluations_with_gradient    = 0;
@@ -27,33 +122,62 @@ Function::Function()
 	this->copy_time                   = 0;
 
 	#ifdef USE_OPENMP
-		this->number_of_threads = omp_get_max_threads();
+		impl->number_of_threads = omp_get_max_threads();
 	#else
 		this->number_of_threads = 1;
 	#endif
 
-	this->local_storage_allocated = false;
+	impl->local_storage_allocated = false;
 }
 
 Function::~Function()
 {
 	if (this->term_deletion == DeleteTerms) {
-		for (auto itr = added_terms.begin(); itr != added_terms.end(); ++itr) {
+		for (auto itr = impl->added_terms.begin();
+		     itr != impl->added_terms.end(); ++itr) {
 			delete *itr;
 		}
 	}
 
 	// Go through all variables and destroy all change of variables objects.
-	for (auto itr = variables.begin(); itr != variables.end(); ++itr) {
+	for (auto itr = impl->variables.begin();
+	     itr != impl->variables.end(); ++itr) {
 		if (itr->second.change_of_variables) {
 			delete itr->second.change_of_variables;
 		}
 	}
+
+	delete impl;
+}
+
+void Function::add_variable(double* variable,
+	                  int dimension)
+{
+	impl->add_variable_internal(variable, dimension);
+}
+
+size_t Function::get_number_of_variables() const
+{
+	return impl->variables.size();
+}
+
+// Returns the current number of scalars the function contains.
+// (each variable contains of one or several scalars.)
+size_t Function::get_number_of_scalars() const
+{
+	return impl->number_of_scalars;
 }
 
 void Function::add_variable_internal(double* variable,
                                      int dimension,
                                      ChangeOfVariables* change_of_variables)
+{
+	impl->add_variable_internal(variable, dimension, change_of_variables);
+}
+
+void Function::Implementation::add_variable_internal(double* variable,
+                                                    int dimension,
+                                                    ChangeOfVariables* change_of_variables)
 {
 	this->local_storage_allocated = false;
 
@@ -113,14 +237,14 @@ void Function::add_variable_internal(double* variable,
 
 void Function::add_term(const Term* term, const std::vector<double*>& arguments)
 {
-	this->local_storage_allocated = false;
+	impl->local_storage_allocated = false;
 
 	if (term->number_of_variables() != arguments.size()) {
 		throw std::runtime_error("Function::add_term: incorrect number of arguments.");
 	}
 	for (int var = 0; var < term->number_of_variables(); ++var) {
-		auto var_itr = variables.find(arguments[var]);
-		if (var_itr == variables.end()) {
+		auto var_itr = impl->variables.find(arguments[var]);
+		if (var_itr == impl->variables.end()) {
 			throw std::runtime_error("Function::add_term: unknown variable.");
 		}
 		// The x-dimension of the variable must match what is expected by the term.
@@ -129,31 +253,36 @@ void Function::add_term(const Term* term, const std::vector<double*>& arguments)
 		}
 	}
 
-	added_terms.insert(term);
+	impl->added_terms.insert(term);
 
-	terms.push_back(AddedTerm());
-	terms.back().term = term;
+	impl->terms.push_back(AddedTerm());
+	impl->terms.back().term = term;
 
 	for (int var = 0; var < term->number_of_variables(); ++var) {
 		// Look up this variable.
-		AddedVariable& added_variable = this->variables[arguments[var]];
-		terms.back().user_variables.push_back(&added_variable);
+		AddedVariable& added_variable = impl->variables[arguments[var]];
+		impl->terms.back().user_variables.push_back(&added_variable);
 		// Stora a pointer to temporary storage for this variable.
 		double* temp_space = &added_variable.temp_space[0];
-		terms.back().temp_variables.push_back(temp_space);
+		impl->terms.back().temp_variables.push_back(temp_space);
 	}
 
 	if (this->hessian_is_enabled) {
 		// Create enough space for the hessian.
-		terms.back().hessian.resize(term->number_of_variables());
+		impl->terms.back().hessian.resize(term->number_of_variables());
 		for (int var0 = 0; var0 < term->number_of_variables(); ++var0) {
-			terms.back().hessian[var0].resize(term->number_of_variables());
+			impl->terms.back().hessian[var0].resize(term->number_of_variables());
 			for (int var1 = 0; var1 < term->number_of_variables(); ++var1) {
-				terms.back().hessian[var0][var1].resize(term->variable_dimension(var0),
+				impl->terms.back().hessian[var0][var1].resize(term->variable_dimension(var0),
 														term->variable_dimension(var1));
 			}
 		}
 	}
+}
+
+size_t Function::get_number_of_terms() const
+{
+	return impl->terms.size();
 }
 
 void Function::set_number_of_threads(int num)
@@ -163,12 +292,12 @@ void Function::set_number_of_threads(int num)
 			throw std::runtime_error("Function::set_number_of_threads: "
 			                         "invalid number of threads.");
 		}
-		this->local_storage_allocated = false;
-		this->number_of_threads = num;
+		impl->local_storage_allocated = false;
+		impl->number_of_threads = num;
 	#endif
 }
 
-void Function::allocate_local_storage() const
+void Function::Implementation::allocate_local_storage() const
 {
 	size_t max_arity = 1;
 	int max_variable_dimension = 1;
@@ -218,9 +347,9 @@ void Function::print_timing_information(std::ostream& out) const
 	out << "Function copy data time           : " << copy_time << '\n';
 }
 
-double Function::evaluate_from_local_storage() const
+double Function::Implementation::evaluate_from_local_storage() const
 {
-	this->evaluations_without_gradient++;
+	interface->evaluations_without_gradient++;
 	double start_time = wall_time();
 
 	double value = 0;
@@ -266,7 +395,7 @@ double Function::evaluate_from_local_storage() const
 		}
 	#endif
 
-	this->evaluate_time += wall_time() - start_time;
+	interface->evaluate_time += wall_time() - start_time;
 	return value;
 }
 
@@ -274,27 +403,27 @@ double Function::evaluate(const Eigen::VectorXd& x) const
 {
 	// Copy values from the global vector x to the temporary storage
 	// used for evaluating the term.
-	this->copy_global_to_local(x);
+	impl->copy_global_to_local(x);
 
-	return this->evaluate_from_local_storage();
+	return impl->evaluate_from_local_storage();
 }
 
 double Function::evaluate() const
 {
 	// Copy the user state to the local storage
 	// for evaluation.
-	this->copy_user_to_local();
+	impl->copy_user_to_local();
 
-	return this->evaluate_from_local_storage();
+	return impl->evaluate_from_local_storage();
 }
 
 void Function::create_sparse_hessian(Eigen::SparseMatrix<double>* H) const
 {
 	std::vector<Eigen::Triplet<double> > indices;
-	indices.reserve(this->number_of_hessian_elements);
-	this->number_of_hessian_elements = 0;
+	indices.reserve(impl->number_of_hessian_elements);
+	impl->number_of_hessian_elements = 0;
 
-	for (auto itr = terms.begin(); itr != terms.end(); ++itr) {
+	for (auto itr = impl->terms.begin(); itr != impl->terms.end(); ++itr) {
 		// Put the hessian into the global hessian.
 		for (int var0 = 0; var0 < itr->term->number_of_variables(); ++var0) {
 			size_t global_offset0 = itr->user_variables[var0]->global_index;
@@ -307,19 +436,20 @@ void Function::create_sparse_hessian(Eigen::SparseMatrix<double>* H) const
 						indices.push_back(Eigen::Triplet<double>(global_i,
 						                                         global_j,
 						                                         1.0));
-						this->number_of_hessian_elements++;
+						impl->number_of_hessian_elements++;
 					}
 				}
 			}
 		}
 	}
-	H->resize(static_cast<int>(this->number_of_scalars),
-	          static_cast<int>(this->number_of_scalars));
+
+	auto n = static_cast<int>(impl->number_of_scalars);
+	H->resize(n, n);
 	H->setFromTriplets(indices.begin(), indices.end());
 	H->makeCompressed();
 }
 
-void Function::copy_global_to_local(const Eigen::VectorXd& x) const
+void Function::Implementation::copy_global_to_local(const Eigen::VectorXd& x) const
 {
 	double start_time = wall_time();
 
@@ -336,10 +466,15 @@ void Function::copy_global_to_local(const Eigen::VectorXd& x) const
 		}
 	}
 
-	this->copy_time += wall_time() - start_time;
+	interface->copy_time += wall_time() - start_time;
 }
 
 void Function::copy_user_to_global(Eigen::VectorXd* x) const
+{
+	impl->copy_user_to_global(x);
+}
+
+void Function::Implementation::copy_user_to_global(Eigen::VectorXd* x) const
 {
 	double start_time = wall_time();
 
@@ -357,10 +492,15 @@ void Function::copy_user_to_global(Eigen::VectorXd* x) const
 		}
 	}
 
-	this->copy_time += wall_time() - start_time;
+	interface->copy_time += wall_time() - start_time;
 }
 
 void Function::copy_global_to_user(const Eigen::VectorXd& x) const
+{
+	impl->copy_global_to_user(x);
+}
+
+void Function::Implementation::copy_global_to_user(const Eigen::VectorXd& x) const
 {
 	double start_time = wall_time();
 
@@ -377,10 +517,10 @@ void Function::copy_global_to_user(const Eigen::VectorXd& x) const
 		}
 	}
 
-	this->copy_time += wall_time() - start_time;
+	interface->copy_time += wall_time() - start_time;
 }
 
-void Function::copy_user_to_local() const
+void Function::Implementation::copy_user_to_local() const
 {
 	double start_time = wall_time();
 
@@ -390,7 +530,7 @@ void Function::copy_user_to_local() const
 		}
 	}
 
-	this->copy_time += wall_time() - start_time;
+	interface->copy_time += wall_time() - start_time;
 }
 
 double Function::evaluate(const Eigen::VectorXd& x,
@@ -399,13 +539,21 @@ double Function::evaluate(const Eigen::VectorXd& x,
 	return this->evaluate(x, gradient, reinterpret_cast<Eigen::MatrixXd*>(0));
 }
 
+
 double Function::evaluate(const Eigen::VectorXd& x,
                           Eigen::VectorXd* gradient,
 						  Eigen::MatrixXd* hessian) const
 {
-	this->evaluations_with_gradient++;
+	return impl->evaluate(x, gradient, hessian);
+}
 
-	if (hessian && ! this->hessian_is_enabled) {
+double Function::Implementation::evaluate(const Eigen::VectorXd& x,
+                                          Eigen::VectorXd* gradient,
+						                  Eigen::MatrixXd* hessian) const
+{
+	interface->evaluations_with_gradient++;
+
+	if (hessian && ! interface->hessian_is_enabled) {
 		throw std::runtime_error("Function::evaluate: Hessian computation is not enabled.");
 	}
 
@@ -503,7 +651,7 @@ double Function::evaluate(const Eigen::VectorXd& x,
 		}
 	#endif
 
-	this->evaluate_with_hessian_time += wall_time() - start_time;
+	interface->evaluate_with_hessian_time += wall_time() - start_time;
 	start_time = wall_time();
 
 	// Create the global gradient.
@@ -546,7 +694,7 @@ double Function::evaluate(const Eigen::VectorXd& x,
 		}
 	}
 
-	this->write_gradient_hessian_time += wall_time() - start_time;
+	interface->write_gradient_hessian_time += wall_time() - start_time;
 	return value;
 }
 
@@ -554,13 +702,20 @@ double Function::evaluate(const Eigen::VectorXd& x,
                           Eigen::VectorXd* gradient,
 						  Eigen::SparseMatrix<double>* hessian) const
 {
-	this->evaluations_with_gradient++;
+	return impl->evaluate(x, gradient, hessian);
+}
+
+double Function::Implementation::evaluate(const Eigen::VectorXd& x,
+                                          Eigen::VectorXd* gradient,
+						                  Eigen::SparseMatrix<double>* hessian) const
+{
+	interface->evaluations_with_gradient++;
 
 	if (! hessian) {
 		throw std::runtime_error("Function::evaluate: hessian can not be null.");
 	}
 
-	if (! this->hessian_is_enabled) {
+	if (! interface->hessian_is_enabled) {
 		throw std::runtime_error("Function::evaluate: Hessian computation is not enabled.");
 	}
 
@@ -578,7 +733,7 @@ double Function::evaluate(const Eigen::VectorXd& x,
 	indices.reserve(this->number_of_hessian_elements);
 	this->number_of_hessian_elements = 0;
 
-	this->write_gradient_hessian_time += wall_time() - start_time;
+	interface->write_gradient_hessian_time += wall_time() - start_time;
 	start_time = wall_time();
 
 	// Initialize each thread's global gradient.
@@ -649,7 +804,7 @@ double Function::evaluate(const Eigen::VectorXd& x,
 		}
 	#endif
 
-	this->evaluate_with_hessian_time += wall_time() - start_time;
+	interface->evaluate_with_hessian_time += wall_time() - start_time;
 	start_time = wall_time();
 
 	// Create the global gradient.
@@ -692,14 +847,19 @@ double Function::evaluate(const Eigen::VectorXd& x,
 	hessian->setFromTriplets(indices.begin(), indices.end());
 	//hessian->makeCompressed();
 
-	this->write_gradient_hessian_time += wall_time() - start_time;
+	interface->write_gradient_hessian_time += wall_time() - start_time;
 
 	return value;
 }
 
 Interval<double> Function::evaluate(const std::vector<Interval<double>>& x) const
 {
-	this->evaluations_without_gradient++;
+	return impl->evaluate(x);
+}
+
+Interval<double>  Function::Implementation::evaluate(const std::vector<Interval<double>>& x) const
+{
+	interface->evaluations_without_gradient++;
 	double start_time = wall_time();
 
 	std::vector<const Interval<double> *> scratch_space;
@@ -709,13 +869,15 @@ Interval<double> Function::evaluate(const std::vector<Interval<double>>& x) cons
 	for (int i = 0; i < terms.size(); ++i) {
 		// Evaluate the term.
 		scratch_space.clear();
-		for (auto var : terms[i].user_variables) {
+		for (auto itr = terms[i].user_variables.begin();
+		     itr != terms[i].user_variables.end(); ++itr) {
+			const auto& var = *itr;
 			scratch_space.push_back(&x[var->global_index]);
 		}
 		value += terms[i].term->evaluate_interval(&scratch_space[0]);
 	}
 
-	this->evaluate_time += wall_time() - start_time;
+	interface->evaluate_time += wall_time() - start_time;
 	return value;
 }
 

@@ -12,12 +12,13 @@
 #include <iostream>
 #include <string>
 
+#include <spii/spii.h>
 #include <spii/function.h>
 
 namespace spii {
 
 // SolverResults contains the result of a call to Solver::solve.
-struct SolverResults
+struct SPII_API SolverResults
 {
 	SolverResults();
 
@@ -50,22 +51,28 @@ struct SolverResults
 	double total_time;
 
 	// The minimum value of the function being minimized is
-	// in this interval. This member is only set by global
+	// in this interval. These members are only set by global
 	// optmization solvers.
-	Interval<double> optimum;
+	double optimum_lower;
+	double optimum_upper;
 };
 
-std::ostream& operator<<(std::ostream& out, const SolverResults& results);
+SPII_API std::ostream& operator<<(std::ostream& out, const SolverResults& results);
 
+struct FactorizationCacheInternal;
 class FactorizationCache
 {
 public:
 	FactorizationCache(int n);
 	~FactorizationCache();
-	void* data;
+	FactorizationCacheInternal* data;
 };
 
-class Solver
+#ifdef _WIN32
+	SPII_API_EXTERN_TEMPLATE template class SPII_API std::function<void(const std::string&)>;
+#endif
+
+class SPII_API Solver
 {
 public:
 	Solver();

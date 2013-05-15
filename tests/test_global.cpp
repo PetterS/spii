@@ -58,7 +58,7 @@ TEST_CASE("global_optimization/simple_function1", "Petter")
 	INFO(info_buffer.str());
 	INFO(results);
 
-	auto opt = results.optimum;
+	auto opt = Interval<double>(results.optimum_lower, results.optimum_upper);
 	CHECK((opt.get_upper() - opt.get_lower()) <= 1e-3);
 	auto val = f.evaluate();
 	CHECK(opt.get_lower() <= val); CHECK(val <= opt.get_upper());
@@ -89,7 +89,7 @@ TEST_CASE("global_optimization/simple_function2", "Petter")
 	INFO(info_buffer.str());
 	INFO(results);
 
-	auto opt = results.optimum;
+	auto opt = Interval<double>(results.optimum_lower, results.optimum_upper);
 	CHECK((opt.get_upper() - opt.get_lower()) <= 1e-10);
 	CHECK(results.exit_condition == SolverResults::FUNCTION_TOLERANCE);
 	CHECK(opt.get_lower() <= 1.0); CHECK(1.0 <= opt.get_upper());
@@ -121,7 +121,7 @@ TEST_CASE("global_optimization/simple_function1-1", "Petter")
 	INFO(info_buffer.str());
 	INFO(results);
 
-	auto opt = results.optimum;
+	auto opt = Interval<double>(results.optimum_lower, results.optimum_upper);
 	CHECK((opt.get_upper() - opt.get_lower()) <= 1e-10);
 	CHECK(results.exit_condition == SolverResults::FUNCTION_TOLERANCE);
 	CHECK(opt.get_lower() <= 1.0); CHECK(1.0 <= opt.get_upper());

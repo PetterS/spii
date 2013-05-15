@@ -21,7 +21,8 @@ SolverResults::SolverResults()
 	this->total_time                = 0;
 
 	auto inf = std::numeric_limits<double>::infinity();
-	this->optimum = Interval<double>(-inf, inf);
+	this->optimum_lower = -inf;
+	this->optimum_upper =  inf;
 }
 
 std::ostream& operator<<(std::ostream& out, const SolverResults& results)

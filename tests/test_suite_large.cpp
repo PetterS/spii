@@ -19,13 +19,14 @@ void info_log_function(const std::string& str)
 	INFO(str);
 }
 
-void run_test_main(const std::function<Function(std::vector<double>&)>& function,
+void run_test_main(const std::function<void(std::vector<double>&, Function*)>& create_f,
                    const std::function<std::vector<double>(int)>& start, 
                    int n,
                    Solver::Method method)
 {
 	auto this_start = start(n);
-	auto f = function(this_start);
+	Function f;
+	create_f(this_start, &f);
 	REQUIRE(f.get_number_of_scalars() == this_start.size());
 
 	Solver solver;
@@ -41,30 +42,30 @@ void run_test_main(const std::function<Function(std::vector<double>&)>& function
 	CHECK(results.exit_success());
 }
 
-void run_test(const std::function<Function(std::vector<double>&)>& function,
+void run_test(const std::function<void(std::vector<double>&, Function*)>& create_f,
               const std::function<std::vector<double>(int)>& start,
               bool test_newton = true)
 {
 	if (test_newton) {
 		SECTION("Newton-100", "") {
-			run_test_main(function, start, 100, Solver::NEWTON);
+			run_test_main(create_f, start, 100, Solver::NEWTON);
 		}
 		SECTION("Newton-1000", "") {
-			run_test_main(function, start, 1000, Solver::NEWTON);
+			run_test_main(create_f, start, 1000, Solver::NEWTON);
 		}
 		SECTION("Newton-10000", "") {
-			run_test_main(function, start, 10000, Solver::NEWTON);
+			run_test_main(create_f, start, 10000, Solver::NEWTON);
 		}
 	}
 
 	SECTION("LBFGS-100", "") {
-		run_test_main(function, start, 100, Solver::LBFGS);
+		run_test_main(create_f, start, 100, Solver::LBFGS);
 	}
 	SECTION("LBFGS-1000", "") {
-		run_test_main(function, start, 1000, Solver::LBFGS);
+		run_test_main(create_f, start, 1000, Solver::LBFGS);
 	}
 	SECTION("LBFGS-10000", "") {
-		run_test_main(function, start, 10000, Solver::LBFGS);
+		run_test_main(create_f, start, 10000, Solver::LBFGS);
 	}
 }
 

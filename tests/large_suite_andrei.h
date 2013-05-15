@@ -29,12 +29,10 @@
 #define LARGE_SUITE_BEGIN(Model) \
 	TEST_CASE(#Model, "") \
 	{ \
-		auto create_function = [](std::vector<double>& start) -> Function \
+		auto create_function = [](std::vector<double>& start, Function* f) -> void \
 		{ \
-			int n = start.size(); \
-			Function f;
+			int n = start.size();
 #define LARGE_SUITE_MIDDLE \
-			return f; \
 		}; \
 		auto start_value = [](int n) -> std::vector<double> \
 		{ \
@@ -56,10 +54,10 @@ END_MODEL
 
 LARGE_SUITE_BEGIN(FreudenSteinRoth)
 	for (int i = 0; i < n/2; ++i) {
-		f.add_variable(&start[2*i], 2);
+		f->add_variable(&start[2*i], 2);
 	}
 	for (int i = 0; i < n/2; ++i) {
-		f.add_term(new AutoDiffTerm<FreudenSteinRoth, 2>(
+		f->add_term(new AutoDiffTerm<FreudenSteinRoth, 2>(
 			new FreudenSteinRoth), &start[2*i]);
 	}
 LARGE_SUITE_MIDDLE
@@ -84,10 +82,10 @@ END_MODEL
 
 LARGE_SUITE_BEGIN(Rosenbrock)
 	for (int i = 0; i < n/2; ++i) {
-		f.add_variable(&start[2*i], 2);
+		f->add_variable(&start[2*i], 2);
 	}
 	for (int i = 0; i < n/2; ++i) {
-		f.add_term(new AutoDiffTerm<Rosenbrock, 2>(
+		f->add_term(new AutoDiffTerm<Rosenbrock, 2>(
 			new Rosenbrock), &start[2*i]);
 	}
 LARGE_SUITE_MIDDLE
@@ -109,10 +107,10 @@ END_MODEL
 
 LARGE_SUITE_BEGIN(WhiteHolst)
 	for (int i = 0; i < n/2; ++i) {
-		f.add_variable(&start[2*i], 2);
+		f->add_variable(&start[2*i], 2);
 	}
 	for (int i = 0; i < n/2; ++i) {
-		f.add_term(new AutoDiffTerm<WhiteHolst, 2>(
+		f->add_term(new AutoDiffTerm<WhiteHolst, 2>(
 			new WhiteHolst), &start[2*i]);
 	}
 LARGE_SUITE_MIDDLE
@@ -192,13 +190,13 @@ END_MODEL
 
 LARGE_SUITE_BEGIN(TRIDIA)
 	for (int i = 0; i < n; ++i) {
-		f.add_variable(&start[i], 1);
+		f->add_variable(&start[i], 1);
 	}
-	f.add_term(new AutoDiffTerm<TRIDIA1, 1>(
+	f->add_term(new AutoDiffTerm<TRIDIA1, 1>(
 		new TRIDIA1), &start[0]);
 
 	for (int i = 1; i < n; ++i) {
-		f.add_term(new AutoDiffTerm<TRIDIA2, 1, 1>(
+		f->add_term(new AutoDiffTerm<TRIDIA2, 1, 1>(
 			new TRIDIA2(i + 1)), &start[i-1], &start[i]);
 	}
 
