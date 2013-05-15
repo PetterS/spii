@@ -124,7 +124,7 @@ Function::Function() :
 	#ifdef USE_OPENMP
 		impl->number_of_threads = omp_get_max_threads();
 	#else
-		this->number_of_threads = 1;
+		impl->number_of_threads = 1;
 	#endif
 
 	impl->local_storage_allocated = false;
