@@ -1,8 +1,8 @@
 #ifndef SPII_AUTO_DIFF_TERM_H
 #define SPII_AUTO_DIFF_TERM_H
 
-#include <badiff.h>
-#include <fadiff.h>
+#include <spii-thirdparty/badiff.h>
+#include <spii-thirdparty/fadiff.h>
 
 #include <spii/term.h>
 

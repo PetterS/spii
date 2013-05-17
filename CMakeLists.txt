@@ -44,13 +44,14 @@ INCLUDE_DIRECTORIES(
   include
   thirdparty/boost
   SYSTEM thirdparty/Catch
-  thirdparty/FADBAD++
   thirdparty/Eigen
   SYSTEM thirdparty/meschach
   )
 
 FILE(GLOB SPII_HEADERS ${CMAKE_SOURCE_DIR}/include/spii/*.h)
+FILE(GLOB SPII_THIRD_PARTY_HEADERS ${CMAKE_SOURCE_DIR}/include/spii-thirdparty/*.h)
 INSTALL(FILES ${SPII_HEADERS} DESTINATION include/spii)
+INSTALL(FILES ${SPII_THIRD_PARTY_HEADERS} DESTINATION include/spii-thirdparty)
 
 # Library dependencies
 SET (SPII_LIBRARY_DEPENDENCIES)

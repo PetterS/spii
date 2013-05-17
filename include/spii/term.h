@@ -12,9 +12,6 @@ using std::size_t;
 
 #include <Eigen/Core>
 
-#include <badiff.h>
-#include <fadiff.h>
-
 #include <spii/interval.h>
 
 namespace spii

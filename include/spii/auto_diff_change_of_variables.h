@@ -2,12 +2,7 @@
 #ifndef SPII_AUTO_DIFF_CHANGE_OF_VARIABLES_H
 #define SPII_AUTO_DIFF_CHANGE_OF_VARIABLES_H
 
-#include <iostream>
-#include <vector>
-using std::size_t;
-
-#include <badiff.h>
-#include <fadiff.h>
+#include <spii-thirdparty/fadiff.h>
 
 #include <spii/change_of_variables.h>
 
