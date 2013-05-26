@@ -1,6 +1,9 @@
 #ifndef SPII_AUTO_DIFF_TERM_H
 #define SPII_AUTO_DIFF_TERM_H
 
+#include <type_traits>
+#include <typeinfo>
+
 #include <spii-thirdparty/badiff.h>
 #include <spii-thirdparty/fadiff.h>
 
@@ -23,6 +26,65 @@ class AutoDiffTerm :
 {
 
 };
+
+
+
+//
+// Create a has_write struct to test whether a class T as a member
+// function void T::write
+//
+// has_write<T, B>::value == true iff "void T::write(B)" exists.
+//
+template<class T, class A0>
+static auto test_write(A0&& a0, int) -> decltype(std::declval<T>().write(a0), void());
+template<class, class A0>
+static char test_write(A0&&, long);
+template<class T, class Arg>
+struct has_write : std::is_void<decltype(test_write<T>(std::declval<Arg>(), 0))>{};
+// Test has_write.
+struct HasWriteTest1{ void write(int){} };
+struct HasWriteTest2{};
+static_assert(has_write<HasWriteTest1, int>::value  == true, "HasWriteTest1 failed.");
+static_assert(has_write<HasWriteTest2, int>::value  == false, "HasWriteTest2 failed.");
+
+// Same thing, but for a read member function.
+template<class T, class A0>
+static auto test_read(A0&& a0, int) -> decltype(std::declval<T>().read(a0), void());
+template<class, class A0>
+static char test_read(A0&&, long);
+template<class T, class Arg>
+struct has_read : std::is_void<decltype(test_read<T>(std::declval<Arg>(), 0))>{};
+// Test test_read.
+struct HasReadTest1{ void read(std::istream&){} };
+struct HasReadTest2{};
+static_assert(has_read<HasReadTest1, std::istream&>::value  == true,  "HasReadTest1 failed.");
+static_assert(has_read<HasReadTest2, std::istream&>::value  == false, "HasReadTest2 failed.");
+
+template<typename Functor>
+typename std::enable_if<has_write<Functor, std::ostream&>::value, void>::type 
+    call_write_if_exists(std::ostream& out, const Functor& functor)
+{
+    functor.write(out);
+}
+template<typename Functor>
+typename std::enable_if< ! has_write<Functor, std::ostream&>::value, void>::type 
+    call_write_if_exists(std::ostream& out, const Functor& functor)
+{
+}
+
+template<typename Functor>
+typename std::enable_if<has_read<Functor, std::istream&>::value, void>::type 
+    call_read_if_exists(std::istream& in, Functor& functor)
+{
+	functor.read(in);
+}
+template<typename Functor>
+typename std::enable_if< ! has_read<Functor, std::istream&>::value, void>::type 
+    call_read_if_exists(std::istream& in, const Functor& functor)
+{
+}
+ 
+
 
 // to_double(x) returns the real part of x, disregarding
 // any derivatives.
@@ -67,7 +129,7 @@ class AutoDiffTerm<Functor, D0, 0, 0, 0> :
 	public SizedTerm<D0, 0, 0, 0>
 {
 public:
-	AutoDiffTerm(const Functor* f)
+	AutoDiffTerm(Functor* f)
 	{
 		this->functor = f;
 	}
@@ -75,6 +137,16 @@ public:
 	~AutoDiffTerm()
 	{
 		delete this->functor;
+	}
+
+	virtual void read(std::istream& in)
+	{
+		call_read_if_exists(in, *this->functor);
+	}
+
+	virtual void write(std::ostream& out) const
+	{
+		call_write_if_exists(out, *this->functor);
 	}
 
 	virtual double evaluate(double * const * const variables) const
@@ -155,7 +227,7 @@ public:
 	}
 
 protected:
-	const Functor* functor;
+	Functor* functor;
 };
 
 
@@ -188,7 +260,7 @@ class AutoDiffTerm<Functor, D0, D1, 0, 0> :
 	public SizedTerm<D0, D1, 0, 0>
 {
 public:
-	AutoDiffTerm(const Functor* f)
+	AutoDiffTerm(Functor* f)
 	{
 		this->functor = f;
 	}
@@ -196,6 +268,16 @@ public:
 	~AutoDiffTerm()
 	{
 		delete this->functor;
+	}
+
+	virtual void read(std::istream& in)
+	{
+		call_read_if_exists(in, *this->functor);
+	}
+
+	virtual void write(std::ostream& out) const
+	{
+		call_write_if_exists(out, *this->functor);
 	}
 
 	virtual double evaluate(double * const * const variables) const
@@ -345,9 +427,10 @@ public:
 	}
 
 protected:
-	const Functor* functor;
+	Functor* functor;
 };
 
 }  // namespace spii
+
 
 #endif

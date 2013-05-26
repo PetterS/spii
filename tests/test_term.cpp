@@ -254,3 +254,105 @@ TEST_CASE("AutoDiffTerm/MyFunctor2", "")
 	CHECK(Approx(hessian[1][0](0,0)) == 1.4);
 	CHECK(Approx(hessian[0][1](0,0)) == 1.4);
 }
+
+struct WriteFunctor1
+{
+	template<typename R>
+	R operator()(const R* const x) const
+	{
+		return 0.;
+	}
+
+	template<typename R>
+	R operator()(const R* const x, const R* const y) const
+	{
+		return 0.;
+	}
+
+	void write(std::ostream& out) const
+	{
+		out << "Petter";
+	}
+};
+
+
+TEST_CASE("AutoDiffTerm/write_test1", "")
+{
+	auto tmp = "tmp";
+
+	std::ofstream fout(tmp);
+	Term* term1 = new AutoDiffTerm<WriteFunctor1,1>(new WriteFunctor1);
+	fout << *term1;
+	delete term1;
+	fout.close();
+		
+	std::ifstream fin(tmp);
+	std::string petter;
+	fin >> petter;
+	fin.close();
+	CHECK(petter == "Petter");
+}
+
+TEST_CASE("AutoDiffTerm/write_test1_1", "")
+{
+	auto tmp = "tmp";
+
+	std::ofstream fout(tmp);
+	Term* term1_1 = new AutoDiffTerm<WriteFunctor1, 1, 1>(new WriteFunctor1);
+	fout << *term1_1;
+	delete term1_1;
+	fout.close();
+		
+	std::ifstream fin(tmp);
+	std::string petter;
+	fin >> petter;
+	fin.close();
+	CHECK(petter == "Petter");
+}
+
+struct ReadFunctor
+{
+	int* n;
+
+	ReadFunctor(int* n_in) : n(n_in) { }
+
+	template<typename R>
+	R operator()(const R* const x) const
+	{
+		return 0.;
+	}
+
+	template<typename R>
+	R operator()(const R* const x, const R* const y) const
+	{
+		return 0.;
+	}
+
+	void read(std::istream& in)
+	{
+		in >> *n;
+	}
+};
+
+TEST_CASE("AutoDiffTerm/read_test", "")
+{
+	auto tmp = "tmp";
+
+	std::ofstream fout(tmp);
+	fout << 42;
+	fout.close();
+
+	int n = 0;
+	Term* term1 = new AutoDiffTerm<ReadFunctor, 1>(new ReadFunctor(&n));
+	std::ifstream fin(tmp);
+	fin >> *term1;
+	CHECK(n == 42);
+	delete term1;
+	
+	int m = 0;
+	Term* term1_1 = new AutoDiffTerm<ReadFunctor, 1, 1>(new ReadFunctor(&m));
+	std::ifstream fin2(tmp);
+	fin2 >> *term1_1;
+	CHECK(m == 42);
+	delete term1_1;
+}

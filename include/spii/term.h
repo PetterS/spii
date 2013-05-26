@@ -6,18 +6,20 @@
 // so that the derivatives do not have to be explicitly computed.
 
 #include <cstddef>
+#include <iostream>
 #include <stdexcept>
 #include <vector>
 using std::size_t;
 
 #include <Eigen/Core>
 
+#include <spii/spii.h>
 #include <spii/interval.h>
 
 namespace spii
 {
 
-class Term
+class SPII_API Term
 {
 public:
 	virtual ~Term() {};
@@ -32,11 +34,14 @@ public:
 
 	// This function only needs to be implemented if interval arithmetic is
 	// desired.
-	virtual Interval<double> evaluate_interval(const Interval<double> * const * const variables) const
-	{
-		throw std::runtime_error("evaluate_interval: Not implemented.");
-	};
+	virtual Interval<double> evaluate_interval(const Interval<double> * const * const variables) const;
+	// Overload these if input/output is required.
+	virtual void read(std::istream& in);
+	virtual void write(std::ostream& out) const;
 };
+
+SPII_API std::ostream& operator << (std::ostream& out, const Term& term);
+SPII_API std::istream& operator >> (std::istream& in, Term& term);
 
 template<int D0,int D1 = 0, int D2 = 0, int D3 = 0>
 class SizedTerm :

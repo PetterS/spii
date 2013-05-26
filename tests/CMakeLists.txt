@@ -12,6 +12,7 @@ MACRO (SPII_TEST NAME)
 ENDMACRO (SPII_TEST)
 
 SPII_TEST(function)
+SPII_TEST(function_serializer)
 SPII_TEST(global)
 SPII_TEST(interval)
 SPII_TEST(nist)
@@ -22,6 +23,7 @@ SPII_TEST(suite_newton)
 SPII_TEST(suite_nelder_mead)
 SPII_TEST(suite_pattern_search)
 SPII_TEST(term)
+SPII_TEST(term_factory)
 
 # Meschach test does not link to spii.
 ADD_EXECUTABLE(test_meschach test_meschach.cpp)

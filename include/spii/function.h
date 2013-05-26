@@ -17,6 +17,7 @@ using std::size_t;
 #include <spii/change_of_variables.h>
 #include <spii/interval.h>
 #include <spii/term.h>
+#include <spii/term_factory.h>
 
 namespace spii {
 
@@ -140,6 +141,9 @@ public:
 
 	// Prints the recorded timing information.
 	void print_timing_information(std::ostream& out) const;
+
+	void write_to_stream(std::ostream& out) const;
+	void read_from_stream(std::istream& in, std::vector<double>* user_space, const TermFactory& factory);
 
 private:
 

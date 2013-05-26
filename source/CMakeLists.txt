@@ -2,6 +2,7 @@
 
 SET(SPII_INTERNAL_SRC
 	function.cpp
+	function_serializer.cpp
 	solver.cpp
 	solver_global.cpp
 	solver_line_search.cpp
@@ -13,6 +14,7 @@ SET(SPII_INTERNAL_SRC
 	solver_stopping_criteria.cpp
 	spii.cpp
 	term.cpp
+	term_factory.cpp
 )
 
 SET(SPII_LIBRARY_SOURCE

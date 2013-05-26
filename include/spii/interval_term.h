@@ -21,7 +21,7 @@ class IntervalTerm<Functor, D0, 0, 0, 0> :
 	public AutoDiffTerm<Functor, D0, 0, 0, 0>
 {
 public:
-	IntervalTerm(const Functor* f):
+	IntervalTerm(Functor* f):
 		AutoDiffTerm<Functor, D0, 0, 0, 0>(f)
 	{
 	}
@@ -40,7 +40,7 @@ class IntervalTerm<Functor, D0, D1, 0, 0> :
 	public AutoDiffTerm<Functor, D0, D1, 0, 0>
 {
 public:
-	IntervalTerm(const Functor* f):
+	IntervalTerm(Functor* f):
 		AutoDiffTerm<Functor, D0, D1, 0, 0>(f)
 	{
 	}

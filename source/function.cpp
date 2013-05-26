@@ -1,8 +1,11 @@
 // Petter Strandmark 2012-2013.
 
+#include <algorithm>
 #include <exception>
+#include <iomanip>
 #include <iostream>
 #include <stdexcept>
+#include <typeinfo>
 
 #ifdef USE_OPENMP
 	#include <omp.h>
@@ -10,7 +13,6 @@
 
 #include <spii/function.h>
 #include <spii/spii.h>
-
 
 namespace spii {
 
@@ -884,6 +886,126 @@ Interval<double>  Function::Implementation::evaluate(const std::vector<Interval<
 
 	interface->evaluate_time += wall_time() - start_time;
 	return value;
+}
+
+void Function::write_to_stream(std::ostream& out) const
+{
+	using namespace std;
+
+	// Use high precision.
+	out << setprecision(30);
+
+	// Write version to stream;
+	out << "spii::function" << endl;
+	out << 1 << endl;
+	// Write the representation of a reasonably complicated class to
+	// the file. We can then check that the compiler-depended format
+	// matches.
+	out << TermFactory::fix_name(typeid(std::vector<std::map<double,int>>).name()) << endl;
+
+	out << impl->added_terms.size() << endl;
+	out << impl->variables.size() << endl;
+	out << impl->number_of_scalars << endl;
+
+	for (const auto& variable : impl->variables) {
+		if (variable.second.change_of_variables != nullptr) {
+			throw runtime_error("Function::write_to_stream: Change of variables not allowed.");
+		}
+		out << variable.second.user_dimension << endl;
+	}
+
+	Eigen::VectorXd x;
+	this->copy_user_to_global(&x);
+	for (int i = 0; i < impl->number_of_scalars; ++i) {
+		out << x[i] << " ";
+	}
+	out << endl;
+
+	for (const auto& added_term : impl->terms) {
+		string term_name = TermFactory::fix_name(typeid(*added_term.term).name());
+		out << term_name << endl;
+		out << added_term.user_variables.size() << endl;
+		for (const auto& var : added_term.user_variables) {
+			out << var->global_index << " ";
+		}
+		out << endl;
+		out << *added_term.term << endl;
+	}
+}
+
+void Function::read_from_stream(std::istream& in, std::vector<double>* user_space, const TermFactory& factory)
+{
+	using namespace std;
+	auto check = [&in](const char* variable_name) 
+	{ 
+		if (!in) {
+			std::string msg = "Function::read_from_stream: Reading ";
+			msg += variable_name;
+			msg += " failed.";
+			throw runtime_error(msg.c_str()); 
+		}
+	};
+	#define read_and_check(var) in >> var; check(#var); //cout << #var << " = " << var << endl;
+
+ 	// TODO: Clear f.
+
+	string spii_function;
+	read_and_check(spii_function);
+	if (spii_function != "spii::function") {
+		throw runtime_error("Function::read_from_stream: Not a function stream.");
+	}
+	int version;
+	read_and_check(version);
+	string compiler_type_format;
+	read_and_check(compiler_type_format);
+	if (compiler_type_format
+	    != TermFactory::fix_name(typeid(std::vector<std::map<double,int>>).name()))
+	{
+		throw runtime_error("Function::read_from_stream: Type format does not match. "
+		                    "Files can not be shared between compilers.");
+	}
+
+	unsigned number_of_terms;
+	read_and_check(number_of_terms);
+	unsigned number_of_variables;
+	read_and_check(number_of_variables);
+	unsigned number_of_scalars;
+	read_and_check(number_of_scalars);
+
+	user_space->resize(number_of_scalars);
+	int current_var = 0;
+	for (int i = 0; i < number_of_variables; ++i) {
+		int variable_dimension;
+		read_and_check(variable_dimension);
+		this->add_variable(&user_space->at(current_var), variable_dimension);
+		current_var += variable_dimension;
+	}
+	if (current_var != number_of_scalars) {
+		throw runtime_error("Function::read_from_stream: Not enough variables in stream.");
+	}
+
+	for (int i = 0; i < number_of_scalars; ++i) {
+		read_and_check(user_space->at(i));
+	}
+
+	for (int i = 0; i < number_of_terms; ++i) {
+		std::string term_name;
+		read_and_check(term_name);
+		unsigned term_vars;
+		read_and_check(term_vars);
+
+		std::vector<double*> arguments;
+		for (int i = 0; i < term_vars; ++i) {
+			int offset;
+			read_and_check(offset);
+			arguments.push_back(&user_space->at(offset));
+		}
+
+		Term* term = factory.create(term_name, in);
+		this->add_term(term, arguments);
+	}
+
+	#undef read_and_check
 }
 
 }  // namespace spii
