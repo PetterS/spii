@@ -60,13 +60,12 @@ FactorizationCache::FactorizationCache(int n)
 
 FactorizationCache::~FactorizationCache()
 {
-	auto cache = reinterpret_cast<FactorizationCacheInternal*>(this->data);
-	v_free(cache->b);
-	v_free(cache->x);
-	m_free(cache->Hmat);
-	px_free(cache->pivot);
-	px_free(cache->block);
-	delete cache;
+	v_free(this->data->b);
+	v_free(this->data->x);
+	m_free(this->data->Hmat);
+	px_free(this->data->pivot);
+	px_free(this->data->block);
+	delete this->data;
 }
 
 void Solver::BKP_dense(const Eigen::MatrixXd& H,
