@@ -14,6 +14,9 @@
 namespace spii
 {
 
+template<typename T>
+struct TermTeacher;
+
 class SPII_API TermFactory
 {
 public:
