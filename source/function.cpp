@@ -907,12 +907,19 @@ void Function::write_to_stream(std::ostream& out) const
 	out << impl->variables.size() << endl;
 	out << impl->number_of_scalars << endl;
 
+	vector<pair<int, int>> variable_dimensions; 
 	for (const auto& variable : impl->variables) {
 		if (variable.second.change_of_variables != nullptr) {
 			throw runtime_error("Function::write_to_stream: Change of variables not allowed.");
 		}
-		out << variable.second.user_dimension << endl;
+
+		variable_dimensions.emplace_back(variable.second.global_index, variable.second.user_dimension);
 	}
+	sort(variable_dimensions.begin(), variable_dimensions.end());
+	for (const auto& variable : variable_dimensions) {
+		out << variable.second << " ";
+	}
+	out << endl;
 
 	Eigen::VectorXd x;
 	this->copy_user_to_global(&x);
