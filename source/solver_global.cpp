@@ -235,7 +235,7 @@ void Solver::solve_global(const Function& function,
 				char tmp[1024];
 				sprintf(tmp, "%9d %6d %+10.3e %+10.3e %10.2e %10.3e %10.3e",
 					iterations,
-					queue.size(),
+					int(queue.size()),
 					lower_bound,
 					upper_bound,
 					relative_gap,
