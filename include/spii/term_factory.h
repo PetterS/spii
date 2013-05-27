@@ -62,7 +62,7 @@ struct TermTeacher
 };
 
 // Specialize for AutoDiffTerm.
-template<typename Functor, int D0, int D1 = 0, int D2 = 0, int D3 = 0>
+template<typename Functor, int D0, int D1, int D2, int D3>
 class AutoDiffTerm;
 template<typename T, int D0, int D1, int D2, int D3>
 struct TermTeacher< AutoDiffTerm<T,D0,D1,D2,D3> >
