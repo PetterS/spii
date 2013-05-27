@@ -20,10 +20,9 @@ Compilation
 Everything needed to compile the library, examples and tests using CMake should be included.
 All tests pass with the following compilers:
 * Visual Studio 2012
-* GCC 4.5 (Cygwin)
+* GCC 4.6 (Ubuntu)
 * GCC 4.7 (Ubuntu)
 * Clang 3.2 (Ubuntu)
-* Clang 3.1 (Cygwin)
 Earlier compilers will probably not work.
 
 You can check travis.yml for the commands used to build the library and run all tests on Ubuntu.
