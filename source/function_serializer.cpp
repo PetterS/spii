@@ -20,7 +20,7 @@ std::ostream& operator << (std::ostream& out, const Serialize& serializer)
 	return out;
 }
 
-std::istream& operator >> (std::istream& in,  Serialize& serializer)
+std::istream& operator >> (std::istream& in,  const Serialize& serializer)
 {
 	if ( ! serializer.writable_function) {
 		throw runtime_error("Serializer << : Invalid function pointer.");

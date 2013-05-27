@@ -14,7 +14,7 @@ namespace spii
 class Serialize
 {
 	friend SPII_API std::ostream& operator << (std::ostream& out, const Serialize& serializer);
-	friend SPII_API std::istream& operator >> (std::istream& in,  Serialize& serializer);
+	friend SPII_API std::istream& operator >> (std::istream& in,  const Serialize& serializer);
 
 public:
 	Serialize(const Function& function) : 
