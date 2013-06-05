@@ -39,8 +39,6 @@ public:
 	Eigen::VectorXd x, g;
 	Eigen::MatrixXd H;
 	double out;
-	Solver solver;
-	SolverResults results;
 
 	LikelihoodBenchmark() : 
 		x(2),
@@ -64,9 +62,6 @@ public:
 
 		f.copy_user_to_global(&x);
 		f.set_number_of_threads(1);
-
-		solver.log_function = [](const std::string&) { };
-		solver.maximum_iterations = 1;
 	}
 };
 
@@ -114,8 +109,6 @@ public:
 	std::vector<Eigen::Vector3d> org_points;
 	Eigen::VectorXd x, g;
 	Eigen::MatrixXd H;
-	Solver solver;
-	SolverResults results;
 
 	LennardJonesBenchmark() : 
 		points(100)
@@ -155,22 +148,27 @@ public:
 		org_points = points;
 
 		potential.set_number_of_threads(1);
-
-		solver.log_function = [](const std::string&) { };
-		solver.maximum_iterations = 1;
 	}
 };
 
-BENCHMARK_F(LennardJonesBenchmark, solver_1_newton_iter)
+BENCHMARK_F(LennardJonesBenchmark, evaluate)
 {
-	points = org_points;
-	solver.solve_newton(potential, &results);
+	potential.evaluate();
 }
 
-BENCHMARK_F(LennardJonesBenchmark, solver_1_lbfgs_iter)
+BENCHMARK_F(LennardJonesBenchmark, evaluate_x)
 {
-	points = org_points;
-	solver.solve_lbfgs(potential, &results);
+	potential.evaluate(x);
+}
+
+BENCHMARK_F(LennardJonesBenchmark, evaluate_x_g)
+{
+	potential.evaluate(x, &g);
+}
+
+BENCHMARK_F(LennardJonesBenchmark, evaluate_x_g_H)
+{
+	potential.evaluate(x, &g, &H);
 }
 
 int main(int argc, char** argv)
