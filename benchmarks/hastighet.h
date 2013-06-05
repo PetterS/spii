@@ -311,7 +311,7 @@ public:
 				else if (relative_time > 0.0) {
 					cout << GREEN;
 					printf("%4.0f%%", 100.0 * (current_speed / baseline_speed - 1.0));
-					cout << " faster!" << current_speed << " " << baseline_speed;
+					cout << " faster!";
 				}
 			}
 			cout << NORMAL;
