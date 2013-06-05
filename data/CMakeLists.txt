@@ -2,6 +2,9 @@
 
 configure_file(CIR.txt ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/CIR.txt COPYONLY)
 
+# BAL problem
+configure_file(problem-16-22106-pre.txt ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/balproblem.txt COPYONLY)
+
 # NIST files
 configure_file(nist/Bennett5.dat ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nist/Bennett5.dat COPYONLY)
 configure_file(nist/BoxBOD.dat ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nist/BoxBOD.dat COPYONLY)
