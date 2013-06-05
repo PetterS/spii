@@ -32,6 +32,8 @@
 
 using namespace spii;
 
+std::ofstream output_file("nist.log");
+
 void skip_lines(std::istream* in, int num_lines)
 {
 	std::string str;
@@ -189,6 +191,8 @@ void run_problem_main(const std::string& filename, Solver::Method method)
 			function.add_term(term, initial_parameters.data());
 		}
 
+		auto initial_cost = function.evaluate();
+
 		Solver solver;
 		solver.maximum_iterations = 10000;
 		solver.function_improvement_tolerance = 1e-14;
@@ -217,6 +221,8 @@ void run_problem_main(const std::string& filename, Solver::Method method)
 		SolverResults results;
 		solver.solve(function, method, &results);
 
+		auto final_cost = function.evaluate();
+
 		// Print the solver results to the log stringstream.
 		INFO(sout.str());
 		INFO(results);
@@ -229,6 +235,37 @@ void run_problem_main(const std::string& filename, Solver::Method method)
 			-std::log10(fabs(function.evaluate() - optimum) / optimum));
 
 		INFO("Number of matching digits: " << num_matching_digits);
+
+		// Compute log_relative_error with code from Ceres Solver.
+		//
+		// Compute the LRE by comparing each component of the solution
+		// with the ground truth, and taking the minimum.
+		auto final_parameters = problem.final_parameters;
+		const double kMaxNumSignificantDigits = 11;
+		double log_relative_error = kMaxNumSignificantDigits + 1;
+		for (int i = 0; i < num_variables; ++i) {
+			const double tmp_lre =
+				-std::log10(std::fabs(final_parameters(i) - initial_parameters(i)) /
+							std::fabs(final_parameters(i)));
+			// The maximum LRE is capped at 11 - the precision at which the
+			// ground truth is known.
+			//
+			// The minimum LRE is capped at 0 - no digits match between the
+			// computed solution and the ground truth.
+			log_relative_error =
+			std::min(log_relative_error,
+					 std::max(0.0, std::min(kMaxNumSignificantDigits, tmp_lre)));
+		}
+
+		output_file << typeid(Model).name() << " "
+		            << (method == Solver::NEWTON ? "Newton" : "LBFGS") << " "
+		            << "start: " << start + 1 << " "
+					<< (log_relative_error < 4 ? "FAILURE" : "SUCCESS") << " "
+		            << "LRE: " << log_relative_error << " "
+		            << "Initial cost: " << initial_cost << " "
+		            << "Final cost: " << final_cost << " "
+		            << "Certified cost: " << problem.certified_cost
+					<< std::endl;
 
 		// If the optimum was reached, everything is OK.
 		if (num_matching_digits >= 4) {
@@ -247,20 +284,6 @@ void run_problem_main(const std::string& filename, Solver::Method method)
 		}
 	}
 }
-
-
-// Hack to allow several test cases to be defined within a
-// single macro.
-#define TEST_CASE_2_I( Name, Desc ) \
-    static void INTERNAL_CATCH_UNIQUE_NAME( TestCaseFunction_catch_internal_2_ )(); \
-    namespace{ Catch::AutoReg INTERNAL_CATCH_UNIQUE_NAME( autoRegistrar_2 )( &INTERNAL_CATCH_UNIQUE_NAME(  TestCaseFunction_catch_internal_2_ ), Name, Desc, CATCH_INTERNAL_LINEINFO ); }\
-    static void INTERNAL_CATCH_UNIQUE_NAME(  TestCaseFunction_catch_internal_2_ )()
-#define TEST_CASE_3_I( Name, Desc ) \
-    static void INTERNAL_CATCH_UNIQUE_NAME( TestCaseFunction_catch_internal_3_ )(); \
-    namespace{ Catch::AutoReg INTERNAL_CATCH_UNIQUE_NAME( autoRegistrar_3 )( &INTERNAL_CATCH_UNIQUE_NAME(  TestCaseFunction_catch_internal_3_ ), Name, Desc, CATCH_INTERNAL_LINEINFO ); }\
-    static void INTERNAL_CATCH_UNIQUE_NAME(  TestCaseFunction_catch_internal_3_ )()
-#define TEST_CASE_2( Name, Desc ) TEST_CASE_2_I(Name, Desc)
-#define TEST_CASE_3( Name, Desc ) TEST_CASE_3_I(Name, Desc)
 
 #define NIST_TEST_START(Problem)         \
 struct Problem                           \
@@ -283,24 +306,19 @@ struct Problem                           \
 		return d*d;                      \
 	}                                    \
 };                                       \
-TEST_CASE("Newton/" #Category "/" #Problem, "") \
+TEST_CASE(#Category "/" #Problem, "")    \
 {                                        \
+	SECTION("Newton") {					 \
 		run_problem_main<Problem, n>(    \
 			"nist/" #Problem ".dat",     \
 			Solver::NEWTON);             \
-}                                        \
-TEST_CASE_2("LBFGS/" #Category "/" #Problem, "") \
-{                                        \
+	}                                    \
+	SECTION("LBFGS") {                   \
 		run_problem_main<Problem, n>(    \
 			"nist/" #Problem ".dat",     \
 			Solver::LBFGS);              \
-}                                        
-//TEST_CASE_3("NM/" #Category "/" #Problem, "")  \
-//{                                        \
-//		run_problem_main<Problem, n>(    \
-//			"nist/" #Problem ".dat",     \
-//			Solver::NELDER_MEAD);        \
-//}
+	}                                    \
+}
 
 const double kPi = 3.141592653589793238462643383279;
 
