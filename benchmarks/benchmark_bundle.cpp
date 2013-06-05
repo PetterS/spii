@@ -253,6 +253,8 @@ public:
 					bal_problem.mutable_point_for_observation(i));
 			}
 
+			function.set_number_of_threads(1);
+
 			solver.lbfgs_history_size = 100;
 			solver.sparsity_mode = Solver::SPARSE;
 			solver.function_improvement_tolerance = 1e-5;
