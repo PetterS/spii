@@ -31,7 +31,7 @@ struct LennardJonesTerm
 
 int main()
 {
-	std::mt19937 prng(0);
+	std::mt19937 prng(1);
 	std::normal_distribution<double> normal;
 	auto randn = std::bind(normal, prng);
 
