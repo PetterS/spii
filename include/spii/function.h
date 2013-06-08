@@ -59,6 +59,17 @@ public:
 	// before any terms containing them are added.
 	void add_variable(double* variable, int dimension);
 
+	// Sets a variable to be constant. In this case, it will not be
+	// part of the optimization problem.
+	//
+	// IMPORTANT NOTE: After calling this function, the global indexing
+	//                 of variables will change permanently!
+	//
+	//                 Global indices are not normally needed. They
+	//                 are required when examining global gradients
+	//                 and Hessians manually.
+	void set_constant(double* variable, bool is_constant);
+
 	// Adds a variable to the function, with a change of variables.
 	// Takes ownership of change and will delete it when the function
 	// is destroyed.

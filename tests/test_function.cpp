@@ -211,6 +211,18 @@ TEST(Function, evaluate)
 	double fval = f.evaluate();
 	EXPECT_DOUBLE_EQ(fval, sin(x[0]) + cos(x[1]) + 1.4 * x[0]*x[1] + 1.0 +
 	                       log(y[0]) + 3.0 * log(z[0]));
+
+	for (int b1 = 0; b1 <= 1; b1++) {
+	for (int b2 = 0; b2 <= 1; b2++) {
+	for (int b3 = 0; b3 <= 1; b3++) {
+		f.set_constant(x, b1 == 0);
+		f.set_constant(y, b2 == 0);
+		f.set_constant(z, b3 == 0);
+		EXPECT_EQ(f.get_number_of_scalars(), b1*2 + b2 + b3);
+		double fval = f.evaluate();
+		EXPECT_DOUBLE_EQ(fval, sin(x[0]) + cos(x[1]) + 1.4 * x[0]*x[1] + 1.0 +
+		                 log(y[0]) + 3.0 * log(z[0]));
+	}}}
 }
 
 TEST(Function, evaluate_x)
@@ -265,7 +277,7 @@ TEST(Function, evaluate_gradient)
 	Eigen::VectorXd gradient;
 	Eigen::MatrixXd hessian;
 
-	f.evaluate(xg, &gradient, &hessian);
+	auto fval_ref = f.evaluate(xg, &gradient, &hessian);
 	EXPECT_EQ(gradient.size(), 4);
 
 	// Check gradient values.
@@ -274,6 +286,35 @@ TEST(Function, evaluate_gradient)
 	EXPECT_DOUBLE_EQ(gradient[1], 2.0 * (-sin(xg[1]) + 1.4 * xg[0]));
 	EXPECT_DOUBLE_EQ(gradient[2], 1.0 / xg[2]);
 	EXPECT_DOUBLE_EQ(gradient[3], 3.0 / xg[3]);
+
+	f.copy_global_to_user(xg);
+
+	for (int b1 = 0; b1 <= 1; b1++) {
+	for (int b2 = 0; b2 <= 1; b2++) {
+	for (int b3 = 0; b3 <= 1; b3++) {
+		f.set_constant(x, b1 == 0);
+		f.set_constant(y, b2 == 0);
+		f.set_constant(z, b3 == 0);
+		Eigen::VectorXd xg(2*b1 + b2 + b3);
+		f.copy_user_to_global(&xg);
+
+		Eigen::VectorXd gradient;
+		Eigen::MatrixXd hessian;
+		auto fval = f.evaluate(xg, &gradient, &hessian);
+		EXPECT_EQ(fval, fval_ref);
+		EXPECT_EQ(gradient.size(), 2*b1 + b2 + b3);
+
+		if (b1 == 1 && b2 == 0 && b3 == 0) {
+			EXPECT_DOUBLE_EQ(gradient[0], 2.0 * (cos(xg[0]) + 1.4 * xg[1]));
+			EXPECT_DOUBLE_EQ(gradient[1], 2.0 * (-sin(xg[1]) + 1.4 * xg[0]));
+		}
+		if (b1 == 0 && b2 == 1 && b3 == 0) {
+			EXPECT_DOUBLE_EQ(gradient[0], 1.0 / xg[0]);
+		}
+		if (b1 == 0 && b2 == 0 && b3 == 1) {
+			EXPECT_DOUBLE_EQ(gradient[0], 3.0 / xg[0]);
+		}
+	}}}
 }
 
 class Single3
@@ -322,7 +363,7 @@ TEST(Function, evaluate_hessian)
 	f.add_term(new AutoDiffTerm<Single2, 2>(new Single2), y);
 	f.add_term(new AutoDiffTerm<Mixed3_2, 3, 2>(new Mixed3_2), x, y);
 
-	Eigen::VectorXd xg(4);
+	Eigen::VectorXd xg(5);
 	xg[0] = 6.0; // x[0]
 	xg[1] = 7.0; // x[1]
 	xg[2] = 8.0; // x[2]
@@ -369,6 +410,33 @@ TEST(Function, evaluate_hessian)
 	EXPECT_DOUBLE_EQ(hessian(3,2), 13.0);
 	EXPECT_DOUBLE_EQ(hessian(2,4), - 14.0 * (sin(xg[2]*xg[4]) + xg[2] * xg[4] * cos(xg[2]*xg[4])));
 	EXPECT_DOUBLE_EQ(hessian(4,2), - 14.0 * (sin(xg[2]*xg[4]) + xg[2] * xg[4] * cos(xg[2]*xg[4])));
+
+
+	f.copy_global_to_user(xg);
+
+	for (int b1 = 0; b1 <= 1; b1++) {
+	for (int b2 = 0; b2 <= 1; b2++) {
+		f.set_constant(x, b1 == 0);
+		f.set_constant(y, b2 == 0);
+		Eigen::VectorXd xg(3*b1 + 2*b2);
+		f.copy_user_to_global(&xg);
+
+		Eigen::VectorXd gradient;
+		Eigen::MatrixXd hessian;
+		f.evaluate(xg, &gradient, &hessian);
+
+		EXPECT_EQ(hessian.rows(), 3*b1 + 2*b2);
+		EXPECT_EQ(hessian.cols(), 3*b1 + 2*b2);
+
+		if (b1 == 1 && b2 == 0) {
+			EXPECT_DOUBLE_EQ(hessian(0,1), 2.0);
+			EXPECT_DOUBLE_EQ(hessian(1,0), 2.0);
+			EXPECT_DOUBLE_EQ(hessian(0,2), 0.0);
+			EXPECT_DOUBLE_EQ(hessian(2,0), 0.0);
+			EXPECT_DOUBLE_EQ(hessian(1,2), 0.0);
+			EXPECT_DOUBLE_EQ(hessian(2,1), 0.0);
+		}
+	}}
 }
 
 
@@ -386,7 +454,7 @@ TEST(Function, evaluation_count)
 	f.add_term(new AutoDiffTerm<Single2, 2>(new Single2), y);
 	f.add_term(new AutoDiffTerm<Mixed3_2, 3, 2>(new Mixed3_2), x, y);
 
-	Eigen::VectorXd xg(4);
+	Eigen::VectorXd xg(5);
 	xg.setZero();
 	Eigen::VectorXd gradient;
 	Eigen::MatrixXd hessian;
@@ -673,3 +741,4 @@ TEST(Function, evaluate_interval)
 	EXPECT_DOUBLE_EQ(result.get_lower(), expected.get_lower());
 	EXPECT_DOUBLE_EQ(result.get_upper(), expected.get_upper());
 }
+
