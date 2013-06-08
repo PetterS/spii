@@ -85,6 +85,7 @@ public:
 	// Each variable can have several dimensions. This member
 	// keeps track of the total number of scalars.
 	size_t number_of_scalars;
+	size_t number_of_constants;
 
 	// All terms added to the function.
 	std::vector<AddedTerm> terms;
@@ -117,6 +118,7 @@ Function::Function() :
 	impl(new Function::Implementation(this))
 {
 	impl->number_of_scalars = 0;
+	impl->number_of_constants = 0;
 	this->term_deletion = DeleteTerms;
 
 	this->hessian_is_enabled = true;
@@ -261,7 +263,7 @@ void Function::Implementation::set_constant(double* variable, bool is_constant)
 	for (auto itr = variables.begin(); itr != variables.end(); ++itr) {
 		auto& var_info = itr->second;
 
-		if (! itr->second.is_constant) {
+		if (! var_info.is_constant) {
 			// Give this variable a global index into a global
 			// state vector.
 			var_info.global_index = this->number_of_scalars;
@@ -270,10 +272,10 @@ void Function::Implementation::set_constant(double* variable, bool is_constant)
 	}
 
 	this->number_of_constants = 0;
-	for (auto itr = constants.begin(); itr != constants.end(); ++itr) {
+	for (auto itr = variables.begin(); itr != variables.end(); ++itr) {
 		auto& var_info = itr->second;
 		
-		if (itr->second.is_constant) {
+		if (var_info.is_constant) {
 			// Give this variable a global index into a global
 			// state vector.
 			var_info.global_index = this->number_of_scalars + this->number_of_constants;
