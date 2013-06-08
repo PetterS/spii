@@ -424,3 +424,83 @@ TEST(Solver, BoxConstraint)
 	EXPECT_NEAR(x[0],  2.0, 1e-4);
 	EXPECT_NEAR(x[1], -0.5, 1e-4);
 }
+
+TEST(Solver, constant_variables)
+{
+	// This tests checks that the solver behaves identically when
+	// extra variables are added and held constant
+
+	Solver solver;
+	solver.log_function = no_log_function;
+	SolverResults results;
+	auto method = Solver::NEWTON;
+
+	while (true) {
+		std::vector<double> v_normal, v_extra_1, v_extra_2;
+
+		{
+			double x[2] = {-1.2, 1.0};
+			Function f;
+			f.add_variable(x, 2);
+			f.add_term(new AutoDiffTerm<Rosenbrock, 2>(new Rosenbrock()), x);
+
+			for (int i = 1; i <= 5; ++i) {
+				solver.maximum_iterations = i;
+				solver.solve(f, method, &results);
+				v_normal.push_back(f.evaluate());
+			}
+		}
+
+		// Add one extra variable.
+		{
+			double x[2] = {-1.2, 1.0};
+			double y[1] = {0.0};
+			Function f;
+			f.add_variable(y, 1);
+			f.add_variable(x, 2);
+			f.add_term(new AutoDiffTerm<Rosenbrock, 2>(new Rosenbrock()), x);
+
+			f.set_constant(y, true);
+
+			for (int i = 1; i <= 5; ++i) {
+				solver.maximum_iterations = i;
+				solver.solve(f, method, &results);
+				v_extra_1.push_back(f.evaluate());
+			}
+		}
+
+		// Add two extra variables.
+		{
+			double x[2] = {-1.2, 1.0};
+			double y[1] = {0.0};
+			double z[3] = {0, 0, 0};
+			Function f;
+			f.add_variable(y, 1);
+			f.add_variable(x, 2);
+			f.add_variable(z, 3);
+			f.add_term(new AutoDiffTerm<Rosenbrock, 2>(new Rosenbrock()), x);
+
+			f.set_constant(y, true);
+			f.set_constant(z, true);
+
+			for (int i = 1; i <= 5; ++i) {
+				solver.maximum_iterations = i;
+				solver.solve(f, method, &results);
+				v_extra_2.push_back(f.evaluate());
+			}
+		}
+
+		// Check that the results are identical.
+		for (int i = 0; i < v_normal.size(); ++i) {
+			CHECK(v_normal.at(i) == v_extra_1.at(i));
+			CHECK(v_normal.at(i) == v_extra_2.at(i));
+		}
+
+		if (method == Solver::NEWTON) {
+			method = Solver::LBFGS;
+		}
+		else {
+			break;
+		}
+	}
+}
