@@ -304,15 +304,22 @@ TEST(Function, evaluate_gradient)
 		EXPECT_EQ(fval, fval_ref);
 		EXPECT_EQ(gradient.size(), 2*b1 + b2 + b3);
 
-		if (b1 == 1 && b2 == 0 && b3 == 0) {
-			EXPECT_DOUBLE_EQ(gradient[0], 2.0 * (cos(xg[0]) + 1.4 * xg[1]));
-			EXPECT_DOUBLE_EQ(gradient[1], 2.0 * (-sin(xg[1]) + 1.4 * xg[0]));
+		if (b1 == 1) {
+			auto ind = f.get_variable_global_index(x);
+			EXPECT_EQ(xg[ind+0], x[0]);
+			EXPECT_EQ(xg[ind+1], x[1]);
+			EXPECT_DOUBLE_EQ(gradient[ind+0], 2.0 * (cos(xg[ind+0]) + 1.4 * xg[ind+1]));
+			EXPECT_DOUBLE_EQ(gradient[ind+1], 2.0 * (-sin(xg[ind+1]) + 1.4 * xg[ind+0]));
 		}
-		if (b1 == 0 && b2 == 1 && b3 == 0) {
-			EXPECT_DOUBLE_EQ(gradient[0], 1.0 / xg[0]);
+		if (b2 == 1) {
+			auto ind = f.get_variable_global_index(y);
+			EXPECT_EQ(xg[ind], y[0]);
+			EXPECT_DOUBLE_EQ(gradient[ind], 1.0 / xg[ind]);
 		}
-		if (b1 == 0 && b2 == 0 && b3 == 1) {
-			EXPECT_DOUBLE_EQ(gradient[0], 3.0 / xg[0]);
+		if (b3 == 1) {
+			auto ind = f.get_variable_global_index(z);
+			EXPECT_EQ(xg[ind], z[0]);
+			EXPECT_DOUBLE_EQ(gradient[ind], 3.0 / xg[ind]);
 		}
 	}}}
 }
@@ -428,13 +435,27 @@ TEST(Function, evaluate_hessian)
 		EXPECT_EQ(hessian.rows(), 3*b1 + 2*b2);
 		EXPECT_EQ(hessian.cols(), 3*b1 + 2*b2);
 
-		if (b1 == 1 && b2 == 0) {
-			EXPECT_DOUBLE_EQ(hessian(0,1), 2.0);
-			EXPECT_DOUBLE_EQ(hessian(1,0), 2.0);
-			EXPECT_DOUBLE_EQ(hessian(0,2), 0.0);
-			EXPECT_DOUBLE_EQ(hessian(2,0), 0.0);
-			EXPECT_DOUBLE_EQ(hessian(1,2), 0.0);
-			EXPECT_DOUBLE_EQ(hessian(2,1), 0.0);
+		if (b1 == 1) {
+			auto ind = f.get_variable_global_index(x);
+			auto ind0 = ind;
+			auto ind1 = ind + 1;
+			auto ind2 = ind + 2;
+			EXPECT_DOUBLE_EQ(hessian(ind0,ind1), 2.0);
+			EXPECT_DOUBLE_EQ(hessian(ind1,ind0), 2.0);
+			EXPECT_DOUBLE_EQ(hessian(ind0,ind2), 0.0);
+			EXPECT_DOUBLE_EQ(hessian(ind2,ind0), 0.0);
+			EXPECT_DOUBLE_EQ(hessian(ind1,ind2), 0.0);
+			EXPECT_DOUBLE_EQ(hessian(ind2,ind1), 0.0);
+		}
+		if (b2 == 1) {
+			auto ind = f.get_variable_global_index(y);
+			auto ind0 = ind;
+			auto ind1 = ind + 1;
+			EXPECT_DOUBLE_EQ(hessian(ind0,ind0), 2.0 * 5.0);
+			EXPECT_DOUBLE_EQ(hessian(ind1,ind1),
+				2.0 * 7.0 - 14.0 * x[2] * x[2] * cos(x[2]*y[1]));
+			EXPECT_DOUBLE_EQ(hessian(ind0,ind1), 6.0);
+			EXPECT_DOUBLE_EQ(hessian(ind1,ind0), 6.0);
 		}
 	}}
 }

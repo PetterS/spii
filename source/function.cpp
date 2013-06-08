@@ -168,6 +168,17 @@ void Function::add_variable(double* variable,
 	impl->add_variable_internal(variable, dimension);
 }
 
+size_t Function::get_variable_global_index(double* variable) const
+{
+	// Find the variable. This has to succeed.
+	auto itr = impl->variables.find(variable);
+	if (itr == impl->variables.end()) {
+		throw std::runtime_error("Function::get_variable_global_index: variable not found.");
+	}
+
+	return itr->second.global_index;
+}
+
 size_t Function::get_number_of_variables() const
 {
 	return impl->variables.size();
