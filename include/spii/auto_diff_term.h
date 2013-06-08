@@ -430,6 +430,206 @@ protected:
 	Functor* functor;
 };
 
+
+
+template<typename Functor, int D0, int D1, int D2>
+class Functor3_to_1
+{
+public:
+	Functor3_to_1(const Functor* functor)
+	{
+		this->functor = functor;
+	}
+
+	template<typename R>
+	R operator()(const R* const x) const
+	{
+		const R* const x0 = &x[0];
+		const R* const x1 = &x[D0];
+		const R* const x2 = &x[D0 + D1];
+		return (*functor)(x0, x1, x2);
+	}
+
+private:
+	const Functor* functor;
+};
+
+//
+// 3-variable specialization
+//
+template<typename Functor, int D0, int D1, int D2>
+class AutoDiffTerm<Functor, D0, D1, D2, 0> :
+	public SizedTerm<D0, D1, D2, 0>
+{
+public:
+	AutoDiffTerm(Functor* f)
+	{
+		this->functor = f;
+	}
+
+	~AutoDiffTerm()
+	{
+		delete this->functor;
+	}
+
+	virtual void read(std::istream& in)
+	{
+		call_read_if_exists(in, *this->functor);
+	}
+
+	virtual void write(std::ostream& out) const
+	{
+		call_write_if_exists(out, *this->functor);
+	}
+
+	virtual double evaluate(double * const * const variables) const
+	{
+		return (*functor)(variables[0], variables[1], variables[2]);
+	}
+
+	virtual double evaluate(double * const * const variables,
+	                        std::vector<Eigen::VectorXd>* gradient) const
+	{
+		using namespace fadbad;
+		typedef F<double, D0 + D1 + D2> Dual;
+
+		Dual vars0[D0];
+		for (int i = 0; i < D0; ++i) {
+			vars0[i] = variables[0][i];
+			vars0[i].diff(i);
+		}
+
+		Dual vars1[D1];
+		int offset1 = D0;
+		for (int i = 0; i < D1; ++i) {
+			vars1[i] = variables[1][i];
+			vars1[i].diff(i + offset1);
+		}
+
+		Dual vars2[D2];
+		int offset2 = D0 + D1;
+		for (int i = 0; i < D2; ++i) {
+			vars2[i] = variables[2][i];
+			vars2[i].diff(i + offset2);
+		}
+
+		Dual f((*functor)(vars0, vars1, vars2));
+
+		for (int i = 0; i < D0; ++i) {
+			(*gradient)[0](i) = f.d(i);
+		}
+
+		for (int i = 0; i < D1; ++i) {
+			(*gradient)[1](i) = f.d(i + offset1);
+		}
+
+		for (int i = 0; i < D2; ++i) {
+			(*gradient)[2](i) = f.d(i + offset2);
+		}
+
+		return f.x();
+	}
+
+	virtual double evaluate(double * const * const variables,
+	                        std::vector<Eigen::VectorXd>* gradient,
+	                        std::vector< std::vector<Eigen::MatrixXd> >* hessian) const
+	{
+		using namespace fadbad;
+		typedef F<double, D0 + D1 + D2> Dual;
+
+		Dual vars[D0 + D1 + D2];
+		Dual   df[D0 + D1 + D2];
+
+		// Initialize variables
+		for (int i = 0; i < D0; ++i) {
+			vars[i] = variables[0][i];
+			vars[i].diff(i);
+		}
+		int offset1 = D0;
+		for (int i = 0; i < D1; ++i) {
+			vars[offset1 + i] = variables[1][i];
+			vars[offset1 + i].diff(offset1 + i);
+		}
+		int offset2 = D0 + D1;
+		for (int i = 0; i < D2; ++i) {
+			vars[offset2 + i] = variables[2][i];
+			vars[offset2 + i].diff(offset2 + i);
+		}
+
+		// Evaluate function
+		typedef Functor3_to_1<Functor, D0, D1, D2> Functor31;
+		Functor31 functor31(functor);
+		F<double, D0 + D1 + D2> f(
+			differentiate_functor<Functor31, F<double, D0 + D1 + D2>, D0 + D1 + D2>(
+				functor31,
+				vars,
+				df)
+			);
+
+		for (int i = 0; i < D0; ++i) {
+			(*gradient)[0](i) = df[i].x();
+
+			// D0 and D0
+			for (int j = 0; j < D0; ++j) {
+				(*hessian)[0][0](i, j) = df[i].d(j);
+			}
+
+			// D0 and D1
+			for (int j = 0; j < D1; ++j) {
+				(*hessian)[0][1](i, j) = df[i].d(offset1 + j);
+			}
+
+			// D0 and D2
+			for (int j = 0; j < D2; ++j) {
+				(*hessian)[0][2](i, j) = df[i].d(offset2 + j);
+			}
+		}
+
+		for (int i = 0; i < D1; ++i) {
+			(*gradient)[1](i) = df[i + offset1].x();;
+
+			// D1 and D0
+			for (int j = 0; j < D0; ++j) {
+				(*hessian)[1][0](i, j) = df[i + offset1].d(j);;
+			}
+
+			// D1 and D1
+			for (int j = 0; j < D1; ++j) {
+				(*hessian)[1][1](i, j) = df[i + offset1].d(j + offset1);
+			}
+
+			// D1 and D2
+			for (int j = 0; j < D1; ++j) {
+				(*hessian)[1][2](i, j) = df[i + offset1].d(j + offset2);
+			}
+		}
+
+		for (int i = 0; i < D2; ++i) {
+			(*gradient)[2](i) = df[i + offset2].x();;
+
+			// D2 and D0
+			for (int j = 0; j < D0; ++j) {
+				(*hessian)[2][0](i, j) = df[i + offset2].d(j);
+			}
+
+			// D2 and D1
+			for (int j = 0; j < D1; ++j) {
+				(*hessian)[2][1](i, j) = df[i + offset2].d(j + offset1);
+			}
+
+			// D2 and D2
+			for (int j = 0; j < D1; ++j) {
+				(*hessian)[2][2](i, j) = df[i + offset2].d(j + offset2);
+			}
+		}
+
+		return f.x();
+	}
+
+protected:
+	Functor* functor;
+};
+
 }  // namespace spii
 
 
