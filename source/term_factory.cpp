@@ -41,7 +41,7 @@ void TermFactory::teach_term(const std::string& term_name, const TermCreator& cr
 std::string TermFactory::fix_name(const std::string& org_name)
 {
 	std::string name = org_name;
-	std::replace(std::begin(name), std::end(name), ' ', '-');
+	std::replace(name.begin(), name.end(), ' ', '-');
 	return name;
 }
 
