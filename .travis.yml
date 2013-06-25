@@ -2,8 +2,9 @@ language: cpp
 compiler:
   - gcc
   - clang
-script: 
+before_script:
   - mkdir build
   - cd build
   - cmake -DOPENMP=OFF -DCMAKE_INSTALL_PREFIX=/usr .. 
+script: 
   - make && make test && sudo make install
