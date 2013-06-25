@@ -5,6 +5,7 @@ compiler:
 script: 
   - mkdir build
   - cd build
-  - cmake -DOPENMP=OFF .. 
+  - cmake -DOPENMP=OFF -DCMAKE_INSTALL_PREFIX=/usr.. 
   - make
   - make test
+  - sudo make install
