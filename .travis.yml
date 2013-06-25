@@ -8,4 +8,5 @@ script:
   - cmake -DOPENMP=OFF -DCMAKE_INSTALL_PREFIX=/usr.. 
   - make
   - make test
+install:
   - sudo make install
