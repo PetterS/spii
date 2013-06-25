@@ -6,7 +6,4 @@ script:
   - mkdir build
   - cd build
   - cmake -DOPENMP=OFF -DCMAKE_INSTALL_PREFIX=/usr.. 
-  - make
-  - make test
-install:
-  - sudo make install
+  - make && make test && sudo make install
