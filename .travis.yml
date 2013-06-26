@@ -8,3 +8,7 @@ before_script:
   - cmake -DOPENMP=OFF -DCMAKE_INSTALL_PREFIX=/usr .. 
 script: 
   - make && make test && sudo make install
+after_success:
+  - cd ..
+  - cd examples
+  - g++ -std=c++11 standalone_example.cpp -lspii && ./a.out
