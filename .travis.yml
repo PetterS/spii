@@ -11,4 +11,5 @@ script:
 after_success:
   - cd ..
   - cd examples
-  - g++ -std=c++11 standalone_example.cpp -lspii && ./a.out
+  - ${CXX} -std=c++0x standalone_example.cpp -lspii
+  - ./a.out
