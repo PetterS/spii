@@ -37,7 +37,7 @@ double run_test(double* var, const Solver* solver = 0)
 	Function f;
 
 	f.add_variable(var, dimension);
-	f.add_term(new AutoDiffTerm<Functor, dimension>(new Functor()), var);
+	f.add_term(std::make_shared<AutoDiffTerm<Functor, dimension>>(), var);
 
 	// Compute and save the gradient.
 	Eigen::VectorXd xvec(dimension);

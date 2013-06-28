@@ -28,17 +28,17 @@ public:
 	}
 	template<typename T1>
 	IntervalTerm(T1&& t1)
-		: AutoDiffTerm(std::forward<T1>(t1))
+		: AutoDiffTerm<Functor, D0, 0, 0, 0>(std::forward<T1>(t1))
 	{ 
 	}
 	template<typename T1, typename T2>
 	IntervalTerm(T1&& t1, T2&& t2)
-		: AutoDiffTerm(std::forward<T1>(t1), std::forward<T2>(t2))
+		: AutoDiffTerm<Functor, D0, 0, 0, 0>(std::forward<T1>(t1), std::forward<T2>(t2))
 	{
 	}
 	template<typename T1, typename T2, typename T3>
 	IntervalTerm(T1&& t1, T2&& t2, T3&& t3)
-		: AutoDiffTerm(std::forward<T1>(t1), std::forward<T2>(t2), std::forward<T3>(t3))
+		: AutoDiffTerm<Functor, D0, 0, 0, 0>(std::forward<T1>(t1), std::forward<T2>(t2), std::forward<T3>(t3))
 	{
 	}
 	// Etc. if needed.
@@ -64,17 +64,17 @@ public:
 	}
 	template<typename T1>
 	IntervalTerm(T1&& t1)
-		: AutoDiffTerm(std::forward<T1>(t1))
+		: AutoDiffTerm<Functor, D0, D1, 0, 0>(std::forward<T1>(t1))
 	{ 
 	}
 	template<typename T1, typename T2>
 	IntervalTerm(T1&& t1, T2&& t2)
-		: AutoDiffTerm(std::forward<T1>(t1), std::forward<T2>(t2))
+		: AutoDiffTerm<Functor, D0, D1, 0, 0>(std::forward<T1>(t1), std::forward<T2>(t2))
 	{
 	}
 	template<typename T1, typename T2, typename T3>
 	IntervalTerm(T1&& t1, T2&& t2, T3&& t3)
-		: AutoDiffTerm(std::forward<T1>(t1), std::forward<T2>(t2), std::forward<T3>(t3))
+		: AutoDiffTerm<Functor, D0, D1, 0, 0>(std::forward<T1>(t1), std::forward<T2>(t2), std::forward<T3>(t3))
 	{
 	}
 	// Etc. if needed.

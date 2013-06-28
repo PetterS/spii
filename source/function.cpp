@@ -216,7 +216,7 @@ void Function::Implementation::add_variable_internal(double* variable,
 		}
 
 		var_info.change_of_variables = change_of_variables;
-		if (change_of_variables != NULL) {
+		if (change_of_variables) {
 			if (var_info.user_dimension != change_of_variables->x_dimension()) {
 				throw std::runtime_error("Function::add_variable: "
 			                             "x_dimension can not change.");
@@ -233,7 +233,7 @@ void Function::Implementation::add_variable_internal(double* variable,
 	AddedVariable& var_info = variables[variable];
 
 	var_info.change_of_variables = change_of_variables;
-	if (change_of_variables != NULL){
+	if (change_of_variables){
 		if (dimension != change_of_variables->x_dimension()) {
 			throw std::runtime_error("Function::add_variable: "
 			                         "dimension does not match the change of variables.");
@@ -531,7 +531,7 @@ void Function::Implementation::copy_global_to_local(const Eigen::VectorXd& x) co
 	for (auto itr = variables.begin(); itr != variables.end(); ++itr) {
 
 		if ( ! itr->second.is_constant) {
-			if (itr->second.change_of_variables == NULL) {
+			if (itr->second.change_of_variables == nullptr) {
 				for (int i = 0; i < itr->second.user_dimension; ++i) {
 					itr->second.temp_space[i] = x[itr->second.global_index + i];
 				}
@@ -568,7 +568,7 @@ void Function::Implementation::copy_user_to_global(Eigen::VectorXd* x) const
 	for (auto itr = variables.begin(); itr != variables.end(); ++itr) {
 
 		if ( ! itr->second.is_constant) {
-			if (itr->second.change_of_variables == NULL) {
+			if (itr->second.change_of_variables == nullptr) {
 				for (int i = 0; i < itr->second.user_dimension; ++i) {
 					(*x)[itr->second.global_index + i] = itr->first[i];
 				}
@@ -596,7 +596,7 @@ void Function::Implementation::copy_global_to_user(const Eigen::VectorXd& x) con
 	for (auto itr = variables.begin(); itr != variables.end(); ++itr) {
 
 		if ( ! itr->second.is_constant) {
-			if (itr->second.change_of_variables == NULL) {
+			if (itr->second.change_of_variables == nullptr) {
 				for (int i = 0; i < itr->second.user_dimension; ++i) {
 					itr->first[i] = x[itr->second.global_index + i];
 				}
@@ -707,7 +707,7 @@ double Function::Implementation::evaluate(const Eigen::VectorXd& x,
 		for (int var = 0; var < variables.size(); ++var) {
 
 			if ( ! variables[var]->is_constant) {
-				if (variables[var]->change_of_variables == NULL) {
+				if (variables[var]->change_of_variables == nullptr) {
 					// No change of variables, just copy the gradient.
 					size_t global_offset = variables[var]->global_index;
 					for (int i = 0; i < variables[var]->user_dimension; ++i) {
@@ -777,7 +777,7 @@ double Function::Implementation::evaluate(const Eigen::VectorXd& x,
 			for (int var0 = 0; var0 < itr->term->number_of_variables(); ++var0) {
 
 				if ( ! variables[var0]->is_constant) {
-					if (itr->user_variables[var0]->change_of_variables != NULL) {
+					if (itr->user_variables[var0]->change_of_variables) {
 						throw std::runtime_error("Change of variables not supported for Hessians");
 					}
 
@@ -881,7 +881,7 @@ double Function::Implementation::evaluate(const Eigen::VectorXd& x,
 		for (int var = 0; var < variables.size(); ++var) {
 
 			if ( ! variables[var]->is_constant) {
-				if (variables[var]->change_of_variables != NULL) {
+				if (variables[var]->change_of_variables) {
 					throw std::runtime_error("Change of variables not supported for sparse Hessian");
 				}
 
