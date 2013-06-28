@@ -41,12 +41,11 @@ int main_function()
 
 	Function f;
 	f.add_variable(&mu, 1);
-	f.add_variable(&sigma, 1, new GreaterThanZero(1));
+	f.add_variable_with_change<GreaterThanZero>(&sigma, 1, 1);
 
 	for (int i = 0; i < 10000; ++i) {
 		double sample = sigma*randn() + mu;
-		auto* llh = new NegLogLikelihood(sample);
-		f.add_term(new IntervalTerm<NegLogLikelihood, 1, 1>(llh), &mu, &sigma);
+		f.add_term(std::make_shared<IntervalTerm<NegLogLikelihood, 1, 1>>(sample), &mu, &sigma);
 	}
 
 	mu    = 0.0;

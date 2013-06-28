@@ -25,15 +25,13 @@ TEST_CASE("TermFactory/simple_test", "")
 	factory.teach_term<AutoDiffTerm<Dummy<1>,1>>();
 	factory.teach_term<AutoDiffTerm<Dummy<2>,2>>();
 
-	Term* term1 = factory.create(typeid(AutoDiffTerm<Dummy<1>,1>).name(), cin);
+	auto term1 = factory.create(typeid(AutoDiffTerm<Dummy<1>,1>).name(), cin);
 	REQUIRE(term1->number_of_variables() == 1);
 	REQUIRE(term1->variable_dimension(0) == 1);
-	delete term1;
 
-	Term* term2 = factory.create(typeid(AutoDiffTerm<Dummy<2>,2>).name(), cin);
+	auto term2 = factory.create(typeid(AutoDiffTerm<Dummy<2>,2>).name(), cin);
 	REQUIRE(term2->number_of_variables() == 1);
 	REQUIRE(term2->variable_dimension(0) == 2);
-	delete term2;
 }
 
 TEST_CASE("TermFactory/throws_on_unknown", "")

@@ -242,11 +242,10 @@ public:
 				// Each Residual block takes a point and a camera as input and outputs a 2
 				// dimensional residual. Internally, the cost function stores the observed
 				// image location and compares the reprojection against the observation.
-				Term* term =
-					new AutoDiffTerm<SnavelyReprojectionError, 9, 3>(
-						new SnavelyReprojectionError(
+				auto term =
+					std::make_shared<AutoDiffTerm<SnavelyReprojectionError, 9, 3>>(
 							bal_problem.get_observations()[2 * i + 0],
-							bal_problem.get_observations()[2 * i + 1]));
+							bal_problem.get_observations()[2 * i + 1]);
 
 				function.add_term(term,
 					bal_problem.mutable_camera_for_observation(i),

@@ -152,8 +152,7 @@ private:
 TEST_CASE("AutoDiffTerm/calls_functor_destructor", "")
 {
 	int counter = 0;
-	Term* term = new AutoDiffTerm<DestructorFunctor, 1>
-	                 (new DestructorFunctor(&counter));
+	Term* term = new AutoDiffTerm<DestructorFunctor, 1>(&counter);
 	delete term;
 	CHECK(counter == 1);
 }
@@ -170,7 +169,7 @@ public:
 
 TEST_CASE("AutoDiffTerm/MyFunctor1", "")
 {
-	AutoDiffTerm<MyFunctor1, 2> term(new MyFunctor1());
+	AutoDiffTerm<MyFunctor1, 2> term;
 
 	double x[2] = {1.0, 3.0};
 	std::vector<double*> variables;
@@ -215,7 +214,7 @@ public:
 
 TEST_CASE("AutoDiffTerm/MyFunctor2", "")
 {
-	AutoDiffTerm<MyFunctor2, 1, 1> term(new MyFunctor2());
+	AutoDiffTerm<MyFunctor2, 1, 1> term;
 
 	double x = 5.3;
 	double y = 7.1;
@@ -281,7 +280,7 @@ TEST_CASE("AutoDiffTerm/write_test1", "")
 	auto tmp = "tmp";
 
 	std::ofstream fout(tmp);
-	Term* term1 = new AutoDiffTerm<WriteFunctor1,1>(new WriteFunctor1);
+	Term* term1 = new AutoDiffTerm<WriteFunctor1, 1>;
 	fout << *term1;
 	delete term1;
 	fout.close();
@@ -298,7 +297,7 @@ TEST_CASE("AutoDiffTerm/write_test1_1", "")
 	auto tmp = "tmp";
 
 	std::ofstream fout(tmp);
-	Term* term1_1 = new AutoDiffTerm<WriteFunctor1, 1, 1>(new WriteFunctor1);
+	Term* term1_1 = new AutoDiffTerm<WriteFunctor1, 1, 1>;
 	fout << *term1_1;
 	delete term1_1;
 	fout.close();
@@ -343,14 +342,14 @@ TEST_CASE("AutoDiffTerm/read_test", "")
 	fout.close();
 
 	int n = 0;
-	Term* term1 = new AutoDiffTerm<ReadFunctor, 1>(new ReadFunctor(&n));
+	Term* term1 = new AutoDiffTerm<ReadFunctor, 1>(&n);
 	std::ifstream fin(tmp);
 	fin >> *term1;
 	CHECK(n == 42);
 	delete term1;
 	
 	int m = 0;
-	Term* term1_1 = new AutoDiffTerm<ReadFunctor, 1, 1>(new ReadFunctor(&m));
+	Term* term1_1 = new AutoDiffTerm<ReadFunctor, 1, 1>(&m);
 	std::ifstream fin2(tmp);
 	fin2 >> *term1_1;
 	CHECK(m == 42);

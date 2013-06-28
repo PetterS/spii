@@ -58,8 +58,7 @@ public:
 
 		for (int i = 0; i < 10000; ++i) {
 			double sample = sigma*randn() + mu;
-			auto* llh = new NegLogLikelihood(sample);
-			f.add_term(new AutoDiffTerm<NegLogLikelihood, 1, 1>(llh), &mu, &sigma);
+			f.add_term(std::make_shared<AutoDiffTerm<NegLogLikelihood, 1, 1>>(sample), &mu, &sigma);
 		}
 
 		f.copy_user_to_global(&x);
@@ -118,8 +117,8 @@ public:
 		std::normal_distribution<double> normal;
 		auto randn = std::bind(normal, prng);
 
-		int N = points.size();
-		int n = int(std::ceil(std::pow(double(N), 1.0/3.0)));
+		auto N = points.size();
+		auto n = int(std::ceil(std::pow(double(N), 1.0/3.0)));
 
 		// Initial position is a cubic grid with random pertubations.
 		for (int i = 0; i < N; ++i) {
@@ -136,10 +135,9 @@ public:
 		for (int i = 0; i < N; ++i) {
 			for (int j = i + 1; j < N; ++j) {
 				potential.add_term(
-					new AutoDiffTerm<LennardJonesTerm, 3, 3>(
-						new LennardJonesTerm),
-						&points[i][0],
-						&points[j][0]);
+					std::make_shared<AutoDiffTerm<LennardJonesTerm, 3, 3>>(),
+					&points[i][0],
+					&points[j][0]);
 			}
 		}
 

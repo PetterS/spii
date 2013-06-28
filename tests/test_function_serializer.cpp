@@ -83,9 +83,9 @@ TEST_CASE("Serialize/write_read", "")
 		double x2[3] = {20.0, 30.0, 40.0};
 		f.add_variable(x1, 1);
 		f.add_variable(x2, 3);
-		f.add_term(new AutoDiffTerm<Norm<1>, 1>(new Norm<1>), x1);
-		f.add_term(new AutoDiffTerm<Norm<3>, 3>(new Norm<3>), x2);
-		f.add_term(new AutoDiffTerm<NormTwo<3,1>, 3, 1>(new NormTwo<3, 1>), x2, x1);
+		f.add_term(std::make_shared<AutoDiffTerm<Norm<1>, 1>>(), x1);
+		f.add_term(std::make_shared<AutoDiffTerm<Norm<3>, 3>>(), x2);
+		f.add_term(std::make_shared<AutoDiffTerm<NormTwo<3,1>, 3, 1>>(), x2, x1);
 
 		ofstream fout(tmp);
 		fout << Serialize(f);
@@ -146,7 +146,7 @@ TEST_CASE("Serialize/minimization", "")
 		Function f;
 		double x[2] = {0};
 		f.add_variable(x, 2);
-		f.add_term(new AutoDiffTerm<Rosenbrock, 2>(new Rosenbrock), x);
+		f.add_term(std::make_shared<AutoDiffTerm<Rosenbrock, 2>>(), x);
 
 		ofstream fout(tmp);
 		fout << Serialize(f);
@@ -241,8 +241,7 @@ TEST_CASE("Serialize/FunctorData", "")
 
 		for (int i = 0; i < 100; ++i) {
 			double sample = sigma*randn() + mu;
-			auto* llh = new NegLogLikelihood(sample);
-			f.add_term(new AutoDiffTerm<NegLogLikelihood, 1, 1>(llh), &mu, &sigma);
+			f.add_term(std::make_shared<AutoDiffTerm<NegLogLikelihood, 1, 1>>(sample), &mu, &sigma);
 		}
 
 		ofstream fout(tmp);

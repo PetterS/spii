@@ -186,8 +186,7 @@ void run_problem_main(const std::string& filename, Solver::Method method)
 		for (int i = 0; i < problem.predictor.rows(); ++i) {
 			double x = problem.predictor(i, 0);
 			double y = problem.response(i, 0);
-			Model* model = new Model(x, y);
-			Term* term = new AutoDiffTerm<Model, num_variables>(model);
+			auto term = std::make_shared<AutoDiffTerm<Model, num_variables>>(x, y);
 			function.add_term(term, initial_parameters.data());
 		}
 

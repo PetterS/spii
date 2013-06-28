@@ -21,8 +21,8 @@ TermFactory::TermFactory() :
 {
 }
 
-Term* TermFactory::create(const std::string& term_name,
-                          std::istream& in) const
+std::shared_ptr<const Term> TermFactory::create(const std::string& term_name,
+                                                std::istream& in) const
 {
 	auto creator = impl->creators.find(fix_name(term_name));
 	if (creator == impl->creators.end()) {
@@ -30,7 +30,7 @@ Term* TermFactory::create(const std::string& term_name,
 		msg += term_name;
 		throw runtime_error(msg.c_str());
 	}
-	return creator->second(in);
+	return std::shared_ptr<const Term>(creator->second(in));
 }
 
 void TermFactory::teach_term(const std::string& term_name, const TermCreator& creator)

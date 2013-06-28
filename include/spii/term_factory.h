@@ -4,6 +4,7 @@
 
 #include <functional>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <typeinfo>
 
@@ -20,7 +21,7 @@ struct TermTeacher;
 class SPII_API TermFactory
 {
 public:
-	typedef std::function<spii::Term*(std::istream&)> TermCreator;
+	typedef std::function<Term*(std::istream&)> TermCreator;
 
 	TermFactory();
 
@@ -32,7 +33,7 @@ public:
 
 	static std::string fix_name(const std::string& org_name);
 
-	Term* create(const std::string& term_name, std::istream& in) const;
+	std::shared_ptr<const Term> create(const std::string& term_name, std::istream& in) const;
 	void teach_term(const std::string& term_name, const TermCreator& creator);
 
 private:
@@ -51,11 +52,11 @@ struct TermTeacher
 {
 	static void teach(TermFactory& factory)
 	{
-		auto creator = [](std::istream& in) -> spii::Term*
+		auto creator = [](std::istream& in) -> Term*
 		{
 			auto term = new T;
 			in >> *term;
-			return new T;
+			return term;
 		};
 		factory.teach_term(factory.fix_name(typeid(T).name()), creator);
 	}
@@ -64,15 +65,16 @@ struct TermTeacher
 // Specialize for AutoDiffTerm.
 template<typename Functor, int D0, int D1, int D2, int D3>
 class AutoDiffTerm;
+
 template<typename T, int D0, int D1, int D2, int D3>
 struct TermTeacher< AutoDiffTerm<T,D0,D1,D2,D3> >
 {
 	typedef AutoDiffTerm<T,D0,D1,D2,D3> AutoTerm;
 	static void teach(TermFactory& factory)
 	{
-		auto creator = [](std::istream& in) -> spii::Term*
+		auto creator = [](std::istream& in) -> Term*
 		{
-			auto term = new AutoTerm(new T);
+			auto term = new AutoTerm;
 			in >> *term;
 			return term;
 		};

@@ -57,8 +57,8 @@ LARGE_SUITE_BEGIN(FreudenSteinRoth)
 		f->add_variable(&start[2*i], 2);
 	}
 	for (int i = 0; i < n/2; ++i) {
-		f->add_term(new AutoDiffTerm<FreudenSteinRoth, 2>(
-			new FreudenSteinRoth), &start[2*i]);
+		f->add_term(std::make_shared<AutoDiffTerm<FreudenSteinRoth, 2>>(),
+                    &start[2*i]);
 	}
 LARGE_SUITE_MIDDLE
 	for (int i = 0; i < n; ++i) {
@@ -85,8 +85,7 @@ LARGE_SUITE_BEGIN(Rosenbrock)
 		f->add_variable(&start[2*i], 2);
 	}
 	for (int i = 0; i < n/2; ++i) {
-		f->add_term(new AutoDiffTerm<Rosenbrock, 2>(
-			new Rosenbrock), &start[2*i]);
+		f->add_term(std::make_shared<AutoDiffTerm<Rosenbrock, 2>>(), &start[2*i]);
 	}
 LARGE_SUITE_MIDDLE
 	for (int i = 0; i < n; ++i) {
@@ -110,8 +109,7 @@ LARGE_SUITE_BEGIN(WhiteHolst)
 		f->add_variable(&start[2*i], 2);
 	}
 	for (int i = 0; i < n/2; ++i) {
-		f->add_term(new AutoDiffTerm<WhiteHolst, 2>(
-			new WhiteHolst), &start[2*i]);
+		f->add_term(std::make_shared<AutoDiffTerm<WhiteHolst, 2>>(), &start[2*i]);
 	}
 LARGE_SUITE_MIDDLE
 	for (int i = 0; i < n; ++i) {
@@ -192,12 +190,10 @@ LARGE_SUITE_BEGIN(TRIDIA)
 	for (int i = 0; i < n; ++i) {
 		f->add_variable(&start[i], 1);
 	}
-	f->add_term(new AutoDiffTerm<TRIDIA1, 1>(
-		new TRIDIA1), &start[0]);
+	f->add_term(std::make_shared<AutoDiffTerm<TRIDIA1, 1>>(), &start[0]);
 
 	for (int i = 1; i < n; ++i) {
-		f->add_term(new AutoDiffTerm<TRIDIA2, 1, 1>(
-			new TRIDIA2(i + 1)), &start[i-1], &start[i]);
+		f->add_term(std::make_shared<AutoDiffTerm<TRIDIA2, 1, 1>>(i + 1), &start[i-1], &start[i]);
 	}
 
 LARGE_SUITE_MIDDLE

@@ -40,12 +40,6 @@ class SPII_API Function
 {
 friend class Solver;
 public:
-	// Specifies whether the function should delete the terms
-	// added to it. Default is for the function to delete them.
-	// Note that it is still safe to add the same term multiple
-	// times.
-	enum {DeleteTerms, DoNotDeleteTerms} term_deletion;
-
 	// Specifies whether the function should be prepared to compute
 	// the Hessian matrix, which is is not needed for L-BFGS. This
 	// setting only affects the amount of temporary space allocated.
@@ -54,21 +48,79 @@ public:
 
 	Function();
 	~Function();
+	// Copying may be expensive for large functions.
+	Function(const Function&);
+	void operator = (const Function&);  // Disallow f1 = f2 = f3 by
+	                                    // making it void.
 
 	// Adds a variable to the function. All variables must be added
 	// before any terms containing them are added.
 	void add_variable(double* variable, int dimension);
 
 	// Adds a variable to the function, with a change of variables.
-	// Takes ownership of change and will delete it when the function
-	// is destroyed.
 	template<typename Change>
-	void add_variable(double* variable,
-	                  int dimension,
-					  Change* change)
+	void add_variable_with_change(double* variable,
+	                              int dimension)
 	{
 		add_variable_internal(variable, dimension,
-			 new AutoDiffChangeOfVariables<Change>(change));
+			 std::make_shared<AutoDiffChangeOfVariables<Change>>(new Change));
+	}
+	template<typename Change, typename T1>
+	void add_variable_with_change(double* variable,
+	                              int dimension,
+	                              T1&& t1)
+	{
+		add_variable_internal(variable, dimension,
+			std::make_shared<AutoDiffChangeOfVariables<Change>>(
+				new Change(std::forward<T1>(t1))
+			)
+		);
+	}
+	template<typename Change, typename T1, typename T2>
+	void add_variable_with_change(double* variable,
+	                              int dimension,
+	                              T1&& t1, T2&& t2)
+	{
+		add_variable_internal(variable, dimension,
+			std::make_shared<AutoDiffChangeOfVariables<Change>>(
+				new Change(std::forward<T1>(t1), std::forward<T2>(t2))
+			)
+		);
+	}
+	template<typename Change, typename T1, typename T2, typename T3>
+	void add_variable_with_change(double* variable,
+	                              int dimension,
+	                              T1&& t1, T2&& t2, T3&& t3)
+	{
+		add_variable_internal(variable, dimension,
+			std::make_shared<AutoDiffChangeOfVariables<Change>>(
+				new Change(std::forward<T1>(t1), std::forward<T2>(t2), std::forward<T3>(t3))
+			)
+		);
+	}
+	template<typename Change, typename T1, typename T2, typename T3, typename T4>
+	void add_variable_with_change(double* variable,
+	                              int dimension,
+	                              T1&& t1, T2&& t2, T3&& t3, T4&& t4)
+	{
+		add_variable_internal(variable, dimension,
+			std::make_shared<AutoDiffChangeOfVariables<Change>>(
+				new Change(std::forward<T1>(t1), std::forward<T2>(t2), std::forward<T3>(t3),
+				           std::forward<T4>(t4))
+			)
+		);
+	}
+	template<typename Change, typename T1, typename T2, typename T3, typename T4, typename T5>
+	void add_variable_with_change(double* variable,
+	                              int dimension,
+	                              T1&& t1, T2&& t2, T3&& t3, T4&& t4, T5&& t5)
+	{
+		add_variable_internal(variable, dimension,
+			std::make_shared<AutoDiffChangeOfVariables<Change>>(
+				new Change(std::forward<T1>(t1), std::forward<T2>(t2), std::forward<T3>(t3),
+				           std::forward<T4>(t4), std::forward<T4>(t5))
+			)
+		);
 	}
 
 	// Returns the global index of a variable. This index is used for
@@ -102,9 +154,28 @@ public:
 	// The term_deletion member specified whether the Function is responsible
 	// for calling delete on the term. In any case, it is safe to add the
 	// same term twice.
-	void add_term(const Term* term, const std::vector<double*>& arguments);
-	void add_term(const Term* term, double* argument1);
-	void add_term(const Term* term, double* argument1, double* argument2);
+	void add_term(std::shared_ptr<const Term> term, const std::vector<double*>& arguments);
+	void add_term(std::shared_ptr<const Term> term, double* argument1);
+	void add_term(std::shared_ptr<const Term> term, double* argument1, double* argument2);
+
+	template<typename MyTerm>
+	void add_term(double* argument1)
+	{
+		add_term(std::make_shared<MyTerm>(), argument1);
+	}
+
+	template<typename MyTerm>
+	void add_term(double* argument1, double* argument2)
+	{
+		add_term(std::make_shared<MyTerm>(), argument1, argument2);
+	}
+
+	template<typename MyTerm>
+	void add_term(double* argument1, double* argument2, double* argument3)
+	{
+		add_term(std::make_shared<MyTerm>(), argument1, argument2, argument3);
+	}
+
 
 	// Returns the current number of terms contained in the function.
 	size_t get_number_of_terms() const;
@@ -163,10 +234,7 @@ private:
 	// Present here because it is called by a templated function above.
 	void add_variable_internal(double* variable,
 	                           int dimension,
-	                           ChangeOfVariables* change_of_variables = 0);
-
-	// Disallow copying for now.
-	Function(const Function&);
+	                           std::shared_ptr<ChangeOfVariables> change_of_variables = 0);
 
 	class Implementation;
 	// unique_pointer would have been nice, but there are issues

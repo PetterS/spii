@@ -41,10 +41,8 @@ TEST_CASE("global_optimization/simple_function1", "Petter")
 	double x = 2.0;
 	Function f;
 	f.add_variable(&x, 1);
-	f.add_term(
-		new IntervalTerm<SimpleFunction1, 1>(
-			new SimpleFunction1),
-		&x);
+	f.add_term(std::make_shared<IntervalTerm<SimpleFunction1, 1>>(),
+	           &x);
 
 	Solver solver;
 	solver.maximum_iterations = 1015;
@@ -69,10 +67,8 @@ TEST_CASE("global_optimization/simple_function2", "Petter")
 	double x[] = {2.0, 2.0};
 	Function f;
 	f.add_variable(x, 2);
-	f.add_term(
-		new IntervalTerm<SimpleFunction2, 2>(
-			new SimpleFunction2),
-		x);
+	f.add_term(std::make_shared<IntervalTerm<SimpleFunction2, 2>>(),
+	           x);
 
 	Solver solver;
 	solver.maximum_iterations = 1000;
@@ -101,10 +97,8 @@ TEST_CASE("global_optimization/simple_function1-1", "Petter")
 	Function f;
 	f.add_variable(&x, 1);
 	f.add_variable(&y, 1);
-	f.add_term(
-		new IntervalTerm<SimpleFunction1_1, 1, 1>(
-			new SimpleFunction1_1),
-		&x, &y);
+	f.add_term(std::make_shared<IntervalTerm<SimpleFunction1_1, 1, 1>>(),
+	           &x, &y);
 
 	Solver solver;
 	solver.maximum_iterations = 1000;

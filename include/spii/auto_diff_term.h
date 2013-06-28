@@ -15,10 +15,9 @@ namespace spii {
 // Term which allows for automatic computation of derivatives. It is
 // used in the following way:
 //
-//   new AutoDiffTerm<Functor, 1>( new Functor(...) )
+//   auto term = make_shared(AutoDiffTerm<Functor, 1>>(arg1, arg2, ...)
 //
-// Note that AutoDiffTerm always takes ownership of the functor passed
-// to the constructor. It will delete it when its destructor is called.
+// where arg1, arg2, etc. are arguments to the constructor of Functor.
 //
 template<typename Functor, int D0, int D1 = 0, int D2 = 0, int D3 = 0>
 class AutoDiffTerm :
@@ -129,29 +128,47 @@ class AutoDiffTerm<Functor, D0, 0, 0, 0> :
 	public SizedTerm<D0, 0, 0, 0>
 {
 public:
-	AutoDiffTerm(Functor* f)
-	{
-		this->functor = f;
+	// When compilers (MSVC) support variadic templates, this code will
+	// be shorter.
+	AutoDiffTerm()
+	{ 
 	}
-
-	~AutoDiffTerm()
-	{
-		delete this->functor;
+	template<typename T1>
+	AutoDiffTerm(T1&& t1)
+		: functor(std::forward<T1>(t1))
+	{ 
 	}
+	template<typename T1, typename T2>
+	AutoDiffTerm(T1&& t1, T2&& t2)
+		: functor(std::forward<T1>(t1), std::forward<T2>(t2))
+	{
+	}
+	template<typename T1, typename T2, typename T3>
+	AutoDiffTerm(T1&& t1, T2&& t2, T3&& t3)
+		: functor(std::forward<T1>(t1), std::forward<T2>(t2), std::forward<T3>(t3))
+	{
+	}
+	template<typename T1, typename T2, typename T3, typename T4>
+	AutoDiffTerm(T1&& t1, T2&& t2, T3&& t3, T4&& t4)
+		: functor(std::forward<T1>(t1), std::forward<T2>(t2), std::forward<T3>(t3),
+		          std::forward<T4>(t4))
+	{
+	}
+	// Etc. if needed.
 
 	virtual void read(std::istream& in)
 	{
-		call_read_if_exists(in, *this->functor);
+		call_read_if_exists(in, functor);
 	}
 
 	virtual void write(std::ostream& out) const
 	{
-		call_write_if_exists(out, *this->functor);
+		call_write_if_exists(out, functor);
 	}
 
 	virtual double evaluate(double * const * const variables) const
 	{
-		return (*functor)(variables[0]);
+		return functor(variables[0]);
 	}
 
 	virtual double evaluate(double * const * const variables,
@@ -165,7 +182,7 @@ public:
 			vars[i].diff(i);
 		}
 
-		F<double, D0> f((*functor)(vars));
+		F<double, D0> f(functor(vars));
 
 		for (int i = 0; i < D0; ++i) {
 			(*gradient)[0](i) = f.d(i);
@@ -210,7 +227,7 @@ public:
 
 			F<double, D0> f(
 				differentiate_functor<Functor, F<double, D0>, D0>(
-					*functor,
+					functor,
 					vars,
 					df)
 				);
@@ -227,7 +244,7 @@ public:
 	}
 
 protected:
-	Functor* functor;
+	Functor functor;
 };
 
 
@@ -235,9 +252,9 @@ template<typename Functor, int D0, int D1>
 class Functor2_to_1
 {
 public:
-	Functor2_to_1(const Functor* functor)
+	Functor2_to_1(const Functor& functor_in)
+		: functor(functor_in)
 	{
-		this->functor = functor;
 	}
 
 	template<typename R>
@@ -245,11 +262,11 @@ public:
 	{
 		const R* const x0 = &x[0];
 		const R* const x1 = &x[D0];
-		return (*functor)(x0, x1);
+		return functor(x0, x1);
 	}
 
 private:
-	const Functor* functor;
+	const Functor& functor;
 };
 
 //
@@ -260,29 +277,41 @@ class AutoDiffTerm<Functor, D0, D1, 0, 0> :
 	public SizedTerm<D0, D1, 0, 0>
 {
 public:
-	AutoDiffTerm(Functor* f)
-	{
-		this->functor = f;
+	// When compilers (MSVC) support variadic templates, this code will
+	// be shorter.
+	AutoDiffTerm()
+	{ 
 	}
-
-	~AutoDiffTerm()
-	{
-		delete this->functor;
+	template<typename T1>
+	AutoDiffTerm(T1&& t1)
+		: functor(std::forward<T1>(t1))
+	{ 
 	}
+	template<typename T1, typename T2>
+	AutoDiffTerm(T1&& t1, T2&& t2)
+		: functor(std::forward<T1>(t1), std::forward<T2>(t2))
+	{
+	}
+	template<typename T1, typename T2, typename T3>
+	AutoDiffTerm(T1&& t1, T2&& t2, T3&& t3)
+		: functor(std::forward<T1>(t1), std::forward<T2>(t2), std::forward<T3>(t3))
+	{
+	}
+	// Etc. if needed.
 
 	virtual void read(std::istream& in)
 	{
-		call_read_if_exists(in, *this->functor);
+		call_read_if_exists(in, functor);
 	}
 
 	virtual void write(std::ostream& out) const
 	{
-		call_write_if_exists(out, *this->functor);
+		call_write_if_exists(out, functor);
 	}
 
 	virtual double evaluate(double * const * const variables) const
 	{
-		return (*functor)(variables[0], variables[1]);
+		return functor(variables[0], variables[1]);
 	}
 
 	virtual double evaluate(double * const * const variables,
@@ -303,7 +332,7 @@ public:
 			vars1[i].diff(i + offset1);
 		}
 
-		F<double, D0 + D1> f((*functor)(vars0, vars1));
+		F<double, D0 + D1> f(functor(vars0, vars1));
 
 		for (int i = 0; i < D0; ++i) {
 			(*gradient)[0](i) = f.d(i);
@@ -427,7 +456,7 @@ public:
 	}
 
 protected:
-	Functor* functor;
+	Functor functor;
 };
 
 
@@ -436,9 +465,9 @@ template<typename Functor, int D0, int D1, int D2>
 class Functor3_to_1
 {
 public:
-	Functor3_to_1(const Functor* functor)
+	Functor3_to_1(const Functor& functor_in)
+		: functor(functor_in)
 	{
-		this->functor = functor;
 	}
 
 	template<typename R>
@@ -447,11 +476,11 @@ public:
 		const R* const x0 = &x[0];
 		const R* const x1 = &x[D0];
 		const R* const x2 = &x[D0 + D1];
-		return (*functor)(x0, x1, x2);
+		return functor(x0, x1, x2);
 	}
 
 private:
-	const Functor* functor;
+	const Functor& functor;
 };
 
 //
@@ -462,29 +491,41 @@ class AutoDiffTerm<Functor, D0, D1, D2, 0> :
 	public SizedTerm<D0, D1, D2, 0>
 {
 public:
-	AutoDiffTerm(Functor* f)
-	{
-		this->functor = f;
+	// When compilers (MSVC) support variadic templates, this code will
+	// be shorter.
+	AutoDiffTerm()
+	{ 
 	}
-
-	~AutoDiffTerm()
-	{
-		delete this->functor;
+	template<typename T1>
+	AutoDiffTerm(T1&& t1)
+		: functor(std::forward<T1>(t1))
+	{ 
 	}
+	template<typename T1, typename T2>
+	AutoDiffTerm(T1&& t1, T2&& t2)
+		: functor(std::forward<T1>(t1), std::forward<T2>(t2))
+	{
+	}
+	template<typename T1, typename T2, typename T3>
+	AutoDiffTerm(T1&& t1, T2&& t2, T3&& t3)
+		: functor(std::forward<T1>(t1), std::forward<T2>(t2), std::forward<T3>(t3))
+	{
+	}
+	// Etc. if needed.
 
 	virtual void read(std::istream& in)
 	{
-		call_read_if_exists(in, *this->functor);
+		call_read_if_exists(in, this->functor);
 	}
 
 	virtual void write(std::ostream& out) const
 	{
-		call_write_if_exists(out, *this->functor);
+		call_write_if_exists(out, this->functor);
 	}
 
 	virtual double evaluate(double * const * const variables) const
 	{
-		return (*functor)(variables[0], variables[1], variables[2]);
+		return functor(variables[0], variables[1], variables[2]);
 	}
 
 	virtual double evaluate(double * const * const variables,
@@ -513,7 +554,7 @@ public:
 			vars2[i].diff(i + offset2);
 		}
 
-		Dual f((*functor)(vars0, vars1, vars2));
+		Dual f(functor(vars0, vars1, vars2));
 
 		for (int i = 0; i < D0; ++i) {
 			(*gradient)[0](i) = f.d(i);
@@ -627,7 +668,7 @@ public:
 	}
 
 protected:
-	Functor* functor;
+	Functor functor;
 };
 
 }  // namespace spii

@@ -43,7 +43,7 @@ double run_test(double* var, const Solver* solver = 0)
 	f.hessian_is_enabled = false;
 
 	f.add_variable(var, dimension);
-	f.add_term(new AutoDiffTerm<Functor, dimension>(new Functor()), var);
+	f.add_term(std::make_shared<AutoDiffTerm<Functor, dimension>>(), var);
 
 	Solver own_solver;
 	create_solver(&own_solver);

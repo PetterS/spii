@@ -80,21 +80,21 @@ int main()
 	for (size_t i = 0; i < n; ++i) {
 		c[i] = randn();
 	}
-	f.add_term(new AutoDiffTerm<LinearObjective, n>(
-		new LinearObjective(c)), &x[0]);
+	f.add_term(std::make_shared<AutoDiffTerm<LinearObjective, n>>(c),
+	           &x[0]);
 
 	// sum x_i <= 10
 	double b = 10;
 	std::vector<double> a1(n, 1.0);
-	f.add_term(new AutoDiffTerm<LogBarrier, n>(
-		new LogBarrier(a1, b, &mu)), &x[0]);
+	f.add_term(std::make_shared<AutoDiffTerm<LogBarrier, n>>(a1, b, &mu),
+	           &x[0]);
 
 	//  sum x_i >=  10  <=>
 	// -sum x_i <= -10
 	std::vector<double> a2(n, -1.0);
 	b = 10;
-	f.add_term(new AutoDiffTerm<LogBarrier, n>(
-		new LogBarrier(a2, b, &mu)), &x[0]);
+	f.add_term(std::make_shared<AutoDiffTerm<LogBarrier, n>>(a2, b, &mu),
+	           &x[0]);
 
 	// Add barriers for individual scalars.
 	//
@@ -106,10 +106,10 @@ int main()
 		b = 100;
 		a3[i] =  1.0;
 		a4[i] = -1.0;
-		f.add_term(new AutoDiffTerm<LogBarrier, n>(
-			new LogBarrier(a3, b, &mu)), &x[0]);
-		f.add_term(new AutoDiffTerm<LogBarrier, n>(
-			new LogBarrier(a4, b, &mu)), &x[0]);
+		f.add_term(std::make_shared<AutoDiffTerm<LogBarrier, n>>(a3, b, &mu),
+		           &x[0]);
+		f.add_term(std::make_shared<AutoDiffTerm<LogBarrier, n>>(a4, b, &mu),
+		           &x[0]);
 	}
 
 	Solver solver;

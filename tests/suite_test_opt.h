@@ -311,7 +311,7 @@ TEST(Solver, Powell3D)
 	double x[3] = {-1.0, -1.0, 3.0};
 	Function f;
 	f.add_variable(x, 3);
-	f.add_term(new AutoDiffTerm<Powell3D, 3>(new Powell3D()), x);
+	f.add_term(std::make_shared<AutoDiffTerm<Powell3D, 3>>(), x);
 	Eigen::VectorXd xvec(3);
 
 	xvec[0] = -1.0;

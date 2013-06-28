@@ -24,12 +24,13 @@ struct AddedVariable
 	int solver_dimension;
 	size_t global_index;
 	bool is_constant;
-	ChangeOfVariables* change_of_variables;
+	std::shared_ptr<ChangeOfVariables> change_of_variables;
 	mutable std::vector<double>  temp_space;
 };
+
 struct AddedTerm
 {
-	const Term* term;
+	std::shared_ptr<const Term> term;
 	std::vector<AddedVariable*> user_variables;
 	// Temporary storage for a point and hessian.
 	mutable std::vector<double*> temp_variables;
@@ -55,7 +56,7 @@ public:
 	// before any terms containing them are added.
 	void add_variable_internal(double* variable,
 	                           int dimension,
-	                           ChangeOfVariables* change_of_variables = 0);
+	                           std::shared_ptr<ChangeOfVariables> change_of_variables = 0);
 
 	void set_constant(double* variable, bool is_constant);
 
@@ -74,10 +75,6 @@ public:
 
 	// Evaluates the function at the point in the local storage.
 	double evaluate_from_local_storage() const;
-
-	// A set of all terms added to the function. This is
-	// used when the function is destructed.
-	std::set<const Term*> added_terms;
 
 	// All variables added to the function.
 	std::map<double*, AddedVariable> variables;
@@ -110,7 +107,6 @@ public:
 	// was created.
 	mutable size_t number_of_hessian_elements;
 
-private:
 	Function* interface;
 };
 
@@ -119,7 +115,6 @@ Function::Function() :
 {
 	impl->number_of_scalars = 0;
 	impl->number_of_constants = 0;
-	this->term_deletion = DeleteTerms;
 
 	this->hessian_is_enabled = true;
 
@@ -142,24 +137,32 @@ Function::Function() :
 	impl->local_storage_allocated = false;
 }
 
+Function::Function(const Function& org)
+	: impl(new Function::Implementation(this))
+{
+	this->hessian_is_enabled = true;
+
+	this->evaluations_without_gradient = 0;
+	this->evaluations_with_gradient    = 0;
+
+	this->evaluate_time               = 0;
+	this->evaluate_with_hessian_time  = 0;
+	this->write_gradient_hessian_time = 0;
+	this->copy_time                   = 0;
+
+	*impl = *org.impl;
+	impl->interface = this;
+}
+
 Function::~Function()
 {
-	if (this->term_deletion == DeleteTerms) {
-		for (auto itr = impl->added_terms.begin();
-		     itr != impl->added_terms.end(); ++itr) {
-			delete *itr;
-		}
-	}
-
-	// Go through all variables and destroy all change of variables objects.
-	for (auto itr = impl->variables.begin();
-	     itr != impl->variables.end(); ++itr) {
-		if (itr->second.change_of_variables) {
-			delete itr->second.change_of_variables;
-		}
-	}
-
 	delete impl;
+}
+
+void Function::operator = (const Function& org)
+{
+	*impl = *org.impl;
+	impl->interface = this;
 }
 
 void Function::add_variable(double* variable,
@@ -193,14 +196,14 @@ size_t Function::get_number_of_scalars() const
 
 void Function::add_variable_internal(double* variable,
                                      int dimension,
-                                     ChangeOfVariables* change_of_variables)
+                                     std::shared_ptr<ChangeOfVariables> change_of_variables)
 {
 	impl->add_variable_internal(variable, dimension, change_of_variables);
 }
 
 void Function::Implementation::add_variable_internal(double* variable,
                                                     int dimension,
-                                                    ChangeOfVariables* change_of_variables)
+                                                    std::shared_ptr<ChangeOfVariables> change_of_variables)
 {
 	this->local_storage_allocated = false;
 
@@ -210,10 +213,6 @@ void Function::Implementation::add_variable_internal(double* variable,
 
 		if (var_info.user_dimension != dimension) {
 			throw std::runtime_error("Function::add_variable: dimension mismatch.");
-		}
-
-		if (var_info.change_of_variables) {
-			delete itr->second.change_of_variables;
 		}
 
 		var_info.change_of_variables = change_of_variables;
@@ -302,7 +301,7 @@ void Function::set_constant(double* variable, bool is_constant)
 	impl->set_constant(variable, is_constant);
 }
 
-void Function::add_term(const Term* term, const std::vector<double*>& arguments)
+void Function::add_term(std::shared_ptr<const Term> term, const std::vector<double*>& arguments)
 {
 	impl->local_storage_allocated = false;
 
@@ -320,7 +319,7 @@ void Function::add_term(const Term* term, const std::vector<double*>& arguments)
 		}
 	}
 
-	impl->added_terms.insert(term);
+	//impl->added_terms.insert(term);
 
 	impl->terms.push_back(AddedTerm());
 	impl->terms.back().term = term;
@@ -389,14 +388,14 @@ void Function::Implementation::allocate_local_storage() const
 	this->local_storage_allocated = true;
 }
 
-void Function::add_term(const Term* term, double* argument0)
+void Function::add_term(std::shared_ptr<const Term> term, double* argument0)
 {
 	std::vector<double*> arguments;
 	arguments.push_back(argument0);
 	add_term(term, arguments);
 }
 
-void Function::add_term(const Term* term, double* argument0, double* argument1)
+void Function::add_term(std::shared_ptr<const Term> term, double* argument0, double* argument1)
 {
 	std::vector<double*> arguments;
 	arguments.push_back(argument0);
@@ -1017,7 +1016,7 @@ void Function::write_to_stream(std::ostream& out) const
 	// matches.
 	out << TermFactory::fix_name(typeid(std::vector<std::map<double,int>>).name()) << endl;
 
-	out << impl->added_terms.size() << endl;
+	out << impl->terms.size() << endl;
 	out << impl->variables.size() << endl;
 	out << impl->number_of_scalars << endl;
 
@@ -1122,7 +1121,7 @@ void Function::read_from_stream(std::istream& in, std::vector<double>* user_spac
 			arguments.push_back(&user_space->at(offset));
 		}
 
-		Term* term = factory.create(term_name, in);
+		auto term = std::shared_ptr<const Term>(factory.create(term_name, in));
 		this->add_term(term, arguments);
 	}
 

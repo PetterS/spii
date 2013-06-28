@@ -136,7 +136,7 @@ int main_function()
 	cout << points;
 
 	// Add terms measuring the distance between two points.
-	auto distance = new AutoDiffTerm<Distance, 2, 2>(new Distance);
+	auto distance = std::make_shared<AutoDiffTerm<Distance, 2, 2>>();
 	for (int i = 1; i < n; ++i) {
 		f.add_term(distance, points[i-1].xy, points[i].xy);
 	}
@@ -155,7 +155,7 @@ int main_function()
 	cout << points;
 
 	// Add some curvature.
-	auto curvature = new AutoDiffTerm<Curvature, 2, 2, 2>(new Curvature);
+	auto curvature = std::make_shared<AutoDiffTerm<Curvature, 2, 2, 2>>();
 	for (int i = 2; i < n; ++i) {
 		vector<double*> args;
 		args.push_back(points[i-2].xy);

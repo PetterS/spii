@@ -4,14 +4,6 @@
 #include <catch.hpp>
 #include <spii/google_test_compatibility.h>
 
-// EXPECT_THROW gives errors with gcc. Disable for now.
-//#if defined(__CYGWIN__) && !defined(__clang__)
-//	#define EXPECT_THROW(a,b)
-//#endif
-//#if defined(__GNUC__) && !defined(__clang__)
-//	#define EXPECT_THROW(a,b)
-//#endif
-
 #include <spii/auto_diff_term.h>
 #include <spii/constraints.h>
 #include <spii/function.h>
@@ -65,7 +57,7 @@ TEST(Function, variable_not_found)
 {
 	Function f;
 	double x[5];
-	EXPECT_THROW(f.add_term(new AutoDiffTerm<Term1, 5>(new Term1), x), std::runtime_error);
+	EXPECT_THROW(f.add_term(std::make_shared<AutoDiffTerm<Term1, 5>>(), x), std::runtime_error);
 }
 
 TEST(Function, term_variable_mismatch)
@@ -73,7 +65,7 @@ TEST(Function, term_variable_mismatch)
 	Function f;
 	double x[5];
 	f.add_variable(x, 5);
-	EXPECT_THROW(f.add_term(new AutoDiffTerm<Term1, 4>(new Term1), x), std::runtime_error);
+	EXPECT_THROW(f.add_term(std::make_shared<AutoDiffTerm<Term1, 4>>(), x), std::runtime_error);
 }
 
 class DestructorTerm :
@@ -119,34 +111,58 @@ TEST(Function, calls_term_destructor)
 	function->add_variable(x, 1);
 
 	int counter1 = 0;
-	DestructorTerm* term1 = new DestructorTerm(&counter1);
 	int counter2 = 0;
-	DestructorTerm* term2 = new DestructorTerm(&counter2);
 
-	function->add_term(term1, x);
-	function->add_term(term1, x);
-	function->add_term(term2, x);
+	{
+		auto term1 = std::shared_ptr<const Term>(new DestructorTerm(&counter1));
+		auto term2 = std::shared_ptr<const Term>(new DestructorTerm(&counter2));
+
+		function->add_term(term1, x);
+		function->add_term(term1, x);
+		function->add_term(term2, x);
+	}
 
 	EXPECT_EQ(counter1, 0);
 	EXPECT_EQ(counter2, 0);
 	delete function;
 	EXPECT_EQ(counter1, 1);
 	EXPECT_EQ(counter2, 1);
+}
 
-	Function* function2 = new Function;
-	function2->add_variable(x, 1);
+TEST(Function, copy_constructor)
+{
+	Function* function = new Function;
+	double x[1];
+	function->add_variable(x, 1);
 
-	int counter3 = 0;
-	DestructorTerm* term3 = new DestructorTerm(&counter3);
+	int counter1 = 0;
+	int counter2 = 0;
 
-	function2->add_term(term3, x);
-	function2->term_deletion = Function::DoNotDeleteTerms;
+	{
+		auto term1 = std::shared_ptr<const Term>(new DestructorTerm(&counter1));
+		auto term2 = std::shared_ptr<const Term>(new DestructorTerm(&counter2));
 
-	EXPECT_EQ(counter3, 0);
-	delete function2;
-	EXPECT_EQ(counter3, 0);
-	delete term3;
-	EXPECT_EQ(counter3, 1);
+		function->add_term(term1, x);
+		function->add_term(term1, x);
+		function->add_term(term2, x);
+	}
+
+	EXPECT_EQ(counter1, 0);
+	EXPECT_EQ(counter2, 0);
+
+	{
+		Function function_copy = *function;
+		EXPECT_EQ(counter1, 0);
+		EXPECT_EQ(counter2, 0);
+	}
+
+	EXPECT_EQ(counter1, 0);
+	EXPECT_EQ(counter2, 0);
+
+	delete function;
+
+	EXPECT_EQ(counter1, 1);
+	EXPECT_EQ(counter2, 1);
 }
 
 class DestructorChange
@@ -186,7 +202,7 @@ TEST(Function, calls_variable_change_destructor)
 	Function* function = new Function;
 	double x[1];
 	int counter = 0;
-	function->add_variable(x, 1, new DestructorChange(&counter));
+	function->add_variable_with_change<DestructorChange>(x, 1, &counter);
 
 	EXPECT_EQ(counter, 0);
 	delete function;
@@ -205,8 +221,8 @@ TEST(Function, evaluate)
 	f.add_variable(y, 1);
 	f.add_variable(z, 1);
 
-	f.add_term(new AutoDiffTerm<Term1, 2>(new Term1), x);
-	f.add_term(new AutoDiffTerm<Term2, 1, 1>(new Term2), y, z);
+	f.add_term(std::make_shared<AutoDiffTerm<Term1, 2>>(), x);
+	f.add_term(std::make_shared<AutoDiffTerm<Term2, 1, 1>>(), y, z);
 
 	double fval = f.evaluate();
 	EXPECT_DOUBLE_EQ(fval, sin(x[0]) + cos(x[1]) + 1.4 * x[0]*x[1] + 1.0 +
@@ -237,8 +253,8 @@ TEST(Function, evaluate_x)
 	f.add_variable(y, 1);
 	f.add_variable(z, 1);
 
-	f.add_term(new AutoDiffTerm<Term1, 2>(new Term1), x);
-	f.add_term(new AutoDiffTerm<Term2, 1, 1>(new Term2), y, z);
+	f.add_term(std::make_shared<AutoDiffTerm<Term1, 2>>(), x);
+	f.add_term(std::make_shared<AutoDiffTerm<Term2, 1, 1>>(), y, z);
 
 	Eigen::VectorXd xg(4);
 	xg[0] = 6.0;
@@ -249,6 +265,66 @@ TEST(Function, evaluate_x)
 	double fval = f.evaluate(xg);
 	EXPECT_DOUBLE_EQ(fval, sin(xg[0]) + cos(xg[1]) + 1.4 * xg[0]*xg[1] + 1.0 +
 	                       log(xg[2]) + 3.0 * log(xg[3]));
+}
+
+TEST(Function, copy_and_assignment)
+{
+	double x[2] = {1.0, 2.0};
+	double y[1] = {3.0};
+	double z[1] = {4.0};
+
+	int counter = 0;
+	auto f1 = new Function;
+	auto f2 = new Function;
+
+	{
+		auto destructor_term = std::shared_ptr<const Term>(new DestructorTerm(&counter));
+	
+		f1->add_variable(x, 2);
+		f1->add_variable(y, 1);
+		f1->add_variable(z, 1);
+		f1->add_term(std::make_shared<AutoDiffTerm<Term1, 2>>(), x);
+		f1->add_term(std::make_shared<AutoDiffTerm<Term2, 1, 1>>(), y, z);
+		f1->add_term(destructor_term, y);
+		REQUIRE(counter == 0);
+
+		f2->add_variable(x, 2);
+		f2->add_variable(y, 1);
+		f2->add_variable(z, 1);
+		f2->add_term(destructor_term, y);
+		f2->add_term(destructor_term, z);
+		REQUIRE(counter == 0);
+	}
+	REQUIRE(counter == 0);
+
+	auto f3 = new Function(*f1);
+	REQUIRE(counter == 0);
+
+	auto f4 = new Function(*f2);
+	REQUIRE(counter == 0);
+
+	CHECK(f3->evaluate() == f1->evaluate());
+	CHECK(f4->evaluate() == f2->evaluate());
+
+	{
+		Function tmp = *f3;
+		*f3 = *f4;
+		*f4 = tmp;
+		REQUIRE(counter == 0);
+	}
+	REQUIRE(counter == 0);
+
+	CHECK(f4->evaluate() == f1->evaluate());
+	CHECK(f2->evaluate() == f2->evaluate());
+
+	delete f4;
+	REQUIRE(counter == 0);
+	delete f2;
+	REQUIRE(counter == 0);
+	delete f3;
+	REQUIRE(counter == 0);
+	delete f1;
+	REQUIRE(counter == 1);
 }
 
 
@@ -264,9 +340,9 @@ TEST(Function, evaluate_gradient)
 	f.add_variable(y, 1);
 	f.add_variable(z, 1);
 
-	f.add_term(new AutoDiffTerm<Term1, 2>(new Term1), x);
-	f.add_term(new AutoDiffTerm<Term1, 2>(new Term1), x);  // Add term twice for testing.
-	f.add_term(new AutoDiffTerm<Term2, 1, 1>(new Term2), y, z);
+	f.add_term(std::make_shared<AutoDiffTerm<Term1, 2>>(), x);
+	f.add_term(std::make_shared<AutoDiffTerm<Term1, 2>>(), x);  // Add term twice for testing.
+	f.add_term(std::make_shared<AutoDiffTerm<Term2, 1, 1>>(), y, z);
 
 	Eigen::VectorXd xg(4);
 	xg[0] = 6.0;
@@ -366,9 +442,9 @@ TEST(Function, evaluate_hessian)
 	f.add_variable(x, 3);
 	f.add_variable(y, 2);
 
-	f.add_term(new AutoDiffTerm<Single3, 3>(new Single3), x);
-	f.add_term(new AutoDiffTerm<Single2, 2>(new Single2), y);
-	f.add_term(new AutoDiffTerm<Mixed3_2, 3, 2>(new Mixed3_2), x, y);
+	f.add_term(std::make_shared<AutoDiffTerm<Single3, 3>>(), x);
+	f.add_term(std::make_shared<AutoDiffTerm<Single2, 2>>(), y);
+	f.add_term(std::make_shared<AutoDiffTerm<Mixed3_2, 3, 2>>(), x, y);
 
 	Eigen::VectorXd xg(5);
 	xg[0] = 6.0; // x[0]
@@ -471,9 +547,9 @@ TEST(Function, evaluation_count)
 	f.add_variable(x, 3);
 	f.add_variable(y, 2);
 
-	f.add_term(new AutoDiffTerm<Single3, 3>(new Single3), x);
-	f.add_term(new AutoDiffTerm<Single2, 2>(new Single2), y);
-	f.add_term(new AutoDiffTerm<Mixed3_2, 3, 2>(new Mixed3_2), x, y);
+	f.add_term(std::make_shared<AutoDiffTerm<Single3, 3>>(), x);
+	f.add_term(std::make_shared<AutoDiffTerm<Single2, 2>>(), y);
+	f.add_term(std::make_shared<AutoDiffTerm<Mixed3_2, 3, 2>>(), x, y);
 
 	Eigen::VectorXd xg(5);
 	xg.setZero();
@@ -538,9 +614,10 @@ TEST(Function, Parametrization_2_to_2)
 	Function f1, f2;
 	double x[2];
 	f1.add_variable(x, 2);
-	f2.add_variable(x, 2, new ExpTransform<2>);
-	f1.add_term(new AutoDiffTerm<Term1, 2>(new Term1), x);
-	f2.add_term(new AutoDiffTerm<Term1, 2>(new Term1), x);
+	f2.add_variable_with_change<ExpTransform<2>>(x, 2);
+
+	f1.add_term(std::make_shared<AutoDiffTerm<Term1, 2>>(), x);
+	f2.add_term(std::make_shared<AutoDiffTerm<Term1, 2>>(), x);
 
 	EXPECT_EQ(f1.get_number_of_scalars(), 2);
 	EXPECT_EQ(f2.get_number_of_scalars(), 2);
@@ -584,10 +661,11 @@ TEST(Function, Parametrization_1_1_to_1_1)
 	double y[1];
 	f1.add_variable(x, 1);
 	f1.add_variable(y, 1);
-	f2.add_variable(x, 1, new ExpTransform<1>);
-	f2.add_variable(y, 1, new ExpTransform<1>);
-	f1.add_term(new AutoDiffTerm<Term2, 1, 1>(new Term2), x, y);
-	f2.add_term(new AutoDiffTerm<Term2, 1, 1>(new Term2), x, y);
+	f2.add_variable_with_change<ExpTransform<1>>(x, 1);
+	f2.add_variable_with_change<ExpTransform<1>>(y, 1);
+
+	f1.add_term(std::make_shared<AutoDiffTerm<Term2, 1, 1>>(), x, y);
+	f2.add_term(std::make_shared<AutoDiffTerm<Term2, 1, 1>>(), x, y);
 
 	EXPECT_EQ(f1.get_number_of_scalars(), 2);
 	EXPECT_EQ(f2.get_number_of_scalars(), 2);
@@ -661,9 +739,10 @@ TEST(Function, Parametrization_2_to_1)
 	Function f1, f2;
 	double x[2];
 	f1.add_variable(x, 2);
-	f2.add_variable(x, 2, new Circle);
-	f1.add_term(new AutoDiffTerm<Term1, 2>(new Term1), x);
-	f2.add_term(new AutoDiffTerm<Term1, 2>(new Term1), x);
+	f2.add_variable_with_change<Circle>(x, 2);
+
+	f1.add_term(std::make_shared<AutoDiffTerm<Term1, 2>>(), x);
+	f2.add_term(std::make_shared<AutoDiffTerm<Term1, 2>>(), x);
 
 	EXPECT_EQ(f1.get_number_of_scalars(), 2);
 	EXPECT_EQ(f2.get_number_of_scalars(), 1);
@@ -704,8 +783,8 @@ TEST(Function, rethrows_error)
 	Function f1;
 	f1.add_variable(&x, 1);
 	for (int i = 1; i < 40; ++i) {
-		f1.add_term(new AutoDiffTerm<ThrowsRuntimeError, 1>
-						(new ThrowsRuntimeError), &x);
+		f1.add_term(std::make_shared<AutoDiffTerm<ThrowsRuntimeError, 1>>(),
+		            &x);
 	}
 	Eigen::VectorXd x_vec(1);
 	x_vec[0] = x;
@@ -721,8 +800,8 @@ TEST(Function, rethrows_error)
 	Function f2;
 	f2.add_variable(&x, 1);
 	for (int i = 1; i < 40; ++i) {
-		f2.add_term(new AutoDiffTerm<ThrowsCString, 1>
-						(new ThrowsCString), &x);
+		f2.add_term(std::make_shared<AutoDiffTerm<ThrowsCString, 1>>(),
+		            &x);
 	}
 	EXPECT_THROW(f2.evaluate(), const char*);
 	EXPECT_THROW(f2.evaluate(x_vec), const char*);
@@ -750,10 +829,8 @@ TEST(Function, evaluate_interval)
 
 	Function f;
 	f.add_variable(&x, 1);
-	f.add_term(
-		new IntervalTerm<SimplePolynomial, 1>(
-			new SimplePolynomial),
-		&x);
+	f.add_term(std::make_shared<IntervalTerm<SimplePolynomial, 1>>(),
+	           &x);
 
 	EXPECT_DOUBLE_EQ(f.evaluate(), 81.0);
 
@@ -762,4 +839,3 @@ TEST(Function, evaluate_interval)
 	EXPECT_DOUBLE_EQ(result.get_lower(), expected.get_lower());
 	EXPECT_DOUBLE_EQ(result.get_upper(), expected.get_upper());
 }
-

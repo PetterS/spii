@@ -101,10 +101,10 @@ int main_function()
 
 	// Add (x, y) as a variable, constrained to lie on the ellipse.
 	std::vector<double> xy(2);
-	f.add_variable(&xy[0], 2, new Ellipse(x0, y0, a, b, phi));
+	f.add_variable_with_change<Ellipse>(&xy[0], 2, x0, y0, a, b, phi);
 
 	// Add a term measuring the distance to (6, 6).
-	f.add_term(new AutoDiffTerm<Distance, 2>(new Distance(6.0, 6.0)),
+	f.add_term(std::make_shared<AutoDiffTerm<Distance, 2>>(6.0, 6.0),
 	           &xy[0]);
 
 	Solver solver;

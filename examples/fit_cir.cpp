@@ -174,8 +174,7 @@ int main_function()
 	// good initial estimate for the simulated log-likelihood.
 	Function approx_f;
 	approx_f.add_variable(&param[0], 3);
-	CIRApproximateLL* approx = new CIRApproximateLL(data);
-	approx_f.add_term(new AutoDiffTerm<CIRApproximateLL, 3>(approx), &param[0]);
+	approx_f.add_term(std::make_shared<AutoDiffTerm<CIRApproximateLL, 3>>(data), &param[0]);
 	solver.solve_newton(approx_f, &results);
 
 	// Print the estimated paramters.
@@ -200,8 +199,7 @@ int main_function()
 	Function f;
 	f.add_variable(&param[0], 3);
 	for (size_t i = 0; i < data.size() - 1; ++i) {
-		SimulateCIR* cir = new SimulateCIR(data[i], data[i + 1], M, K);
-		f.add_term(new AutoDiffTerm<SimulateCIR, 3>(cir), &param[0]);
+		f.add_term(std::make_shared<AutoDiffTerm<SimulateCIR, 3>>(data[i], data[i + 1], M, K), &param[0]);
 	}
 
 	solver.function_improvement_tolerance = 1e-6;

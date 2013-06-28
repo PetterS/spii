@@ -30,7 +30,7 @@ void test_method(Solver::Method method, const Solver& solver)
 	Function f;
 	double x[2] = {-1.2, 1.0};
 	f.add_variable(x, 2);
-	f.add_term(new AutoDiffTerm<Rosenbrock, 2>(new Rosenbrock()), x);
+	f.add_term(std::make_shared<AutoDiffTerm<Rosenbrock, 2>>(), x);
 
 	SolverResults results;
 	solver.solve(f, method, &results);
@@ -85,7 +85,7 @@ TEST(Solver, function_tolerance)
 	Function f;
 	double x[2] = {-1.2, 1.0};
 	f.add_variable(x, 2);
-	f.add_term(new AutoDiffTerm<Rosenbrock, 2>(new Rosenbrock()), x);
+	f.add_term(std::make_shared<AutoDiffTerm<Rosenbrock, 2>>(), x);
 
 	Solver solver;
 	solver.log_function = no_log_function;
@@ -103,7 +103,7 @@ TEST(Solver, argument_improvement_tolerance)
 	Function f;
 	double x[2] = {-1.2, 1.0};
 	f.add_variable(x, 2);
-	f.add_term(new AutoDiffTerm<Rosenbrock, 2>(new Rosenbrock()), x);
+	f.add_term(std::make_shared<AutoDiffTerm<Rosenbrock, 2>>(), x);
 
 	Solver solver;
 	solver.log_function = no_log_function;
@@ -121,7 +121,7 @@ TEST(Solver, gradient_tolerance)
 	Function f;
 	double x[2] = {-1.2, 1.0};
 	f.add_variable(x, 2);
-	f.add_term(new AutoDiffTerm<Rosenbrock, 2>(new Rosenbrock()), x);
+	f.add_term(std::make_shared<AutoDiffTerm<Rosenbrock, 2>>(), x);
 
 	Solver solver;
 	solver.log_function = no_log_function;
@@ -158,8 +158,8 @@ TEST(Solver, inf_nan)
 	double x[1] = {-1.2};
 	f_nan.add_variable(x, 1);
 	f_inf.add_variable(x, 1);
-	f_nan.add_term(new AutoDiffTerm<NanFunctor, 1>(new NanFunctor()), x);
-	f_inf.add_term(new AutoDiffTerm<InfFunctor, 1>(new InfFunctor()), x);
+	f_nan.add_term(std::make_shared<AutoDiffTerm<NanFunctor, 1>>(), x);
+	f_inf.add_term(std::make_shared<AutoDiffTerm<InfFunctor, 1>>(), x);
 
 	Solver solver;
 	solver.log_function = no_log_function;
@@ -221,7 +221,7 @@ TEST(Solver, L_GBFS_exact)
 		double x[2] = {-1.2, 1.0};
 		Function f;
 		f.add_variable(x, 2);
-		f.add_term(new AutoDiffTerm<Rosenbrock, 2>(new Rosenbrock()), x);
+		f.add_term(std::make_shared<AutoDiffTerm<Rosenbrock, 2>>(), x);
 
 		Solver solver;
 		SolverResults results;
@@ -272,7 +272,7 @@ TEST(Solver, Newton_exact)
 		double x[2] = {-1.2, 1.0};
 		Function f;
 		f.add_variable(x, 2);
-		f.add_term(new AutoDiffTerm<Rosenbrock, 2>(new Rosenbrock()), x);
+		f.add_term(std::make_shared<AutoDiffTerm<Rosenbrock, 2>>(), x);
 
 		Solver solver;
 		SolverResults results;
@@ -351,15 +351,15 @@ TEST(Solver, SimpleConstraints)
 {
 	double x[2] = {1, 1};
 	Function function;
-	function.add_variable(x, 2, new ExpTransform<2>);
-	function.add_term(
-		new AutoDiffTerm<Quadratic2, 2>(new Quadratic2), x);
+	function.add_variable_with_change<ExpTransform<2>>(x, 2);
+	function.add_term(std::make_shared<AutoDiffTerm<Quadratic2, 2>>(),
+	                  x);
 
 	double t[2] = {0, 0};
 	Function function_changed;
 	function_changed.add_variable(t, 2);
-	function_changed.add_term(
-		new AutoDiffTerm<Quadratic2Changed, 2>(new Quadratic2Changed), t);
+	function_changed.add_term(std::make_shared<AutoDiffTerm<Quadratic2Changed, 2>>(),
+	                          t);
 
 	Solver solver;
 	solver.log_function = no_log_function;
@@ -393,9 +393,10 @@ TEST(Solver, PositiveConstraint)
 {
 	double x[2] = {1, 1};
 	Function function;
-	function.add_variable(x, 2, new GreaterThanZero(2));
+	function.add_variable_with_change<GreaterThanZero>(x, 2, 2);
 	function.add_term(
-		new AutoDiffTerm<Quadratic2, 2>(new Quadratic2), x);
+		std::make_shared<AutoDiffTerm<Quadratic2, 2>>(),
+		x);
 
 	Solver solver;
 	solver.log_function = no_log_function;
@@ -412,9 +413,10 @@ TEST(Solver, BoxConstraint)
 	Function function;
 	double a[2] = {0.0, -0.5};
 	double b[2] = {6.0, 10.0};
-	function.add_variable(x, 2, new Box(2, a, b));
+	function.add_variable_with_change<Box>(x, 2, 2, a, b);
 	function.add_term(
-		new AutoDiffTerm<Quadratic2, 2>(new Quadratic2), x);
+		std::make_shared<AutoDiffTerm<Quadratic2, 2>>(),
+		x);
 
 	Solver solver;
 	solver.log_function = no_log_function;
@@ -442,7 +444,8 @@ TEST(Solver, constant_variables)
 			double x[2] = {-1.2, 1.0};
 			Function f;
 			f.add_variable(x, 2);
-			f.add_term(new AutoDiffTerm<Rosenbrock, 2>(new Rosenbrock()), x);
+			f.add_term(std::make_shared<AutoDiffTerm<Rosenbrock, 2>>(),
+			           x);
 
 			for (int i = 1; i <= 5; ++i) {
 				solver.maximum_iterations = i;
@@ -458,7 +461,8 @@ TEST(Solver, constant_variables)
 			Function f;
 			f.add_variable(y, 1);
 			f.add_variable(x, 2);
-			f.add_term(new AutoDiffTerm<Rosenbrock, 2>(new Rosenbrock()), x);
+			f.add_term(std::make_shared<AutoDiffTerm<Rosenbrock, 2>>(),
+			           x);
 
 			f.set_constant(y, true);
 
@@ -478,7 +482,8 @@ TEST(Solver, constant_variables)
 			f.add_variable(y, 1);
 			f.add_variable(x, 2);
 			f.add_variable(z, 3);
-			f.add_term(new AutoDiffTerm<Rosenbrock, 2>(new Rosenbrock()), x);
+			f.add_term(std::make_shared<AutoDiffTerm<Rosenbrock, 2>>(),
+			           x);
 
 			f.set_constant(y, true);
 			f.set_constant(z, true);
