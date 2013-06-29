@@ -303,6 +303,8 @@ TEST(Function, copy_and_assignment)
 	auto f4 = new Function(*f2);
 	REQUIRE(counter == 0);
 
+	CHECK(f3->get_number_of_scalars() == f1->get_number_of_scalars());
+	CHECK(f3->get_number_of_terms() == f1->get_number_of_terms());
 	CHECK(f3->evaluate() == f1->evaluate());
 	CHECK(f4->evaluate() == f2->evaluate());
 

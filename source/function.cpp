@@ -40,8 +40,7 @@ struct AddedTerm
 class Function::Implementation
 {
 public:
-	Implementation(Function* function_interface) :
-		interface(function_interface) { };
+	Implementation(Function* function_interface);
 
 	// Implemenations of functions in the public interface.
 	double evaluate(const Eigen::VectorXd& x,
@@ -75,6 +74,9 @@ public:
 
 	// Evaluates the function at the point in the local storage.
 	double evaluate_from_local_storage() const;
+
+	// Clears the function to the empty function.
+	void clear();
 
 	// All variables added to the function.
 	std::map<double*, AddedVariable> variables;
@@ -113,12 +115,7 @@ public:
 Function::Function() :
 	impl(new Function::Implementation(this))
 {
-	impl->number_of_scalars = 0;
-	impl->number_of_constants = 0;
-
 	this->hessian_is_enabled = true;
-
-	impl->number_of_hessian_elements = 0;
 
 	this->evaluations_without_gradient = 0;
 	this->evaluations_with_gradient    = 0;
@@ -127,14 +124,6 @@ Function::Function() :
 	this->evaluate_with_hessian_time  = 0;
 	this->write_gradient_hessian_time = 0;
 	this->copy_time                   = 0;
-
-	#ifdef USE_OPENMP
-		impl->number_of_threads = omp_get_max_threads();
-	#else
-		impl->number_of_threads = 1;
-	#endif
-
-	impl->local_storage_allocated = false;
 }
 
 Function::Function(const Function& org)
@@ -150,23 +139,69 @@ Function::Function(const Function& org)
 	this->write_gradient_hessian_time = 0;
 	this->copy_time                   = 0;
 
-	*impl = *org.impl;
-	impl->interface = this;
+	*this = org;
 }
+
+Function::Implementation::Implementation(Function* function_interface) 
+	: interface(function_interface)
+{
+	clear();
+} 
 
 Function::~Function()
 {
 	delete impl;
 }
 
+void Function::Implementation::clear()
+{
+	terms.clear();
+	variables.clear();
+	number_of_scalars = 0;
+	number_of_constants = 0;
+
+	thread_gradient_scratch.clear();
+	thread_gradient_storage.clear();
+	local_storage_allocated = false;
+
+	number_of_hessian_elements = 0;
+
+	#ifdef USE_OPENMP
+		number_of_threads = omp_get_max_threads();
+	#else
+		number_of_threads = 1;
+	#endif
+}
+
 void Function::operator = (const Function& org)
 {
-	*impl = *org.impl;
-	impl->interface = this;
+	this->hessian_is_enabled = org.hessian_is_enabled;
+	impl->clear();
+
+	// TODO: respect global order.
+	std::map<const AddedVariable*, double*> user_variables;
+	for (auto const& added_variable: org.impl->variables) {
+		impl->add_variable_internal(added_variable.first,
+		                            added_variable.second.user_dimension,
+		                            added_variable.second.change_of_variables);
+		user_variables[&added_variable.second] = added_variable.first;
+	}
+	spii_assert(org.impl->variables.size() == user_variables.size());
+	spii_assert(get_number_of_variables() == org.get_number_of_variables());
+	spii_assert(get_number_of_scalars() == org.get_number_of_scalars());
+
+	for (auto const& added_term: org.impl->terms) {
+		std::vector<double*> vars;
+		for (auto added_var: added_term.user_variables) {
+			vars.push_back(user_variables[added_var]);
+		}
+		this->add_term(added_term.term, vars);
+	}
+	spii_assert(org.impl->variables.size() == user_variables.size());
 }
 
 void Function::add_variable(double* variable,
-	                  int dimension)
+                            int dimension)
 {
 	impl->add_variable_internal(variable, dimension);
 }
@@ -175,9 +210,8 @@ size_t Function::get_variable_global_index(double* variable) const
 {
 	// Find the variable. This has to succeed.
 	auto itr = impl->variables.find(variable);
-	if (itr == impl->variables.end()) {
-		throw std::runtime_error("Function::get_variable_global_index: variable not found.");
-	}
+	check(itr != impl->variables.end(), 
+	      "Function::get_variable_global_index: variable not found.");
 
 	return itr->second.global_index;
 }
