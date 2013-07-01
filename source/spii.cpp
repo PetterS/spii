@@ -27,11 +27,21 @@ void check(bool expr, const char* message)
 	}
 }
 
-void assertion_failed(const char* expr, const char* file, int line)
+void assertion_failed(const char* expr, const char* file_cstr, int line)
 {
-	std::stringstream sout;
+	using namespace std;
+
+	// Extract the file name only.
+	string file(file_cstr);
+	auto pos = file.find_last_of("/\\");
+	if (pos == string::npos) {
+		pos = 0;
+	}
+	file = file.substr(pos + 1);  // Returns empty string if pos + 1 == length.
+
+	stringstream sout;
 	sout << "Assertion failed: " << expr << " in " << file << ":" << line << ".";
-	throw std::runtime_error(sout.str().c_str());
+	throw runtime_error(sout.str().c_str());
 }
 
 }
