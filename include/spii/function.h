@@ -50,14 +50,54 @@ public:
 	~Function();
 	// Copying may be expensive for large functions.
 	Function(const Function&);
-	void operator = (const Function&);  // Disallow f1 = f2 = f3 by
-	                                    // making it void.
+	Function& operator = (const Function&);
 
-	// Adds a variable to the function. All variables must be added
-	// before any terms containing them are added.
+	// Adds a function to another. Neither function can have any change
+	// of variables defined (ambiguous).
+	Function& operator += (const Function&);
+	Function& operator += (double constant_value);
+
+	// Adds a new term to the function. Will throw an error if a variable
+	// is already added to the function, and it does not match the
+	// dimensionality required by the Term.
+	//
+	// If the variable has not previously been used, it will be added.
+	//
+	// The term_deletion member specified whether the Function is responsible
+	// for calling delete on the term. In any case, it is safe to add the
+	// same term twice.
+	void add_term(std::shared_ptr<const Term> term, const std::vector<double*>& arguments);
+	void add_term(std::shared_ptr<const Term> term, double* argument1);
+	void add_term(std::shared_ptr<const Term> term, double* argument1, double* argument2);
+
+	template<typename MyTerm>
+	void add_term(double* argument1)
+	{
+		add_term(std::make_shared<MyTerm>(), argument1);
+	}
+
+	template<typename MyTerm>
+	void add_term(double* argument1, double* argument2)
+	{
+		add_term(std::make_shared<MyTerm>(), argument1, argument2);
+	}
+
+	template<typename MyTerm>
+	void add_term(double* argument1, double* argument2, double* argument3)
+	{
+		add_term(std::make_shared<MyTerm>(), argument1, argument2, argument3);
+	}
+
+	// Returns the current number of terms contained in the function.
+	size_t get_number_of_terms() const;
+
+	// Adds a variable to the function. This function is called by add_term
+	// if the variable needs to be added.
 	void add_variable(double* variable, int dimension);
 
 	// Adds a variable to the function, with a change of variables.
+	// This can be called on an existing variable to add a change
+	// of variables.
 	template<typename Change>
 	void add_variable_with_change(double* variable,
 	                              int dimension)
@@ -146,39 +186,6 @@ public:
 	// Sets the number of threads the Function should use when evaluating.
 	// Default: number of cores available.
 	void set_number_of_threads(int num);
-
-	// Adds a new term to the function. Will throw an error if a variable
-	// is not already added to the function, or if it does not match the
-	// dimensionality required by the Term.
-	//
-	// The term_deletion member specified whether the Function is responsible
-	// for calling delete on the term. In any case, it is safe to add the
-	// same term twice.
-	void add_term(std::shared_ptr<const Term> term, const std::vector<double*>& arguments);
-	void add_term(std::shared_ptr<const Term> term, double* argument1);
-	void add_term(std::shared_ptr<const Term> term, double* argument1, double* argument2);
-
-	template<typename MyTerm>
-	void add_term(double* argument1)
-	{
-		add_term(std::make_shared<MyTerm>(), argument1);
-	}
-
-	template<typename MyTerm>
-	void add_term(double* argument1, double* argument2)
-	{
-		add_term(std::make_shared<MyTerm>(), argument1, argument2);
-	}
-
-	template<typename MyTerm>
-	void add_term(double* argument1, double* argument2, double* argument3)
-	{
-		add_term(std::make_shared<MyTerm>(), argument1, argument2, argument3);
-	}
-
-
-	// Returns the current number of terms contained in the function.
-	size_t get_number_of_terms() const;
 
 	// Evaluation using the data in the user-provided space.
 	double evaluate() const;

@@ -53,17 +53,20 @@ public:
 	}
 };
 
-TEST(Function, variable_not_found)
+TEST(Function, variable_not_found_is_added)
 {
 	Function f;
-	double x[5];
-	EXPECT_THROW(f.add_term(std::make_shared<AutoDiffTerm<Term1, 5>>(), x), std::runtime_error);
+	double x[2] = {0};
+	f.add_term(std::make_shared<AutoDiffTerm<Term1, 2>>(), x);
+	CHECK(f.get_number_of_terms() == 1);
+	CHECK(f.get_number_of_variables() == 1);
+	CHECK(f.get_number_of_scalars() == 2);
 }
 
 TEST(Function, term_variable_mismatch)
 {
 	Function f;
-	double x[5];
+	double x[5] = {0};
 	f.add_variable(x, 5);
 	EXPECT_THROW(f.add_term(std::make_shared<AutoDiffTerm<Term1, 4>>(), x), std::runtime_error);
 }
@@ -239,6 +242,51 @@ TEST(Function, evaluate)
 		EXPECT_DOUBLE_EQ(fval, sin(x[0]) + cos(x[1]) + 1.4 * x[0]*x[1] + 1.0 +
 		                 log(y[0]) + 3.0 * log(z[0]));
 	}}}
+}
+
+TEST(Function, add_constant)
+{
+	double x[2] = {1.0, 2.0};
+	double y[1] = {3.0};
+	double z[1] = {4.0};
+
+	Function f;
+	f.add_variable(x, 2);
+	f.add_variable(y, 1);
+	f.add_variable(z, 1);
+
+	f.add_term(std::make_shared<AutoDiffTerm<Term1, 2>>(), x);
+	f.add_term(std::make_shared<AutoDiffTerm<Term2, 1, 1>>(), y, z);
+
+	double fval = f.evaluate();
+	f += 1.0;
+	CHECK(f.evaluate() == fval + 1.0);
+	f += 10.0;
+	CHECK(f.evaluate() == fval + 1.0 + 10.0);
+}
+
+TEST(Function, add_functions)
+{
+	double x[2] = { 1.0, 2.0 };
+	double y[1] = { 3.0 };
+	double z[1] = { 4.0 };
+
+	Function f;
+	f.add_variable(x, 2);
+	f.add_variable(y, 1);
+	f.add_variable(z, 1);
+
+	f.add_term(std::make_shared<AutoDiffTerm<Term1, 2>>(), x);
+	f.add_term(std::make_shared<AutoDiffTerm<Term2, 1, 1>>(), y, z);
+	f += 7.0;
+
+	Function f2;
+	CHECK(f2.evaluate() == 0.0);
+
+	for (int i = 1; i <= 20; ++i) {
+		f2 += f;
+		CHECK(Approx(f2.evaluate()) == i * f.evaluate());
+	}
 }
 
 TEST(Function, evaluate_x)

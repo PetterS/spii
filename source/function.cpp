@@ -86,6 +86,9 @@ public:
 	size_t number_of_scalars;
 	size_t number_of_constants;
 
+	// Constant term (default: 0)
+	double constant;
+
 	// All terms added to the function.
 	std::vector<AddedTerm> terms;
 
@@ -155,6 +158,8 @@ Function::~Function()
 
 void Function::Implementation::clear()
 {
+	constant = 0;
+
 	terms.clear();
 	variables.clear();
 	number_of_scalars = 0;
@@ -173,10 +178,15 @@ void Function::Implementation::clear()
 	#endif
 }
 
-void Function::operator = (const Function& org)
+Function& Function::operator = (const Function& org)
 {
-	this->hessian_is_enabled = org.hessian_is_enabled;
+	if (this == &org) {
+		return *this;
+	}
 	impl->clear();
+
+	this->hessian_is_enabled = org.hessian_is_enabled;
+	impl->constant = org.impl->constant;
 
 	// TODO: respect global order.
 	std::map<const AddedVariable*, double*> user_variables;
@@ -198,6 +208,47 @@ void Function::operator = (const Function& org)
 		this->add_term(added_term.term, vars);
 	}
 	spii_assert(org.impl->variables.size() == user_variables.size());
+
+	return *this;
+}
+
+Function& Function::operator += (const Function& org)
+{
+	impl->constant += org.impl->constant;
+
+	// Check that there are no change of variables involved.
+	for (auto const& added_variable: org.impl->variables) {
+		spii_assert( ! added_variable.second.change_of_variables)
+	}
+	for (auto const& added_variable: impl->variables) {
+		spii_assert( ! added_variable.second.change_of_variables)
+	}
+
+	// TODO: respect global order.
+	std::map<const AddedVariable*, double*> user_variables;
+	for (auto const& added_variable: org.impl->variables) {
+		// No-op if the variable already exists.
+		impl->add_variable_internal(added_variable.first,
+		                            added_variable.second.user_dimension,
+		                            added_variable.second.change_of_variables);
+		user_variables[&added_variable.second] = added_variable.first;
+	}
+
+	for (auto const& added_term: org.impl->terms) {
+		std::vector<double*> vars;
+		for (auto added_var: added_term.user_variables) {
+			vars.push_back(user_variables[added_var]);
+		}
+		this->add_term(added_term.term, vars);
+	}
+
+	return *this;
+}
+
+Function& Function::operator += (double constant_value)
+{
+	impl->constant += constant_value;
+	return *this;
 }
 
 void Function::add_variable(double* variable,
@@ -246,7 +297,8 @@ void Function::Implementation::add_variable_internal(double* variable,
 		AddedVariable& var_info = itr->second;
 
 		if (var_info.user_dimension != dimension) {
-			throw std::runtime_error("Function::add_variable: dimension mismatch.");
+			throw std::runtime_error("Function::add_variable: dimension mismatch "
+			                         "with previously added variable.");
 		}
 
 		var_info.change_of_variables = change_of_variables;
@@ -342,13 +394,15 @@ void Function::add_term(std::shared_ptr<const Term> term, const std::vector<doub
 	if (term->number_of_variables() != arguments.size()) {
 		throw std::runtime_error("Function::add_term: incorrect number of arguments.");
 	}
+
+	// Check whether the variables exist.
 	for (int var = 0; var < term->number_of_variables(); ++var) {
 		auto var_itr = impl->variables.find(arguments[var]);
 		if (var_itr == impl->variables.end()) {
-			throw std::runtime_error("Function::add_term: unknown variable.");
+			add_variable(arguments[var], term->variable_dimension(var));
 		}
 		// The x-dimension of the variable must match what is expected by the term.
-		if (var_itr->second.user_dimension != term->variable_dimension(var)) {
+		else if (var_itr->second.user_dimension != term->variable_dimension(var)) {
 			throw std::runtime_error("Function::add_term: variable dimension does not match term.");
 		}
 	}
@@ -452,7 +506,7 @@ double Function::Implementation::evaluate_from_local_storage() const
 	interface->evaluations_without_gradient++;
 	double start_time = wall_time();
 
-	double value = 0;
+	double value = this->constant;
 	// Go through and evaluate each term.
 	// OpenMP requires a signed data type as the loop variable.
 	#ifdef USE_OPENMP
@@ -701,7 +755,7 @@ double Function::Implementation::evaluate(const Eigen::VectorXd& x,
 		this->thread_gradient_storage[t].setZero();
 	}
 
-	double value = 0;
+	double value = this->constant;
 
 	// Go through and evaluate each term.
 	// OpenMP requires a signed data type as the loop variable.
@@ -884,7 +938,7 @@ double Function::Implementation::evaluate(const Eigen::VectorXd& x,
 		this->thread_gradient_storage[t].setZero();
 	}
 
-	double value = 0;
+	double value = this->constant;
 	// Go through and evaluate each term.
 	// OpenMP requires a signed data type as the loop variable.
 	#ifdef USE_OPENMP
@@ -1018,7 +1072,7 @@ Interval<double>  Function::Implementation::evaluate(const std::vector<Interval<
 
 	std::vector<const Interval<double> *> scratch_space;
 
-	Interval<double> value = 0;
+	Interval<double> value = this->constant;
 	// Go through and evaluate each term.
 	for (int i = 0; i < terms.size(); ++i) {
 		// Evaluate the term.
@@ -1046,13 +1100,14 @@ void Function::write_to_stream(std::ostream& out) const
 	out << "spii::function" << endl;
 	out << 1 << endl;
 	// Write the representation of a reasonably complicated class to
-	// the file. We can then check that the compiler-depended format
+	// the file. We can then check that the compiler-dependent format
 	// matches.
 	out << TermFactory::fix_name(typeid(std::vector<std::map<double,int>>).name()) << endl;
 
 	out << impl->terms.size() << endl;
 	out << impl->variables.size() << endl;
 	out << impl->number_of_scalars << endl;
+	out << impl->constant << endl;
 
 	vector<pair<int, int>> variable_dimensions; 
 	for (const auto& variable : impl->variables) {
@@ -1090,6 +1145,9 @@ void Function::write_to_stream(std::ostream& out) const
 void Function::read_from_stream(std::istream& in, std::vector<double>* user_space, const TermFactory& factory)
 {
 	using namespace std;
+
+	impl->clear();
+
 	auto check = [&in](const char* variable_name) 
 	{ 
 		if (!in) {
@@ -1125,6 +1183,7 @@ void Function::read_from_stream(std::istream& in, std::vector<double>* user_spac
 	read_and_check(number_of_variables);
 	unsigned number_of_scalars;
 	read_and_check(number_of_scalars);
+	read_and_check(impl->constant);
 
 	user_space->resize(number_of_scalars);
 	int current_var = 0;

@@ -29,7 +29,6 @@ void test_method(Solver::Method method, const Solver& solver)
 {
 	Function f;
 	double x[2] = {-1.2, 1.0};
-	f.add_variable(x, 2);
 	f.add_term(std::make_shared<AutoDiffTerm<Rosenbrock, 2>>(), x);
 
 	SolverResults results;
