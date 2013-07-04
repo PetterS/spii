@@ -21,6 +21,11 @@ TermFactory::TermFactory() :
 {
 }
 
+TermFactory::~TermFactory()
+{
+	delete impl;
+}
+
 std::shared_ptr<const Term> TermFactory::create(const std::string& term_name,
                                                 std::istream& in) const
 {

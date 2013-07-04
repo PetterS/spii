@@ -24,6 +24,7 @@ public:
 	typedef std::function<Term*(std::istream&)> TermCreator;
 
 	TermFactory();
+	~TermFactory();
 
 	template<typename T>
 	void teach_term()

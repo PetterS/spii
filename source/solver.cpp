@@ -65,6 +65,7 @@ Solver::Solver()
 	this->function_improvement_tolerance = 1e-12;
 	this->argument_improvement_tolerance = 1e-12;
 	this->area_tolerance = 1e-12;
+	this->length_tolerance = 1e-12;
 
 	this->lbfgs_history_size = 10;
 	this->lbfgs_restart_tolerance = 1e-6;
