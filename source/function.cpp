@@ -190,7 +190,7 @@ Function& Function::operator = (const Function& org)
 
 	// TODO: respect global order.
 	std::map<const AddedVariable*, double*> user_variables;
-	for (auto const& added_variable: org.impl->variables) {
+	for (const auto& added_variable: org.impl->variables) {
 		impl->add_variable_internal(added_variable.first,
 		                            added_variable.second.user_dimension,
 		                            added_variable.second.change_of_variables);
@@ -200,7 +200,7 @@ Function& Function::operator = (const Function& org)
 	spii_assert(get_number_of_variables() == org.get_number_of_variables());
 	spii_assert(get_number_of_scalars() == org.get_number_of_scalars());
 
-	for (auto const& added_term: org.impl->terms) {
+	for (const auto& added_term: org.impl->terms) {
 		std::vector<double*> vars;
 		for (auto added_var: added_term.user_variables) {
 			vars.push_back(user_variables[added_var]);
@@ -217,16 +217,16 @@ Function& Function::operator += (const Function& org)
 	impl->constant += org.impl->constant;
 
 	// Check that there are no change of variables involved.
-	for (auto const& added_variable: org.impl->variables) {
+	for (const auto& added_variable: org.impl->variables) {
 		spii_assert( ! added_variable.second.change_of_variables)
 	}
-	for (auto const& added_variable: impl->variables) {
+	for (const auto& added_variable: impl->variables) {
 		spii_assert( ! added_variable.second.change_of_variables)
 	}
 
 	// TODO: respect global order.
 	std::map<const AddedVariable*, double*> user_variables;
-	for (auto const& added_variable: org.impl->variables) {
+	for (const auto& added_variable: org.impl->variables) {
 		// No-op if the variable already exists.
 		impl->add_variable_internal(added_variable.first,
 		                            added_variable.second.user_dimension,
@@ -356,8 +356,8 @@ void Function::Implementation::set_constant(double* variable, bool is_constant)
 
 	// Recompute all global indices. Expensive!
 	this->number_of_scalars = 0;
-	for (auto itr = variables.begin(); itr != variables.end(); ++itr) {
-		auto& var_info = itr->second;
+	for (auto& itr: variables) {
+		auto& var_info = itr.second;
 
 		if (! var_info.is_constant) {
 			// Give this variable a global index into a global
@@ -455,12 +455,12 @@ void Function::Implementation::allocate_local_storage() const
 {
 	size_t max_arity = 1;
 	int max_variable_dimension = 1;
-	for (auto itr = variables.begin(); itr != variables.end(); ++itr) {
+	for (const auto& itr: variables) {
 		max_variable_dimension = std::max(max_variable_dimension,
-		                                  itr->second.user_dimension);
+		                                  itr.second.user_dimension);
 	}
-	for (auto itr = terms.begin(); itr != terms.end(); ++itr) {
-		max_arity = std::max(max_arity, itr->user_variables.size());
+	for (const auto& term: terms) {
+		max_arity = std::max(max_arity, term.user_variables.size());
 	}
 
 	this->thread_gradient_scratch.resize(this->number_of_threads);
@@ -515,6 +515,7 @@ double Function::Implementation::evaluate_from_local_storage() const
 
 		#pragma omp parallel for reduction(+ : value) num_threads(this->number_of_threads)
 	#endif
+	// For loop has to be int for OpenMP.
 	for (int i = 0; i < terms.size(); ++i) {
 		#ifdef USE_OPENMP
 			// The thread number calling this iteration.
@@ -577,19 +578,21 @@ void Function::create_sparse_hessian(Eigen::SparseMatrix<double>* H) const
 	indices.reserve(impl->number_of_hessian_elements);
 	impl->number_of_hessian_elements = 0;
 
-	for (auto itr = impl->terms.begin(); itr != impl->terms.end(); ++itr) {
-		auto& variables = itr->user_variables;
+	for (const auto& added_term: impl->terms) {
+		auto& variables = added_term.user_variables;
+		auto& term = added_term.term;
+
 		// Put the hessian into the global hessian.
-		for (int var0 = 0; var0 < itr->term->number_of_variables(); ++var0) {
+		for (int var0 = 0; var0 < term->number_of_variables(); ++var0) {
 			if ( ! variables[var0]->is_constant) {
 
 				size_t global_offset0 = variables[var0]->global_index;
-				for (int var1 = 0; var1 < itr->term->number_of_variables(); ++var1) {
+				for (int var1 = 0; var1 < term->number_of_variables(); ++var1) {
 					if ( ! variables[var1]->is_constant) {
 
 						size_t global_offset1 = variables[var1]->global_index;
-						for (size_t i = 0; i < itr->term->variable_dimension(var0); ++i) {
-							for (size_t j = 0; j < itr->term->variable_dimension(var1); ++j) {
+						for (size_t i = 0; i < term->variable_dimension(var0); ++i) {
+							for (size_t j = 0; j < term->variable_dimension(var1); ++j) {
 								int global_i = static_cast<int>(i + global_offset0);
 								int global_j = static_cast<int>(j + global_offset1);
 								indices.push_back(Eigen::Triplet<double>(global_i,
@@ -653,18 +656,20 @@ void Function::Implementation::copy_user_to_global(Eigen::VectorXd* x) const
 	double start_time = wall_time();
 
 	x->resize(this->number_of_scalars);
-	for (auto itr = variables.begin(); itr != variables.end(); ++itr) {
+	for (const auto& itr: variables) {
+		double* data = itr.first;
+		const auto& variable = itr.second;
 
-		if ( ! itr->second.is_constant) {
-			if (itr->second.change_of_variables == nullptr) {
-				for (int i = 0; i < itr->second.user_dimension; ++i) {
-					(*x)[itr->second.global_index + i] = itr->first[i];
+		if ( ! variable.is_constant) {
+			if (variable.change_of_variables == nullptr) {
+				for (int i = 0; i < variable.user_dimension; ++i) {
+					(*x)[variable.global_index + i] = data[i];
 				}
 			}
 			else {
-				itr->second.change_of_variables->x_to_t(
-					&(*x)[itr->second.global_index],
-					itr->first);
+				variable.change_of_variables->x_to_t(
+					&(*x)[variable.global_index],
+					data);
 			}
 		}
 	}
@@ -681,18 +686,20 @@ void Function::Implementation::copy_global_to_user(const Eigen::VectorXd& x) con
 {
 	double start_time = wall_time();
 
-	for (auto itr = variables.begin(); itr != variables.end(); ++itr) {
+	for (const auto& itr: variables) {
+		double* data = itr.first;
+		const auto& variable = itr.second;
 
-		if ( ! itr->second.is_constant) {
-			if (itr->second.change_of_variables == nullptr) {
-				for (int i = 0; i < itr->second.user_dimension; ++i) {
-					itr->first[i] = x[itr->second.global_index + i];
+		if ( ! variable.is_constant) {
+			if (variable.change_of_variables == nullptr) {
+				for (int i = 0; i < variable.user_dimension; ++i) {
+					data[i] = x[variable.global_index + i];
 				}
 			}
 			else {
-				itr->second.change_of_variables->t_to_x(
-					itr->first,
-					&x[itr->second.global_index]);
+				variable.change_of_variables->t_to_x(
+					data,
+					&x[variable.global_index]);
 			}
 		}
 	}
@@ -704,12 +711,14 @@ void Function::Implementation::copy_user_to_local() const
 {
 	double start_time = wall_time();
 
-	for (auto itr = variables.begin(); itr != variables.end(); ++itr) {
+	for (const auto& itr: variables) {
+		double* data = itr.first;
+		const auto& variable = itr.second;
 
 		// Both variables and constants are copied here.
 
-		for (int i = 0; i < itr->second.user_dimension; ++i) {
-			itr->second.temp_space[i] = itr->first[i];
+		for (int i = 0; i < variable.user_dimension; ++i) {
+			variable.temp_space[i] = data[i];
 		}
 	}
 
