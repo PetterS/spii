@@ -274,7 +274,6 @@ public:
 			double relative_time = -1;
 			double baseline = -1;
 			bool interesting_test = false;
-			string filename = name + ".baseline";
 
 			auto baseline_entry = baselines.find(name);
 			if (baseline_entry != baselines.end()) {

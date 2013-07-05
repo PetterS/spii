@@ -184,8 +184,8 @@ void Solver::solve_lbfgs(const Function& function,
 		}
 
 		if (should_restart) {
-			char str[1024];
 			if (this->log_function) {
+				char str[1024];
 				if (number_of_restarts <= 10) {
 					std::sprintf(str, "Restarting: fval = %.3e, deltaf = %.3e, max|g_i| = %.3e, test = %.3e",
 								 fval, std::fabs(fval - fprev), normg, restart_test);
