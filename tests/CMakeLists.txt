@@ -31,3 +31,33 @@ ADD_EXECUTABLE(test_meschach test_meschach.cpp)
 	TARGET_LINK_LIBRARIES(test_meschach meschach)
 	ADD_TEST(NAME meschach
 	       COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/test_meschach)
+
+#
+# Valgrind (memcheck) testing.
+#
+find_program(VALGRIND NAMES valgrind PATH /usr/bin /usr/local/bin)
+if (VALGRIND)
+	message("-- Valgrind found; configuring memcheck tests.")
+	macro(VALGRIND_TEST NAME)
+		add_test(NAME memcheck_${NAME}
+		         COMMAND ${VALGRIND} --error-exitcode=1 --leak-check=full ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/test_${NAME})
+	endmacro(VALGRIND_TEST)
+
+	# Run shorter tests though memcheck.
+	VALGRIND_TEST(function)
+	VALGRIND_TEST(function_serializer)
+	VALGRIND_TEST(solver)
+	VALGRIND_TEST(spii)
+	VALGRIND_TEST(term)
+	VALGRIND_TEST(term_factory)
+endif (VALGRIND)
+
+#
+# Cppcheck testing.
+#
+find_program(CPPCHECK NAMES cppcheck PATH /usr/bin /usr/local/bin)
+if (CPPCHECK)
+	message("-- Cppcheck found; configuring test.")
+	add_test(NAME cppcheck
+	         COMMAND ${CPPCHECK} ${CMAKE_SOURCE_DIR} -i ${CMAKE_SOURCE_DIR}/thirdparty/ -q --error-exitcode=1)
+endif (CPPCHECK)
