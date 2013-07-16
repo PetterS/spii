@@ -282,5 +282,13 @@ BENCHMARK_F(BundleAdjustmentBenchmark, ten_lbfgs_iterations)
 
 int main(int argc, char** argv)
 {
-	hastighet::Benchmarker::RunAllTests(argc, argv);
+	try
+	{
+		hastighet::Benchmarker::RunAllTests(argc, argv);
+	}
+	catch (std::bad_alloc&)
+	{
+		std::cerr << "\nOut of memory. Exiting.\n";
+		return 1;
+	}
 }
