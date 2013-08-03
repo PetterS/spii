@@ -81,8 +81,8 @@ IF (CMAKE_COMPILER_IS_GNUCXX)
 
   # No warnings for C. The Meschach library contains really old code.
   # -fPIC for building a shared library.
-  set(CMAKE_C_FLAGS   "-w -fPIC")
-  set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -std=c++0x -fPIC")
+  set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -w -fPIC")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -std=c++0x -fPIC")
 ENDIF (CMAKE_COMPILER_IS_GNUCXX)
 
 #
@@ -93,8 +93,8 @@ IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 
   # No warnings for C. The Meschach library contains really old code.
   # -fPIC for building a shared library.
-  set(CMAKE_C_FLAGS   "-w -fPIC")
-  set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -std=c++11 -fPIC")
+  set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -w -fPIC")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -std=c++11 -fPIC")
 ENDIF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 
 #
@@ -107,28 +107,6 @@ IF (MSVC)
   # is included.
   ADD_DEFINITIONS("-DNOMINMAX=1")
 ENDIF (MSVC)
-
-
-IF (CMAKE_BUILD_TYPE STREQUAL "Release")
-  IF (CMAKE_COMPILER_IS_GNUCXX)
-      MESSAGE("-- Optimizing for release mode.")
-      # Linux
-      IF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-        MESSAGE("-- Linux")
-        ADD_DEFINITIONS("-march=native -mtune=native")
-      ENDIF (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-      # Cygwin
-      IF (${CMAKE_SYSTEM_NAME} STREQUAL "CYGWIN")
-        MESSAGE("-- Cygwin")
-        ADD_DEFINITIONS("-march=native -mtune=native")
-      ENDIF (${CMAKE_SYSTEM_NAME} STREQUAL "CYGWIN")
-      # Mac OS X
-      IF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-        MESSAGE("-- MacOS")
-        ADD_DEFINITIONS("-fast -msse3")
-      ENDIF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-  ENDIF (CMAKE_COMPILER_IS_GNUCXX)
-ENDIF (CMAKE_BUILD_TYPE STREQUAL "Release")
 
 ADD_SUBDIRECTORY(thirdparty/meschach)
 ADD_SUBDIRECTORY(data)
