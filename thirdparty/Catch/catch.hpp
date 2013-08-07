@@ -5786,7 +5786,11 @@ namespace {
     };
 
     inline bool shouldUseColourForPlatform() {
+    	#ifndef __CYGWIN__
         return isatty( fileno(stdout) );
+        #else
+        return true;
+        #endif
     }
 
     PosixColourImpl platformColourImpl;
