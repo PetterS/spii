@@ -60,12 +60,8 @@ IF (${OPENMP_FOUND})
   ENDIF (NOT MSVC)
 ENDIF (${OPENMP_FOUND})
 
-
 # Change the default build type from Debug to Release, while still
 # supporting overriding the build type.
-#
-# The CACHE STRING logic here and elsewhere is needed to force CMake
-# to pay attention to the value of these variables.
 IF (NOT CMAKE_BUILD_TYPE)
   MESSAGE("-- No build type specified; defaulting to CMAKE_BUILD_TYPE=Release.")
   SET(CMAKE_BUILD_TYPE Release CACHE STRING
@@ -73,29 +69,18 @@ IF (NOT CMAKE_BUILD_TYPE)
     FORCE)
 ENDIF (NOT CMAKE_BUILD_TYPE)
 
-#
-# gcc settings.
-#
-IF (CMAKE_COMPILER_IS_GNUCXX)
-  MESSAGE("-- Enabling C++11 support for gcc.")
+# C++11 support.
+include(EnableCPP11.cmake)
 
+#
+# Clang and GCC settings
+#
+IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR CMAKE_COMPILER_IS_GNUCXX)
   # No warnings for C. The Meschach library contains really old code.
   # -fPIC for building a shared library.
   set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -w -fPIC")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -std=c++0x -fPIC")
-ENDIF (CMAKE_COMPILER_IS_GNUCXX)
-
-#
-# Clang settings
-#
-IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-  MESSAGE("-- Enabling C++11 support for clang.")
-
-  # No warnings for C. The Meschach library contains really old code.
-  # -fPIC for building a shared library.
-  set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -w -fPIC")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -std=c++11 -fPIC")
-ENDIF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -fPIC")
+ENDIF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR CMAKE_COMPILER_IS_GNUCXX)
 
 #
 # MSVC settings
@@ -114,4 +99,3 @@ ADD_SUBDIRECTORY(benchmarks)
 ADD_SUBDIRECTORY(examples)
 ADD_SUBDIRECTORY(source)
 ADD_SUBDIRECTORY(tests)
-
