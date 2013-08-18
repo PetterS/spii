@@ -91,6 +91,10 @@ inline double to_double(double x)
 {
 	return x;
 }
+inline float to_double(float x)
+{
+	return x;
+}
 template<typename R>
 inline double to_double(R& x)
 {
