@@ -206,7 +206,7 @@ void run_problem_main(const std::string& filename, Solver::Method method)
 			solver.gradient_tolerance = 1e-9;
 
 			solver.line_search_c = 1e-2;
-			solver.line_search_rho = 0.5;
+			solver.line_search_rho = 0.6;
 		}
 		else if (method == Solver::LBFGS) {
 			solver.function_improvement_tolerance = 0;
