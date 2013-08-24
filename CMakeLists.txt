@@ -78,8 +78,8 @@ include(EnableCPP11.cmake)
 IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR CMAKE_COMPILER_IS_GNUCXX)
   # No warnings for C. The Meschach library contains really old code.
   # -fPIC for building a shared library.
-  set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -w -fPIC")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -fPIC")
+  set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -w -fpic")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -fpic")
 ENDIF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR CMAKE_COMPILER_IS_GNUCXX)
 
 #
@@ -91,6 +91,7 @@ IF (MSVC)
   # To get rid of annoying min and max macros if windows.h
   # is included.
   ADD_DEFINITIONS("-DNOMINMAX=1")
+  ADD_DEFINITIONS("-D_VARIADIC_MAX=6")
 ENDIF (MSVC)
 
 ADD_SUBDIRECTORY(thirdparty/meschach)
