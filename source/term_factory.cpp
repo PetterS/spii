@@ -43,7 +43,7 @@ void TermFactory::teach_term(const std::string& term_name, const TermCreator& cr
 	impl->creators[fix_name(term_name)] = creator;
 }
 
-std::string TermFactory::fix_name(const std::string& org_name)
+std::string TermFactory::fix_name(std::string org_name)
 {
 	std::string name = org_name;
 	std::replace(name.begin(), name.end(), ' ', '-');

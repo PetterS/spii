@@ -32,7 +32,7 @@ public:
 		TermTeacher<T>::teach(*this);
 	}
 
-	static std::string fix_name(const std::string& org_name);
+	static std::string fix_name(std::string org_name);
 
 	std::shared_ptr<const Term> create(const std::string& term_name, std::istream& in) const;
 	void teach_term(const std::string& term_name, const TermCreator& creator);
