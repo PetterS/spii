@@ -43,7 +43,7 @@ public:
 SPII_API std::ostream& operator << (std::ostream& out, const Term& term);
 SPII_API std::istream& operator >> (std::istream& in, Term& term);
 
-template<int D0,int D1 = 0, int D2 = 0, int D3 = 0>
+template<int D0,int D1 = 0, int D2 = 0, int D3 = 0, int D4 = 0>
 class SizedTerm :
 	public Term
 {
@@ -53,7 +53,8 @@ public:
 		if (D1 == 0) return 1;
 		if (D2 == 0) return 2;
 		if (D3 == 0) return 3;
-		return 4;
+		if (D4 == 0) return 4;
+		return 5;
 	}
 
 	virtual int variable_dimension(int var) const
@@ -62,6 +63,7 @@ public:
 		if (var == 1) return D1;
 		if (var == 2) return D2;
 		if (var == 3) return D3;
+		if (var == 4) return D4;
 		return -1;
 	}
 };
