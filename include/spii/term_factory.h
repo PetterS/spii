@@ -68,13 +68,13 @@ struct TermTeacher
 };
 
 // Specialize for AutoDiffTerm.
-template<typename Functor, int D0, int D1, int D2, int D3>
+template<typename Functor, int D0, int D1, int D2, int D3, int D4>
 class AutoDiffTerm;
 
-template<typename T, int D0, int D1, int D2, int D3>
-struct TermTeacher< AutoDiffTerm<T,D0,D1,D2,D3> >
+template<typename T, int D0, int D1, int D2, int D3, int D4>
+struct TermTeacher< AutoDiffTerm<T,D0,D1,D2,D3,D4> >
 {
-	typedef AutoDiffTerm<T,D0,D1,D2,D3> AutoTerm;
+	typedef AutoDiffTerm<T,D0,D1,D2,D3,D4> AutoTerm;
 	static void teach(TermFactory& factory)
 	{
 		auto creator = [](std::istream& in) -> Term*
