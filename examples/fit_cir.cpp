@@ -78,6 +78,8 @@ struct CIRApproximateLL
 	}
 };
 
+typedef std::mt19937_64 Rng;
+
 struct SimulateCIR
 {
 	double r0;
@@ -85,8 +87,8 @@ struct SimulateCIR
 	int M;
 	int K;
 
-	static unsigned seed;
-	unsigned local_seed;
+	static Rng::result_type seed;
+	Rng::result_type local_seed;
 
 	SimulateCIR(double r0, double r1, int M, int K)
 	{
@@ -101,8 +103,7 @@ struct SimulateCIR
 	R operator()(R* param) const
 	{
 		// The random number generator
-		std::seed_seq seed_s(&this->local_seed, &this->local_seed + 1);
-		std::mt19937 prng(seed_s);
+		Rng prng(this->local_seed);
 		std::normal_distribution<double> normal;
 		auto randn = std::bind(normal, prng);
 
@@ -138,7 +139,7 @@ struct SimulateCIR
 	}
 };
 
-unsigned SimulateCIR::seed = 0;
+Rng::result_type SimulateCIR::seed = Rng::default_seed;
 
 int main_function()
 {
