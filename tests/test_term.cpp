@@ -254,6 +254,84 @@ TEST_CASE("AutoDiffTerm/MyFunctor2", "")
 	CHECK(Approx(hessian[0][1](0,0)) == 1.4);
 }
 
+class MyFunctor3
+{
+public:
+	template<typename R>
+	R operator()(const R* const x,
+	             const R* const y,
+	             const R* const z) const
+	{
+		return 2.0 * x[0]
+		     + 2.0 * y[0] + 3.0 * y[1]
+		     + 2.0 * z[0]*z[0] + 3.0 * z[1]*z[1] + 4.0 * z[2]*z[2];
+	}
+};
+
+TEST_CASE("AutoDiffTerm/MyFunctor3")
+{
+	AutoDiffTerm<MyFunctor3, 1, 2, 3> term;
+
+	double x[1] = {5.3};
+	double y[2] = {7.1, 5.1};
+	double z[3] = {9.5, 1.1, 5.2};
+	std::vector<double*> variables;
+	variables.push_back(x);
+	variables.push_back(y);
+	variables.push_back(z);
+
+	std::vector<Eigen::VectorXd> gradient;
+	gradient.push_back(Eigen::VectorXd(1));
+	gradient.push_back(Eigen::VectorXd(2));
+	gradient.push_back(Eigen::VectorXd(3));
+
+	std::vector< std::vector<Eigen::MatrixXd> > hessian(3);
+	hessian[0].resize(3);
+	hessian[1].resize(3);
+	hessian[2].resize(3);
+	hessian[0][0].resize(1,1);
+	hessian[0][1].resize(1,2);
+	hessian[0][2].resize(1,3);
+	hessian[1][0].resize(2,1);
+	hessian[2][0].resize(3,1);
+	hessian[1][1].resize(2,2);
+	hessian[1][2].resize(2,3);
+	hessian[2][1].resize(3,2);
+	hessian[2][2].resize(3,3);
+
+	double value  = term.evaluate(&variables[0], &gradient, &hessian);
+	double value2 = term.evaluate(&variables[0]);
+
+	// The two values must agree.
+	CHECK(Approx(value) == value2);
+
+	// Test function value
+	CHECK(Approx(value) == 
+	         ( 2.0 * x[0]
+		     + 2.0 * y[0] + 3.0 * y[1]
+		     + 2.0 * z[0]*z[0] + 3.0 * z[1]*z[1] + 4.0 * z[2]*z[2]));
+
+	// Test gradient
+	CHECK(Approx(gradient[0](0)) ==  2.0);
+	CHECK(Approx(gradient[1](0)) ==  2.0); 
+	CHECK(Approx(gradient[1](1)) ==  3.0); 
+	CHECK(Approx(gradient[2](0)) ==  2.0 * 2.0 * z[0]); 
+	CHECK(Approx(gradient[2](1)) ==  2.0 * 3.0 * z[1]);
+	CHECK(Approx(gradient[2](2)) ==  2.0 * 4.0 * z[2]);
+
+	// Test Hessian
+	CHECK(Approx(hessian[0][0](0,0)) == 0.0);
+
+	CHECK(Approx(hessian[1][1](0,0)) == 0.0);
+	CHECK(Approx(hessian[1][1](0,1)) == 0.0);
+	CHECK(Approx(hessian[1][1](1,0)) == 0.0);
+	CHECK(Approx(hessian[1][1](1,1)) == 0.0);
+
+	CHECK(Approx(hessian[2][2](0,0)) == 2.0 * 2.0);
+	CHECK(Approx(hessian[2][2](1,1)) == 2.0 * 3.0);
+	CHECK(Approx(hessian[2][2](2,2)) == 2.0 * 4.0);
+}
+
 struct WriteFunctor1
 {
 	template<typename R>
