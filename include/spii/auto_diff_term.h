@@ -644,7 +644,7 @@ public:
 			}
 
 			// D1 and D2
-			for (int j = 0; j < D1; ++j) {
+			for (int j = 0; j < D2; ++j) {
 				(*hessian)[1][2](i, j) = df[i + offset1].d(j + offset2);
 			}
 		}
@@ -663,7 +663,7 @@ public:
 			}
 
 			// D2 and D2
-			for (int j = 0; j < D1; ++j) {
+			for (int j = 0; j < D2; ++j) {
 				(*hessian)[2][2](i, j) = df[i + offset2].d(j + offset2);
 			}
 		}
