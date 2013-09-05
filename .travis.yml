@@ -10,7 +10,7 @@ before_script:
   - cd build
   - cmake -DOPENMP=OFF -DCMAKE_INSTALL_PREFIX=/usr .. 
 script: 
-  - make && make test && sudo make install
+  - make && ctest --output-on-failure && sudo make install
 after_success:
   - cd ..
   - cd examples
