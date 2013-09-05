@@ -29,8 +29,7 @@ class AutoDiffTerm :
 
 
 //
-// Create a has_write struct to test whether a class T as a member
-// Create a has_write struct to test whether a class T as a member
+// Create a has_write struct to test whether a class T has a member
 // function void T::write
 //
 // has_write<T, B>::value == true iff "void T::write(B)" exists.
