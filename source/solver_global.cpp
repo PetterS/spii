@@ -50,7 +50,7 @@ IntervalVector get_bounding_box(const IntervalQueue& queue_in,
 	}
 	// Make copy.
 	auto queue = queue_in;
-	int n = queue_in.top().box.size();
+	auto n = queue_in.top().box.size();
 	std::vector<double> upper_bound(n, -1e100);
 	std::vector<double> lower_bound(n, 1e100);
 
@@ -79,7 +79,7 @@ void split_interval(const IntervalVector& x,
                     double lower_bound,
                     IntervalQueue* queue)
 {
-	int n = x.size();
+	auto n = x.size();
 	std::vector<int> split(n, 0);
 
 	Eigen::VectorXd mid;

@@ -91,7 +91,7 @@ void Solver::solve_newton(const Function& function,
 		sparse_factorization->analyzePattern(sparse_H);
 	}
 
-	FactorizationCache factorization_cache(n);
+	FactorizationCache factorization_cache((int)n);
 
 	//
 	// START MAIN ITERATION

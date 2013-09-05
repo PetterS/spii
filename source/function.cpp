@@ -1118,7 +1118,7 @@ void Function::write_to_stream(std::ostream& out) const
 	out << impl->number_of_scalars << endl;
 	out << impl->constant << endl;
 
-	vector<pair<int, int>> variable_dimensions; 
+	vector<pair<std::size_t, std::size_t>> variable_dimensions; 
 	for (const auto& variable : impl->variables) {
 		if (variable.second.change_of_variables != nullptr) {
 			throw runtime_error("Function::write_to_stream: Change of variables not allowed.");
@@ -1196,7 +1196,7 @@ void Function::read_from_stream(std::istream& in, std::vector<double>* user_spac
 
 	user_space->resize(number_of_scalars);
 	int current_var = 0;
-	for (int i = 0; i < number_of_variables; ++i) {
+	for (unsigned i = 0; i < number_of_variables; ++i) {
 		int variable_dimension;
 		read_and_check(variable_dimension);
 		this->add_variable(&user_space->at(current_var), variable_dimension);
@@ -1206,18 +1206,18 @@ void Function::read_from_stream(std::istream& in, std::vector<double>* user_spac
 		throw runtime_error("Function::read_from_stream: Not enough variables in stream.");
 	}
 
-	for (int i = 0; i < number_of_scalars; ++i) {
+	for (unsigned i = 0; i < number_of_scalars; ++i) {
 		read_and_check(user_space->at(i));
 	}
 
-	for (int i = 0; i < number_of_terms; ++i) {
+	for (unsigned i = 0; i < number_of_terms; ++i) {
 		std::string term_name;
 		read_and_check(term_name);
 		unsigned term_vars;
 		read_and_check(term_vars);
 
 		std::vector<double*> arguments;
-		for (int i = 0; i < term_vars; ++i) {
+		for (unsigned i = 0; i < term_vars; ++i) {
 			int offset;
 			read_and_check(offset);
 			arguments.push_back(&user_space->at(offset));
