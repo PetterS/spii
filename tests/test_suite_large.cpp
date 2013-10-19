@@ -14,11 +14,6 @@
 
 using namespace spii;
 
-void info_log_function(const std::string& str)
-{
-	INFO(str);
-}
-
 void run_test_main(const std::function<void(std::vector<double>&, Function*)>& create_f,
                    const std::function<std::vector<double>(int)>& start, 
                    int n,
@@ -29,8 +24,14 @@ void run_test_main(const std::function<void(std::vector<double>&, Function*)>& c
 	create_f(this_start, &f);
 	REQUIRE(f.get_number_of_scalars() == this_start.size());
 
+	std::stringstream information_stream;
+
 	Solver solver;
-	solver.log_function = info_log_function;
+	solver.log_function =
+		[&information_stream](const std::string& str)
+		{
+			information_stream << str << "\n";
+		};
 	solver.function_improvement_tolerance = 0;
 	solver.argument_improvement_tolerance = 0;
 	solver.gradient_tolerance = 1e-7;
@@ -38,6 +39,10 @@ void run_test_main(const std::function<void(std::vector<double>&, Function*)>& c
 
 	SolverResults results;
 	solver.solve(f, method, &results);
+
+	f.print_timing_information(information_stream);
+	INFO(information_stream.str());
+	INFO(results);
 
 	CHECK(results.exit_success());
 }
