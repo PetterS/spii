@@ -43,8 +43,7 @@ public:
 	// Specifies whether the function should be prepared to compute
 	// the Hessian matrix, which is is not needed for L-BFGS. This
 	// setting only affects the amount of temporary space allocated.
-	// Default: true.
-	bool hessian_is_enabled;
+	bool hessian_is_enabled = true;
 
 	Function();
 	~Function();
@@ -223,12 +222,12 @@ public:
 
 	// Used to record the time of some operations. Each time an operation
 	// is performed, the time taken is added to the appropiate variable.
-	mutable int evaluations_without_gradient;
-	mutable int evaluations_with_gradient;
-	mutable double evaluate_time;
-	mutable double evaluate_with_hessian_time;
-	mutable double write_gradient_hessian_time;
-	mutable double copy_time;
+	mutable int evaluations_without_gradient    = 0;
+	mutable int evaluations_with_gradient       = 0;
+	mutable double evaluate_time                = 0.0;
+	mutable double evaluate_with_hessian_time   = 0.0;
+	mutable double write_gradient_hessian_time  = 0.0;
+	mutable double copy_time                    = 0.0;
 
 	// Prints the recorded timing information.
 	void print_timing_information(std::ostream& out) const;

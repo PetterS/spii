@@ -20,7 +20,6 @@ namespace spii {
 // SolverResults contains the result of a call to Solver::solve.
 struct SPII_API SolverResults
 {
-	SolverResults();
 
 	// The exit condition specifies how the solver terminated.
 	enum {GRADIENT_TOLERANCE, // Gradient tolerance reached.
@@ -30,7 +29,7 @@ struct SPII_API SolverResults
 	      FUNCTION_NAN,       // Nan encountered.
 	      FUNCTION_INFINITY,  // Infinity encountered.
 	      INTERNAL_ERROR,     // Internal error.
-	      NA} exit_condition;
+	      NA} exit_condition = NA;
 
 	// Returns true if the exit_condition indicates convergence.
 	bool exit_success() const
@@ -40,21 +39,21 @@ struct SPII_API SolverResults
 		       exit_condition == ARGUMENT_TOLERANCE;
 	}
 
-	double startup_time;
-	double function_evaluation_time;
-	double stopping_criteria_time;
-	double matrix_factorization_time;
-	double lbfgs_update_time;
-	double linear_solver_time;
-	double backtracking_time;
-	double log_time;
-	double total_time;
+	double startup_time                = 0;
+	double function_evaluation_time    = 0;
+	double stopping_criteria_time      = 0;
+	double matrix_factorization_time   = 0;
+	double lbfgs_update_time           = 0;
+	double linear_solver_time          = 0;
+	double backtracking_time           = 0;
+	double log_time                    = 0;
+	double total_time                  = 0;
 
 	// The minimum value of the function being minimized is
 	// in this interval. These members are only set by global
 	// optmization solvers.
-	double optimum_lower;
-	double optimum_upper;
+	double optimum_lower = - std::numeric_limits<double>::infinity();
+	double optimum_upper =   std::numeric_limits<double>::infinity();
 };
 
 SPII_API std::ostream& operator<<(std::ostream& out, const SolverResults& results);
@@ -125,59 +124,57 @@ public:
 
 	// Mode of operation. How the Hessian is stored.
 	// Default: AUTO.
-	enum {DENSE, SPARSE, AUTO} sparsity_mode;
+	enum {DENSE, SPARSE, AUTO} sparsity_mode = AUTO;
 
 	// Function called each iteration with a log message.
 	// Default: print to std::cerr.
 	std::function<void(const std::string& log_message)> log_function;
 
-	// Maximum number of iterations. Default: 100.
-	int maximum_iterations;
+	// Maximum number of iterations.
+	int maximum_iterations = 100;
 
 	// Gradient tolerance. The solver terminates if
 	// ||g|| / ||g0|| < tol, where ||.|| is the maximum
-	// norm. Default: 1e-12.
-	double gradient_tolerance;
+	// norm.
+	double gradient_tolerance = 1e-12;
 
 	// Function improvement tolerance. The solver terminates
-	// if |df| / (|f| + tol) < tol. Default: 1e-12.
-	double function_improvement_tolerance;
+	// if |df| / (|f| + tol) < tol.
+	double function_improvement_tolerance = 1e-12;
 
 	// Argument improvement tolerance. The solver terminates
-	// if ||dx|| / (||x|| + tol) < tol. Default: 1e-12.
-	double argument_improvement_tolerance;
+	// if ||dx|| / (||x|| + tol) < tol.
+	double argument_improvement_tolerance = 1e-12;
 
 	// Area tolerance (Nelder-Mead) The solver terminates if
 	// ||a|| / ||a0|| < tol, where ||.|| is the maximum
-	// norm. Default: 0 (i.e. not used).
-	double area_tolerance;
+	// norm.
+	double area_tolerance = 1e-12;
 
 	// Length tolerance (Nelder-Mead) The solver terminates if
 	// ||a|| / ||a0|| < tol, where ||.|| is the maximum
-	// norm. Default: 1e-12.
-	double length_tolerance;
+	// norm.
+	double length_tolerance = 1e-12;
 
 	// Number of vectors L-BFGS should save in its history.
-	// Default: 10.
-	int lbfgs_history_size;
+	int lbfgs_history_size = 10;
 
 	// If the relative function improvement is less than this
 	// value, L-BFGS will discard its history and restart.
-	// Default: 1e-6.
-	double lbfgs_restart_tolerance;
+	double lbfgs_restart_tolerance = 1e-6;
 
 	// The line search is completed when
 	//   f(x + alpha * p) <= f(x) + c * alpha * gTp.
 	// In each iteration, alpha *= rho.
-	double line_search_c;    // default: 1e-4.
-	double line_search_rho;  // default: 0.5.
+	double line_search_c   = 1e-4;
+	double line_search_rho = 0.5;
 
 	// The default factorization method is the BKP block
 	// diagonal modification (Nocedal and Wright, p. 55).
 	// Alternatively, it is possible to use iterative diagonal
 	// modification of the Hessian. This is also used for
 	// sparse systems.
-	enum {BKP, ITERATIVE} factorization_method;
+	enum {BKP, ITERATIVE} factorization_method = BKP;
 private:
 
 	// Computes a Newton step given a function, a gradient and a

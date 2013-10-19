@@ -117,31 +117,11 @@ public:
 
 Function::Function() :
 	impl(new Function::Implementation(this))
-{
-	this->hessian_is_enabled = true;
-
-	this->evaluations_without_gradient = 0;
-	this->evaluations_with_gradient    = 0;
-
-	this->evaluate_time               = 0;
-	this->evaluate_with_hessian_time  = 0;
-	this->write_gradient_hessian_time = 0;
-	this->copy_time                   = 0;
-}
+{ }
 
 Function::Function(const Function& org)
 	: impl(new Function::Implementation(this))
 {
-	this->hessian_is_enabled = true;
-
-	this->evaluations_without_gradient = 0;
-	this->evaluations_with_gradient    = 0;
-
-	this->evaluate_time               = 0;
-	this->evaluate_with_hessian_time  = 0;
-	this->write_gradient_hessian_time = 0;
-	this->copy_time                   = 0;
-
 	*this = org;
 }
 
