@@ -19,11 +19,11 @@ Compilation
 -----------
 Everything needed to compile the library, examples and tests using CMake should be included.
 All tests pass with the following compilers:
-* Visual Studio 2012
-* GCC 4.6 (Ubuntu)
+* Visual Studio 2013
+* GCC 4.8 (Cygwin)
 * GCC 4.7 (Ubuntu)
 * Clang 3.2 (Ubuntu)
-Earlier compilers will probably not work.
+Earlier compilers will not work.
 
 You can check travis.yml for the commands used to build the library and run all tests on Ubuntu.
 It is even easier on Windows. The status of the automatic builds using gcc and Clang is [![Build Status](https://travis-ci.org/PetterS/spii.png)](https://travis-ci.org/PetterS/spii).
