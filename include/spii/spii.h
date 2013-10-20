@@ -22,10 +22,10 @@ double wall_time();
 void SPII_API check(bool expr, const char* message);
 void SPII_API assertion_failed(const char* expr, const char* file, int line);
 
-#define spii_assert(expr) if (!(expr)) { assertion_failed(#expr, __FILE__, __LINE__); }
+#define spii_assert(expr) if (!(expr)) { spii::assertion_failed(#expr, __FILE__, __LINE__); }
 
 #ifndef NDEBUG
-	#define spii_dassert(expr) if (!(expr)) { assertion_failed(#expr, __FILE__, __LINE__); }
+	#define spii_dassert(expr) if (!(expr)) { spii::assertion_failed(#expr, __FILE__, __LINE__); }
 #else
 	#define spii_dassert(expr) ((void)0)
 #endif
