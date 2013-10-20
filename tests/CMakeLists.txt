@@ -1,30 +1,24 @@
 # Author: petter.strandmark@gmail.com (Petter Strandmark)
 
 MACRO (SPII_TEST NAME)
-	ADD_EXECUTABLE(test_${NAME} 
-	               test_${NAME}.cpp
+	ADD_EXECUTABLE(${NAME} 
+	               ${NAME}.cpp
 	               ${SPII_HEADERS})
 
-	TARGET_LINK_LIBRARIES(test_${NAME} spii)
+	TARGET_LINK_LIBRARIES(${NAME} spii)
 
 	ADD_TEST(NAME ${NAME}
-	         COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/test_${NAME})
+	         COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${NAME})
 ENDMACRO (SPII_TEST)
 
-SPII_TEST(function)
-SPII_TEST(function_serializer)
-SPII_TEST(global)
-SPII_TEST(interval)
-SPII_TEST(nist)
-SPII_TEST(solver)
-SPII_TEST(spii)
-SPII_TEST(suite_large)
-SPII_TEST(suite_lbfgs)
-SPII_TEST(suite_newton)
-SPII_TEST(suite_nelder_mead)
-SPII_TEST(suite_pattern_search)
-SPII_TEST(term)
-SPII_TEST(term_factory)
+FILE(GLOB TEST_FILES test_*.cpp)
+FILE(GLOB MESCHACH_TEST test_meschach*.cpp)
+LIST(REMOVE_ITEM TEST_FILES ${MESCHACH_TEST})
+FOREACH (TEST_FILE ${TEST_FILES})
+	GET_FILENAME_COMPONENT(TEST_NAME ${TEST_FILE} NAME_WE)
+	MESSAGE("-- Adding test: " ${TEST_NAME})
+	SPII_TEST(${TEST_NAME})
+ENDFOREACH()
 
 # Meschach test does not link to spii.
 ADD_EXECUTABLE(test_meschach test_meschach.cpp)

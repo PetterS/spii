@@ -1,13 +1,16 @@
 # Author: petter.strandmark@gmail.com (Petter Strandmark)
 
 MACRO (SPII_BENCHMARK NAME)
-	ADD_EXECUTABLE(benchmark_${NAME} 
-	               benchmark_${NAME}.cpp
+	ADD_EXECUTABLE(${NAME} 
+	               ${NAME}.cpp
 	               ${SPII_HEADERS})
 
-	TARGET_LINK_LIBRARIES(benchmark_${NAME} spii)
+	TARGET_LINK_LIBRARIES(${NAME} spii)
 ENDMACRO (SPII_BENCHMARK)
 
-SPII_BENCHMARK(bundle)
-SPII_BENCHMARK(function)
-SPII_BENCHMARK(solver)
+FILE(GLOB BENCHMARK_FILES benchmark_*.cpp)
+FOREACH (BENCHMARK_FILE ${BENCHMARK_FILES})
+	GET_FILENAME_COMPONENT(BENCHMARK_NAME ${BENCHMARK_FILE} NAME_WE)
+	MESSAGE("-- Adding benchmark: " ${BENCHMARK_NAME})
+	SPII_BENCHMARK(${BENCHMARK_NAME})
+ENDFOREACH()
