@@ -31,7 +31,7 @@ struct NegLogLikelihood
 
 int main_function()
 {
-	std::mt19937 prng(1);
+	std::mt19937 prng(1u);
 	std::normal_distribution<double> normal;
 	auto randn = std::bind(normal, prng);
 
@@ -50,26 +50,11 @@ int main_function()
 
 	mu    = 0.0;
 	sigma = 1.0;
-	Solver solver;
+	LBFGSSolver solver;
 	SolverResults results;
-	solver.solve_lbfgs(f, &results);
+	solver.solve(f, &results);
 	std::cout << "Estimated:" << std::endl;
-	std::cout << "mu = " << mu << ", sigma = " << sigma << std::endl << std::endl;
-
-	// Remove the constraint on sigma.
-	f.add_variable(&sigma, 1);
-
-	Interval<double> start_mu(4.0, 6.0);
-	Interval<double> start_sigma(1.0, 10.0);
-	IntervalVector start_box;
-	start_box.push_back(start_mu);
-	start_box.push_back(start_sigma);
-	solver.maximum_iterations = 5000;
-	solver.solve_global(f, start_box, &results);
-	std::cout << results << std::endl;
-
-	std::cout << "Global optimization:" << std::endl;
-	std::cout << "mu = " << mu << ", sigma = " << sigma << std::endl << std::endl;
+	std::cout << "f = " << f.evaluate() << " mu = " << mu << ", sigma = " << sigma << std::endl << std::endl;
 
 	return 0;
 }
