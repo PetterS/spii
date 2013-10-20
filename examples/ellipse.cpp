@@ -107,9 +107,9 @@ int main_function()
 	f.add_term(std::make_shared<AutoDiffTerm<Distance, 2>>(6.0, 6.0),
 	           &xy[0]);
 
-	Solver solver;
+	LBFGSSolver solver;
 	SolverResults results;
-	solver.solve_lbfgs(f, &results);
+	solver.solve(f, &results);
 
 	std::cerr << "Final point: (" << xy[0] << ", " << xy[1] << ")\n";
 	std::cerr << "Evaluate: " << f.evaluate() << std::endl;

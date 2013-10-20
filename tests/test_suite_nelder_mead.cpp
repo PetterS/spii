@@ -19,8 +19,10 @@ void info_log_function(const std::string& str)
 	global_string_stream << str << "\n";
 }
 
-void create_solver(Solver* solver)
+std::unique_ptr<Solver> create_solver()
 {
+	std::unique_ptr<NelderMeadSolver> solver(new NelderMeadSolver);
+
 	// The problems in the test suite are rather difficult
 	// and often require very exact solutions (for N-M).
 	// Therefore, many iterations have to be used.
@@ -29,6 +31,8 @@ void create_solver(Solver* solver)
 	solver->length_tolerance = 1e-20;
 
 	solver->log_function = info_log_function;
+
+	return std::move(solver);
 }
 
 template<typename Functor, int dimension>
@@ -48,15 +52,14 @@ double run_test(double* var, const Solver* solver = 0)
 	f.evaluate(xvec, &gradient);
 	double normg0 = std::max(gradient.maxCoeff(), -gradient.minCoeff());
 
-	Solver own_solver;
-	create_solver(&own_solver);
-
+	auto own_solver = create_solver();
 	if (solver == 0) {
-		solver = &own_solver;
+		solver = own_solver.get();
 	}
+
 	SolverResults results;
 	global_string_stream.str("");
-	solver->solve_nelder_mead(f, &results);
+	solver->solve(f, &results);
 	INFO(global_string_stream.str());
 	INFO(results);
 

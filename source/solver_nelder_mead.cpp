@@ -76,8 +76,8 @@ void initialize_simplex(const Function& function,
 	std::sort(simplex->begin(), simplex->end());
 }
 
-void Solver::solve_nelder_mead(const Function& function,
-                               SolverResults* results) const
+void NelderMeadSolver::solve(const Function& function,
+                             SolverResults* results) const
 {
 	double global_start_time = wall_time();
 

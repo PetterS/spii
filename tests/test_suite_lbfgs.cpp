@@ -25,8 +25,10 @@ void info_log_function(const std::string& str)
 	global_string_stream << str << "\n";
 }
 
-void create_solver(Solver* solver)
+std::unique_ptr<Solver> create_solver()
 {
+	std::unique_ptr<LBFGSSolver> solver(new LBFGSSolver);
+
 	solver->maximum_iterations = 1000;
 	solver->function_improvement_tolerance = 1e-16;
 	solver->gradient_tolerance = 1e-12;
@@ -34,6 +36,8 @@ void create_solver(Solver* solver)
 	solver->lbfgs_history_size = 40;
 
 	solver->log_function = info_log_function;
+
+	return std::move(solver);
 }
 
 template<typename Functor, int dimension>
@@ -45,15 +49,14 @@ double run_test(double* var, const Solver* solver = 0)
 	f.add_variable(var, dimension);
 	f.add_term(std::make_shared<AutoDiffTerm<Functor, dimension>>(), var);
 
-	Solver own_solver;
-	create_solver(&own_solver);
-
+	auto own_solver = create_solver();
 	if (solver == 0) {
-		solver = &own_solver;
+		solver = own_solver.get();
 	}
+
 	SolverResults results;
 	global_string_stream.str("");
-	solver->solve_lbfgs(f, &results);
+	solver->solve(f, &results);
 	INFO(global_string_stream.str());
 	INFO(results);
 

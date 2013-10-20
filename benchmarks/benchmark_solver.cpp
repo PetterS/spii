@@ -29,6 +29,7 @@ struct NegLogLikelihood
 	}
 };
 
+template<typename SolverClass>
 class LikelihoodBenchmark :
 	public hastighet::Test
 {
@@ -39,7 +40,7 @@ public:
 	Eigen::VectorXd x, g;
 	Eigen::MatrixXd H;
 	double out;
-	Solver solver;
+	SolverClass solver;
 	SolverResults results;
 
 	LikelihoodBenchmark() : 
@@ -69,18 +70,20 @@ public:
 	}
 };
 
-BENCHMARK_F(LikelihoodBenchmark, solver_1_newton_iter)
+typedef LikelihoodBenchmark<NewtonSolver> LikelihoodBenchmarkNewtonSolver;
+BENCHMARK_F(LikelihoodBenchmarkNewtonSolver, solver_1_newton_iter)
 {
 	mu = 5.0;
 	sigma = 1.0;
-	solver.solve_newton(f, &results);
+	solver.solve(f, &results);
 }
 
-BENCHMARK_F(LikelihoodBenchmark, solver_1_lbfgs_iter)
+typedef LikelihoodBenchmark<LBFGSSolver> LikelihoodBenchmarkLBFGSSolver;
+BENCHMARK_F(LikelihoodBenchmarkLBFGSSolver, solver_1_lbfgs_iter)
 {
 	mu = 5.0;
 	sigma = 1.0;
-	solver.solve_lbfgs(f, &results);
+	solver.solve(f, &results);
 }
 
 struct LennardJonesTerm
@@ -98,6 +101,7 @@ struct LennardJonesTerm
 	}
 };
 
+template<typename SolverClass>
 class LennardJonesBenchmark :
 	public hastighet::Test
 {
@@ -107,7 +111,7 @@ public:
 	std::vector<Eigen::Vector3d> org_points;
 	Eigen::VectorXd x, g;
 	Eigen::MatrixXd H;
-	Solver solver;
+	SolverClass solver;
 	SolverResults results;
 
 	LennardJonesBenchmark() : 
@@ -153,16 +157,18 @@ public:
 	}
 };
 
-BENCHMARK_F(LennardJonesBenchmark, solver_1_newton_iter)
+typedef LennardJonesBenchmark<NewtonSolver> LennardJonesBenchmarkNewtonSolver;
+BENCHMARK_F(LennardJonesBenchmarkNewtonSolver, solver_1_newton_iter)
 {
 	points = org_points;
-	solver.solve_newton(potential, &results);
+	solver.solve(potential, &results);
 }
 
-BENCHMARK_F(LennardJonesBenchmark, solver_1_lbfgs_iter)
+typedef LennardJonesBenchmark<LBFGSSolver> LennardJonesBenchmarkLBFGSSolver;
+BENCHMARK_F(LennardJonesBenchmarkLBFGSSolver, solver_1_lbfgs_iter)
 {
 	points = org_points;
-	solver.solve_lbfgs(potential, &results);
+	solver.solve(potential, &results);
 }
 
 int main(int argc, char** argv)

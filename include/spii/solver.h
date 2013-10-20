@@ -75,56 +75,9 @@ class SPII_API Solver
 {
 public:
 	Solver();
+	virtual ~Solver();
 
-	// Specifies which method to use when minimizing
-	// a function.
-	enum Method {
-	             // Newton's method. It requires first and
-	             // second-order derivatives. Generally converges
-	             // quickly. It is slow and requires a lot of
-	             // memory if the Hessian is dense.
-	             NEWTON,
-	             // L-BFGS. Requires only first-order derivatives
-	             // and generally converges quickly. Always uses
-	             // relatively little memory.
-	             LBFGS,
-	             // Nelder-Mead requires no derivatives. It generally
-	             // produces slightly more inaccurate solutions in many
-	             // more iterations.
-	             NELDER_MEAD,
-	             // For most problems, there is no reason to choose
-	             // pattern search over Nelder-Mead.
-	             PATTERN_SEARCH,
-				 // (Experimental) Global optimization using interval
-				 // arithmetic.
-				 GLOBAL
-	            };
-
-	// Minimizes a function. The results of the minimization will
-	// be stored in results.
-	void solve(const Function& function,
-	           Method method,
-	           SolverResults* results) const;
-
-	void solve_newton(const Function& function,
-	                  SolverResults* results) const;
-
-	void solve_lbfgs(const Function& function,
-	                 SolverResults* results) const;
-
-	void solve_nelder_mead(const Function& function,
-	                       SolverResults* results) const;
-
-	void solve_pattern_search(const Function& function,
-	                          SolverResults* results) const;
-
-	void solve_global(const Function& function,
-	                  const IntervalVector& start_box,
-	                  SolverResults* results) const;
-
-	// Mode of operation. How the Hessian is stored.
-	// Default: AUTO.
-	enum {DENSE, SPARSE, AUTO} sparsity_mode = AUTO;
+	virtual void solve(const Function& function, SolverResults* results) const = 0;
 
 	// Function called each iteration with a log message.
 	// Default: print to std::cerr.
@@ -146,36 +99,13 @@ public:
 	// if ||dx|| / (||x|| + tol) < tol.
 	double argument_improvement_tolerance = 1e-12;
 
-	// Area tolerance (Nelder-Mead) The solver terminates if
-	// ||a|| / ||a0|| < tol, where ||.|| is the maximum
-	// norm.
-	double area_tolerance = 1e-12;
-
-	// Length tolerance (Nelder-Mead) The solver terminates if
-	// ||a|| / ||a0|| < tol, where ||.|| is the maximum
-	// norm.
-	double length_tolerance = 1e-12;
-
-	// Number of vectors L-BFGS should save in its history.
-	int lbfgs_history_size = 10;
-
-	// If the relative function improvement is less than this
-	// value, L-BFGS will discard its history and restart.
-	double lbfgs_restart_tolerance = 1e-6;
-
 	// The line search is completed when
 	//   f(x + alpha * p) <= f(x) + c * alpha * gTp.
 	// In each iteration, alpha *= rho.
 	double line_search_c   = 1e-4;
 	double line_search_rho = 0.5;
 
-	// The default factorization method is the BKP block
-	// diagonal modification (Nocedal and Wright, p. 55).
-	// Alternatively, it is possible to use iterative diagonal
-	// modification of the Hessian. This is also used for
-	// sparse systems.
-	enum {BKP, ITERATIVE} factorization_method = BKP;
-private:
+protected:
 
 	// Computes a Newton step given a function, a gradient and a
 	// Hessian.
@@ -205,6 +135,94 @@ private:
 	               const FactorizationCache& cache,
 	               Eigen::VectorXd* p,
 	               SolverResults* results) const;
+};
+
+// Newton's method. It requires first and
+// second-order derivatives. Generally converges
+// quickly. It is slow and requires a lot of
+// memory if the Hessian is dense.
+class SPII_API NewtonSolver
+	: public Solver
+{
+public:
+	// Mode of operation. How the Hessian is stored.
+	// Default: AUTO.
+	enum {DENSE, SPARSE, AUTO} sparsity_mode = AUTO;
+
+	// The default factorization method is the BKP block
+	// diagonal modification (Nocedal and Wright, p. 55).
+	// Alternatively, it is possible to use iterative diagonal
+	// modification of the Hessian. This is also used for
+	// sparse systems.
+	enum {BKP, ITERATIVE} factorization_method = BKP;
+
+	virtual void solve(const Function& function, SolverResults* results) const;
+};
+
+// L-BFGS. Requires only first-order derivatives
+// and generally converges quickly. Always uses
+// relatively little memory.
+class SPII_API LBFGSSolver
+	: public Solver
+{
+public:
+	// Number of vectors L-BFGS should save in its history.
+	int lbfgs_history_size = 10;
+
+	// If the relative function improvement is less than this
+	// value, L-BFGS will discard its history and restart.
+	double lbfgs_restart_tolerance = 1e-6;
+
+	virtual void solve(const Function& function, SolverResults* results) const;
+};
+
+// Nelder-Mead requires no derivatives. It generally
+// produces slightly more inaccurate solutions in many
+// more iterations.
+class SPII_API NelderMeadSolver
+	: public Solver
+{
+public:
+	// Area tolerance. The solver terminates if
+	// ||a|| / ||a0|| < tol, where ||.|| is the maximum
+	// norm.
+	double area_tolerance = 1e-12;
+
+	// Length tolerance. The solver terminates if
+	// ||a|| / ||a0|| < tol, where ||.|| is the maximum
+	// norm.
+	double length_tolerance = 1e-12;
+
+	virtual void solve(const Function& function, SolverResults* results) const;
+};
+
+// For most problems, there is no reason to choose
+// pattern search over Nelder-Mead.
+class SPII_API PatternSolver
+	: public Solver
+{
+public:
+	// Area tolerance. The solver terminates if
+	// ||a|| / ||a0|| < tol, where ||.|| is the maximum
+	// norm.
+	double area_tolerance = 1e-12;
+
+	virtual void solve(const Function& function, SolverResults* results) const;
+};
+
+// (Experimental) Global optimization using interval
+// arithmetic.
+class SPII_API GlobalSolver
+	: public Solver
+{
+public:
+	void solve_global(const Function& function,
+	                  const IntervalVector& start_box,
+	                  SolverResults* results) const;
+	
+	// Does not do anything. The global solver requires the
+	// extended interface above.
+	virtual void solve(const Function& function, SolverResults* results) const;
 };
 
 }  // namespace spii

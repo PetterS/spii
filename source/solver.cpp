@@ -46,26 +46,9 @@ Solver::Solver()
 	#endif
 }
 
-void Solver::solve(const Function& function,
-                   Method method,
-                   SolverResults* results) const
-{
-	if (method == NEWTON) {
-		solve_newton(function, results);
-	}
-	else if (method == LBFGS) {
-		solve_lbfgs(function, results);
-	}
-	else if (method == NELDER_MEAD) {
-		solve_nelder_mead(function, results);
-	}
-	else if (method == PATTERN_SEARCH) {
-		solve_pattern_search(function, results);
-	}
-	else {
-		throw std::runtime_error("Solver::solve: unknown method.");
-	}
-}
+Solver::~Solver()
+{ }
+
 
 }  // namespace spii
 

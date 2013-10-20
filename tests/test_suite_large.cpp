@@ -14,10 +14,10 @@
 
 using namespace spii;
 
+template<typename SolverClass>
 void run_test_main(const std::function<void(std::vector<double>&, Function*)>& create_f,
                    const std::function<std::vector<double>(int)>& start, 
-                   int n,
-                   Solver::Method method)
+                   int n)
 {
 	auto this_start = start(n);
 	Function f;
@@ -26,7 +26,7 @@ void run_test_main(const std::function<void(std::vector<double>&, Function*)>& c
 
 	std::stringstream information_stream;
 
-	Solver solver;
+	SolverClass solver;
 	solver.log_function =
 		[&information_stream](const std::string& str)
 		{
@@ -38,7 +38,7 @@ void run_test_main(const std::function<void(std::vector<double>&, Function*)>& c
 	solver.maximum_iterations = 1000000;
 
 	SolverResults results;
-	solver.solve(f, method, &results);
+	solver.solve(f, &results);
 
 	f.print_timing_information(information_stream);
 	INFO(information_stream.str());
@@ -53,24 +53,24 @@ void run_test(const std::function<void(std::vector<double>&, Function*)>& create
 {
 	if (test_newton) {
 		SECTION("Newton-100", "") {
-			run_test_main(create_f, start, 100, Solver::NEWTON);
+			run_test_main<NewtonSolver>(create_f, start, 100);
 		}
 		SECTION("Newton-1000", "") {
-			run_test_main(create_f, start, 1000, Solver::NEWTON);
+			run_test_main<NewtonSolver>(create_f, start, 1000);
 		}
 		SECTION("Newton-10000", "") {
-			run_test_main(create_f, start, 10000, Solver::NEWTON);
+			run_test_main<NewtonSolver>(create_f, start, 10000);
 		}
 	}
 
 	SECTION("LBFGS-100", "") {
-		run_test_main(create_f, start, 100, Solver::LBFGS);
+		run_test_main<LBFGSSolver>(create_f, start, 100);
 	}
 	SECTION("LBFGS-1000", "") {
-		run_test_main(create_f, start, 1000, Solver::LBFGS);
+		run_test_main<LBFGSSolver>(create_f, start, 1000);
 	}
 	SECTION("LBFGS-10000", "") {
-		run_test_main(create_f, start, 10000, Solver::LBFGS);
+		run_test_main<LBFGSSolver>(create_f, start, 10000);
 	}
 }
 

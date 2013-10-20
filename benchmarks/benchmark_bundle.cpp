@@ -218,13 +218,15 @@ private:
 	double observed_y;
 };
 
+
+template<typename SolverClass>
 class BundleAdjustmentBenchmark :
 	public hastighet::Test
 {
 public:
 	Function function;
 	BALProblem bal_problem;
-	Solver solver;
+	SolverClass solver;
 	SolverResults results;		
 
 	BundleAdjustmentBenchmark() :
@@ -254,8 +256,6 @@ public:
 
 			function.set_number_of_threads(1);
 
-			solver.lbfgs_history_size = 100;
-			solver.sparsity_mode = Solver::SPARSE;
 			solver.function_improvement_tolerance = 1e-5;
 			solver.log_function = [](const std::string&) { };
 		}
@@ -266,18 +266,21 @@ public:
 	}
 };
 
-BENCHMARK_F(BundleAdjustmentBenchmark, one_newton_iteration)
+typedef BundleAdjustmentBenchmark<NewtonSolver> BundleAdjustmentBenchmarkNewtonSolver;
+BENCHMARK_F(BundleAdjustmentBenchmarkNewtonSolver, one_newton_iteration)
 {
 	bal_problem.reset_parameters();
+	solver.sparsity_mode = NewtonSolver::SPARSE;
 	solver.maximum_iterations = 1;
-	solver.solve_newton(function, &results);
+	solver.solve(function, &results);
 }
 
-BENCHMARK_F(BundleAdjustmentBenchmark, ten_lbfgs_iterations)
+typedef BundleAdjustmentBenchmark<LBFGSSolver> BundleAdjustmentBenchmarkLBFGSSolver;
+BENCHMARK_F(BundleAdjustmentBenchmarkLBFGSSolver, ten_lbfgs_iterations)
 {
 	bal_problem.reset_parameters();
 	solver.maximum_iterations = 10;
-	solver.solve_lbfgs(function, &results);
+	solver.solve(function, &results);
 }
 
 int main(int argc, char** argv)

@@ -147,9 +147,9 @@ int main_function()
 	f.set_constant(points[n-2].xy, true);
 	f.set_constant(points[n-1].xy, true);
 
-	Solver solver;
+	NewtonSolver solver;
 	SolverResults results;
-	solver.solve_newton(f, &results);
+	solver.solve(f, &results);
 	cerr << results << endl;
 
 	cout << points;
@@ -171,9 +171,9 @@ int main_function()
 		points[i].xy[1] += (rand() % 1000) / 1000000.0;
 	}
 
-	solver.factorization_method = Solver::ITERATIVE;
+	solver.factorization_method = NewtonSolver::ITERATIVE;
 	solver.maximum_iterations = 1000;
-	solver.solve_newton(f, &results);
+	solver.solve(f, &results);
 	cerr << results << endl;
 
 	cout << points;

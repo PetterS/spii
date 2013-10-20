@@ -165,8 +165,54 @@ public:
 	double certified_cost;
 };
 
-template<typename Model, int num_variables>
-void run_problem_main(const std::string& filename, Solver::Method method)
+template<typename SolverClass>
+SolverClass create_solver()
+{
+	return {};
+}
+
+template<>
+NewtonSolver create_solver<NewtonSolver>()
+{
+	NewtonSolver solver;
+	solver.maximum_iterations = 5000;
+	solver.function_improvement_tolerance = 0;
+	solver.argument_improvement_tolerance = 0;
+	solver.gradient_tolerance = 1e-9;
+
+	solver.line_search_c = 1e-2;
+	solver.line_search_rho = 0.6;
+
+	return solver;
+}
+
+template<>
+LBFGSSolver create_solver<LBFGSSolver>()
+{
+	LBFGSSolver solver;
+	solver.maximum_iterations = 10000;
+	solver.function_improvement_tolerance = 0;
+	solver.argument_improvement_tolerance = 0;
+	solver.gradient_tolerance = 1e-7;
+
+	return solver;
+}
+
+template<>
+NelderMeadSolver create_solver<NelderMeadSolver>()
+{
+	NelderMeadSolver solver;
+	solver.maximum_iterations = 10000;
+	solver.function_improvement_tolerance = 1e-14;
+	solver.argument_improvement_tolerance = 1e-14;
+	solver.gradient_tolerance = 1e-12;
+	solver.area_tolerance = 1e-60;
+
+	return solver;
+}
+
+template<typename SolverClass, typename Model, int num_variables>
+void run_problem_main(const std::string& filename)
 {
 	NISTProblem problem(filename);
 	REQUIRE(problem.response.cols() == 1);
@@ -192,33 +238,13 @@ void run_problem_main(const std::string& filename, Solver::Method method)
 
 		auto initial_cost = function.evaluate();
 
-		Solver solver;
-		solver.maximum_iterations = 10000;
-		solver.function_improvement_tolerance = 1e-14;
-		solver.argument_improvement_tolerance = 1e-14;
-		solver.gradient_tolerance = 1e-12;
-		solver.area_tolerance = 1e-60;
-
-		if (method == Solver::NEWTON) {
-			solver.maximum_iterations = 5000;
-			solver.function_improvement_tolerance = 0;
-			solver.argument_improvement_tolerance = 0;
-			solver.gradient_tolerance = 1e-9;
-
-			solver.line_search_c = 1e-2;
-			solver.line_search_rho = 0.6;
-		}
-		else if (method == Solver::LBFGS) {
-			solver.function_improvement_tolerance = 0;
-			solver.argument_improvement_tolerance = 0;
-			solver.gradient_tolerance = 1e-7;
-		}
+		auto solver = create_solver<SolverClass>();
 
 		std::stringstream sout;
 		solver.log_function = [&sout](const std::string& s) { sout << s << std::endl; };
 
 		SolverResults results;
-		solver.solve(function, method, &results);
+		solver.solve(function, &results);
 
 		auto final_cost = function.evaluate();
 
@@ -257,7 +283,7 @@ void run_problem_main(const std::string& filename, Solver::Method method)
 		}
 
 		output_file << typeid(Model).name() << " "
-		            << (method == Solver::NEWTON ? "Newton" : "LBFGS") << " "
+		            << typeid(SolverClass).name() << " "
 		            << "start: " << start + 1 << " "
 					<< (log_relative_error < 4 ? "FAILURE" : "SUCCESS") << " "
 		            << "LRE: " << log_relative_error << " "
@@ -278,7 +304,7 @@ void run_problem_main(const std::string& filename, Solver::Method method)
 
 		// But for Nelder-Mead, a small area is not equivalent to a
 		// stationary point.
-		if (method == Solver::NELDER_MEAD) {
+		if (typeid(SolverClass) == typeid(NelderMeadSolver)) {
 			CHECK(num_matching_digits >= 4);
 		}
 	}
@@ -308,14 +334,12 @@ struct Problem                           \
 TEST_CASE(#Category "/" #Problem, "")    \
 {                                        \
 	SECTION("Newton") {					 \
-		run_problem_main<Problem, n>(    \
-			"nist/" #Problem ".dat",     \
-			Solver::NEWTON);             \
+		run_problem_main<NewtonSolver, Problem, n>(    \
+			"nist/" #Problem ".dat");    \
 	}                                    \
 	SECTION("LBFGS") {                   \
-		run_problem_main<Problem, n>(    \
-			"nist/" #Problem ".dat",     \
-			Solver::LBFGS);              \
+		run_problem_main<LBFGSSolver, Problem, n>(    \
+			"nist/" #Problem ".dat");    \
 	}                                    \
 }
 

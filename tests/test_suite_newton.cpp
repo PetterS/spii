@@ -8,6 +8,7 @@
 //
 #include <cmath>
 #include <iostream>
+#include <memory>
 #include <random>
 #include <sstream>
 
@@ -26,12 +27,15 @@ void info_log_function(const std::string& str)
 	global_string_stream << str << "\n";
 }
 
-void create_solver(Solver* solver)
+std::unique_ptr<Solver> create_solver()
 {
+	std::unique_ptr<Solver> solver(new NewtonSolver);
 	// Use default solver settings.
 
 	solver->log_function = info_log_function;
 	//solver->factorization_method = Solver::ITERATIVE;
+
+	return std::move(solver);
 }
 
 int cumulative_iterations   = 0;
@@ -45,14 +49,13 @@ double run_test(double* var, const Solver* solver = 0)
 	f.add_variable(var, dimension);
 	f.add_term(std::make_shared<AutoDiffTerm<Functor, dimension>>(), var);
 
-	Solver own_solver;
-	create_solver(&own_solver);
+	auto own_solver = create_solver();
 	if (solver == 0) {
-		solver = &own_solver;
+		solver = own_solver.get();
 	}
 	SolverResults results;
 	global_string_stream.str("");
-	solver->solve_newton(f, &results);
+	solver->solve(f, &results);
 	INFO(global_string_stream.str());
 	INFO(results);
 

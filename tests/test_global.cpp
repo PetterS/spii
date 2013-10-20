@@ -44,7 +44,7 @@ TEST_CASE("global_optimization/simple_function1", "Petter")
 	f.add_term(std::make_shared<IntervalTerm<SimpleFunction1, 1>>(),
 	           &x);
 
-	Solver solver;
+	GlobalSolver solver;
 	solver.maximum_iterations = 1015;
 	std::stringstream info_buffer;
 	solver.log_function = [&info_buffer](const std::string& str) { info_buffer << str << std::endl; };
@@ -70,7 +70,7 @@ TEST_CASE("global_optimization/simple_function2", "Petter")
 	f.add_term(std::make_shared<IntervalTerm<SimpleFunction2, 2>>(),
 	           x);
 
-	Solver solver;
+	GlobalSolver solver;
 	solver.maximum_iterations = 1000;
 	solver.argument_improvement_tolerance = 0;
 	solver.function_improvement_tolerance = 1e-12;
@@ -100,7 +100,7 @@ TEST_CASE("global_optimization/simple_function1-1", "Petter")
 	f.add_term(std::make_shared<IntervalTerm<SimpleFunction1_1, 1, 1>>(),
 	           &x, &y);
 
-	Solver solver;
+	GlobalSolver solver;
 	solver.maximum_iterations = 1000;
 	solver.argument_improvement_tolerance = 0;
 	solver.function_improvement_tolerance = 1e-12;
