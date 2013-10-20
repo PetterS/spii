@@ -1,4 +1,4 @@
-// Petter Strandmark 2012.
+// Petter Strandmark 2012–2013.
 #ifndef SPII_SOLVER_H
 #define SPII_SOLVER_H
 // The Solver class is a lightweight class defining settings

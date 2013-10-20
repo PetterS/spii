@@ -1,4 +1,4 @@
-// Petter Strandmark 2012-2013.
+// Petter Strandmark 2012–2013.
 
 #include <algorithm>
 #include <exception>

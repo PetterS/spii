@@ -1,4 +1,4 @@
-// Petter Strandmark 2012.
+// Petter Strandmark 2012–2013.
 #ifndef SPII_FUNCTION_H
 #define SPII_FUNCTION_H
 // This header defines the Function class which is used
