@@ -29,11 +29,8 @@ void info_log_function(const std::string& str)
 
 std::unique_ptr<Solver> create_solver()
 {
-	std::unique_ptr<Solver> solver(new NewtonSolver);
-	// Use default solver settings.
-
+	std::unique_ptr<NewtonSolver> solver(new NewtonSolver);
 	solver->log_function = info_log_function;
-	//solver->factorization_method = Solver::ITERATIVE;
 
 	return std::move(solver);
 }
@@ -43,16 +40,12 @@ int cumulative_evalutations = 0;
 double cumulative_time      = 0;
 
 template<typename Functor, int dimension>
-double run_test(double* var, const Solver* solver = 0)
+double run_test_with_factorization_method(double* var, Solver* solver)
 {
 	Function f;
 	f.add_variable(var, dimension);
 	f.add_term(std::make_shared<AutoDiffTerm<Functor, dimension>>(), var);
 
-	auto own_solver = create_solver();
-	if (solver == 0) {
-		solver = own_solver.get();
-	}
 	SolverResults results;
 	global_string_stream.str("");
 	solver->solve(f, &results);
@@ -75,6 +68,28 @@ double run_test(double* var, const Solver* solver = 0)
 	INFO("Cumulative time       : " << cumulative_time);
 
 	return f.evaluate();
+}
+
+template<typename Functor, int dimension>
+double run_test(double* var, Solver* solver_input = 0)
+{
+	auto own_solver = create_solver();
+	if (solver_input == 0) {
+		solver_input = own_solver.get();
+	}
+	auto solver = dynamic_cast<NewtonSolver*>(solver_input);
+	spii_assert(solver);
+
+	// First, test that the iterative factorization method
+	// achieves convergence. 
+	std::vector<double> var_copy(var, var + dimension);
+	solver->factorization_method = NewtonSolver::ITERATIVE;
+	run_test_with_factorization_method<Functor, dimension>(&var_copy[0], solver);
+
+	// Then, test the BKP factorization and return the results using
+	// this method.
+	solver->factorization_method = NewtonSolver::BKP;
+	return run_test_with_factorization_method<Functor, dimension>(var, solver);
 }
 
 #include "suite_more_et_al.h"
