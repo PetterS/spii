@@ -16,8 +16,8 @@
 
 namespace spii {
 
-void Solver::solve_newton(const Function& function,
-                   SolverResults* results) const
+void NewtonSolver::solve(const Function& function,
+                         SolverResults* results) const
 {
 	double global_start_time = wall_time();
 

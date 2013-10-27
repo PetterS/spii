@@ -57,11 +57,10 @@ TEST(Solver, GoldsteinPricePolynomial)
 	double x[2] = {-0.5, 0.25};
 	// Only expect a local minimum where the gradient
 	// is small.
-	Solver solver;
-	create_solver(&solver);
-	solver.argument_improvement_tolerance = 0;
-	solver.function_improvement_tolerance = 0;
-	run_test<GoldsteinPricePolynomial, 2>(x, &solver);
+	auto solver = create_solver();
+	solver->argument_improvement_tolerance = 0;
+	solver->function_improvement_tolerance = 0;
+	run_test<GoldsteinPricePolynomial, 2>(x, solver.get());
 }
 
 // #30
@@ -89,12 +88,11 @@ TEST(Solver, BraninRCOS)
 	double x[2] = {-1.0, 1.0};
 	// Only expect a local minimum where the gradient
 	// is small.
-	Solver solver;
-	create_solver(&solver);
-	solver.argument_improvement_tolerance = 0;
-	solver.function_improvement_tolerance = 0;
-	solver.gradient_tolerance = 1e-10;
-	run_test<BraninRCOS, 2>(x, &solver);
+	auto solver = create_solver();
+	solver->argument_improvement_tolerance = 0;
+	solver->function_improvement_tolerance = 0;
+	solver->gradient_tolerance = 1e-10;
+	run_test<BraninRCOS, 2>(x, solver.get());
 }
 
 // #34
@@ -113,12 +111,11 @@ TEST(Solver, SixHumpCamelBack)
 	double x[2] = {-1.5, 0.5};
 	// Only expect a local minimum where the gradient
 	// is small.
-	Solver solver;
-	create_solver(&solver);
-	solver.argument_improvement_tolerance = 0;
-	solver.function_improvement_tolerance = 0;
-	solver.gradient_tolerance = 1e-10;
-	run_test<SixHumpCamelBack, 2>(x, &solver);
+	auto solver = create_solver();
+	solver->argument_improvement_tolerance = 0;
+	solver->function_improvement_tolerance = 0;
+	solver->gradient_tolerance = 1e-10;
+	run_test<SixHumpCamelBack, 2>(x, solver.get());
 }
 
 
@@ -149,12 +146,11 @@ TEST(Solver, Shubert)
 	double x[2] = {0.5, 1.0};
 	// Only expect a local minimum where the gradient
 	// is small.
-	Solver solver;
-	create_solver(&solver);
-	solver.argument_improvement_tolerance = 0;
-	solver.function_improvement_tolerance = 0;
-	solver.gradient_tolerance = 1e-10;
-	run_test<Shubert, 2>(x, &solver);
+	auto solver = create_solver();
+	solver->argument_improvement_tolerance = 0;
+	solver->function_improvement_tolerance = 0;
+	solver->gradient_tolerance = 1e-10;
+	run_test<Shubert, 2>(x, solver.get());
 }
 
 // #37
@@ -171,12 +167,11 @@ struct Easom
 
 TEST(Solver, Easom)
 {
-	Solver solver;
-	create_solver(&solver);
-	solver.maximum_iterations = 10000;
+	auto solver = create_solver();
+	solver->maximum_iterations = 10000;
 
 	double x[2] = {0.5, 1.0};
-	run_test<Easom, 2>(x, &solver);
+	run_test<Easom, 2>(x, solver.get());
 
 	// There seems to be other local minima, though.
 	//EXPECT_LT( std::fabs(x[0] - 3.141592653589793), 1e-8);
@@ -228,27 +223,26 @@ TEST(Solver, Bohachevsky)
 
 	// Only expect a local minimum where the gradient
 	// is small.
-	Solver solver;
-	create_solver(&solver);
-	solver.argument_improvement_tolerance = 0;
-	solver.function_improvement_tolerance = 0;
+	auto solver = create_solver();
+	solver->argument_improvement_tolerance = 0;
+	solver->function_improvement_tolerance = 0;
 
 
-	if (solver.gradient_tolerance >= 1e-16) {
-		solver.gradient_tolerance = 1e-8;
+	if (solver->gradient_tolerance >= 1e-16) {
+		solver->gradient_tolerance = 1e-8;
 	}
 
 	x[0] = 0.5;
 	x[1] = 1.0;
-	run_test<Bohachevsky1, 2>(x, &solver);
+	run_test<Bohachevsky1, 2>(x, solver.get());
 
 	x[0] = 0.6;
 	x[1] = 1.3;
-	run_test<Bohachevsky2, 2>(x, &solver);
+	run_test<Bohachevsky2, 2>(x, solver.get());
 
 	x[0] = 0.5;
 	x[1] = 1.0;
-	run_test<Bohachevsky3, 2>(x, &solver);
+	run_test<Bohachevsky3, 2>(x, solver.get());
 }
 
 

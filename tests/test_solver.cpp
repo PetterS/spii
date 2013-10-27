@@ -25,14 +25,14 @@ struct Rosenbrock
 	}
 };
 
-void test_method(Solver::Method method, const Solver& solver)
+void test_method(const Solver& solver)
 {
 	Function f;
 	double x[2] = {-1.2, 1.0};
 	f.add_term(std::make_shared<AutoDiffTerm<Rosenbrock, 2>>(), x);
 
 	SolverResults results;
-	solver.solve(f, method, &results);
+	solver.solve(f, &results);
 
 	EXPECT_TRUE(results.exit_condition == SolverResults::ARGUMENT_TOLERANCE ||
 	            results.exit_condition == SolverResults::FUNCTION_TOLERANCE ||
@@ -50,33 +50,33 @@ auto no_log_function = [](const std::string&) { };
 
 TEST(Solver, NEWTON)
 {
-	Solver solver;
+	NewtonSolver solver;
 	solver.log_function = no_log_function;
-	test_method(Solver::NEWTON, solver);
+	test_method(solver);
 }
 
 TEST(Solver, LBFGS)
 {
-	Solver solver;
+	LBFGSSolver solver;
 	solver.log_function = no_log_function;
-	test_method(Solver::LBFGS, solver);
+	test_method(solver);
 }
 
 TEST(Solver, NELDER_MEAD)
 {
-	Solver solver;
+	NelderMeadSolver solver;
 	solver.log_function = no_log_function;
 	solver.maximum_iterations = 10000;
 	solver.area_tolerance = 1e-40;
-	test_method(Solver::NELDER_MEAD, solver);
+	test_method(solver);
 }
 
 TEST(Solver, PATTERN_SEARCH)
 {
-	Solver solver;
+	PatternSolver solver;
 	solver.log_function = no_log_function;
 	solver.maximum_iterations = 100000;
-	test_method(Solver::PATTERN_SEARCH, solver);
+	test_method(solver);
 }
 
 TEST(Solver, function_tolerance)
@@ -86,13 +86,13 @@ TEST(Solver, function_tolerance)
 	f.add_variable(x, 2);
 	f.add_term(std::make_shared<AutoDiffTerm<Rosenbrock, 2>>(), x);
 
-	Solver solver;
+	NewtonSolver solver;
 	solver.log_function = no_log_function;
 	solver.maximum_iterations = 50;
 	solver.gradient_tolerance = 0;
 	solver.argument_improvement_tolerance = 0;
 	SolverResults results;
-	solver.solve_newton(f, &results);
+	solver.solve(f, &results);
 
 	EXPECT_TRUE(results.exit_condition == SolverResults::FUNCTION_TOLERANCE);
 }
@@ -104,13 +104,13 @@ TEST(Solver, argument_improvement_tolerance)
 	f.add_variable(x, 2);
 	f.add_term(std::make_shared<AutoDiffTerm<Rosenbrock, 2>>(), x);
 
-	Solver solver;
+	NewtonSolver solver;
 	solver.log_function = no_log_function;
 	solver.maximum_iterations = 50;
 	solver.gradient_tolerance = 0;
 	solver.function_improvement_tolerance = 0;
 	SolverResults results;
-	solver.solve_newton(f, &results);
+	solver.solve(f, &results);
 
 	EXPECT_TRUE(results.exit_condition == SolverResults::ARGUMENT_TOLERANCE);
 }
@@ -122,13 +122,13 @@ TEST(Solver, gradient_tolerance)
 	f.add_variable(x, 2);
 	f.add_term(std::make_shared<AutoDiffTerm<Rosenbrock, 2>>(), x);
 
-	Solver solver;
+	NewtonSolver solver;
 	solver.log_function = no_log_function;
 	solver.maximum_iterations = 50;
 	solver.function_improvement_tolerance = 0;
 	solver.argument_improvement_tolerance = 0;
 	SolverResults results;
-	solver.solve_newton(f, &results);
+	solver.solve(f, &results);
 
 	EXPECT_TRUE(results.exit_condition == SolverResults::GRADIENT_TOLERANCE);
 }
@@ -160,14 +160,14 @@ TEST(Solver, inf_nan)
 	f_nan.add_term(std::make_shared<AutoDiffTerm<NanFunctor, 1>>(), x);
 	f_inf.add_term(std::make_shared<AutoDiffTerm<InfFunctor, 1>>(), x);
 
-	Solver solver;
+	NewtonSolver solver;
 	solver.log_function = no_log_function;
 	SolverResults results;
 
-	solver.solve_newton(f_nan, &results);
+	solver.solve(f_nan, &results);
 	EXPECT_EQ(results.exit_condition, SolverResults::FUNCTION_NAN);
 
-	solver.solve_newton(f_inf, &results);
+	solver.solve(f_inf, &results);
 	EXPECT_EQ(results.exit_condition, SolverResults::FUNCTION_INFINITY);
 }
 
@@ -222,13 +222,13 @@ TEST(Solver, L_GBFS_exact)
 		f.add_variable(x, 2);
 		f.add_term(std::make_shared<AutoDiffTerm<Rosenbrock, 2>>(), x);
 
-		Solver solver;
+		LBFGSSolver solver;
 		SolverResults results;
 		solver.log_function = no_log_function;
 		solver.lbfgs_history_size = 10;
 		solver.maximum_iterations = iters[i];
 
-		solver.solve_lbfgs(f, &results);
+		solver.solve(f, &results);
 		double fval = f.evaluate();
 		EXPECT_LE( std::abs(fval - fvals[i]) / std::abs(fval), 1e-4);
 	}
@@ -273,12 +273,12 @@ TEST(Solver, Newton_exact)
 		f.add_variable(x, 2);
 		f.add_term(std::make_shared<AutoDiffTerm<Rosenbrock, 2>>(), x);
 
-		Solver solver;
+		NewtonSolver solver;
 		SolverResults results;
 		solver.log_function = no_log_function;
 		solver.maximum_iterations = iters[i];
 
-		solver.solve(f, Solver::NEWTON, &results);
+		solver.solve(f, &results);
 		double fval = f.evaluate();
 		EXPECT_LE( std::abs(fval - fvals[i]) / std::abs(fval), 1e-5);
 	}
@@ -360,27 +360,32 @@ TEST(Solver, SimpleConstraints)
 	function_changed.add_term(std::make_shared<AutoDiffTerm<Quadratic2Changed, 2>>(),
 	                          t);
 
-	Solver solver;
-	solver.log_function = no_log_function;
+	NelderMeadSolver nm_solver;
+	nm_solver.log_function = no_log_function;
+	
+	LBFGSSolver lbfgs_solver;
+	lbfgs_solver.log_function = no_log_function;
+
 	SolverResults results;
 	results.exit_condition = SolverResults::NA;
 
 	int max_iter = 1;
 	while (! results.exit_success()) {
-		solver.maximum_iterations = max_iter++;
+		nm_solver.maximum_iterations = max_iter++;
+		lbfgs_solver.maximum_iterations = max_iter++;
 
 		x[0] = x[1] = 1.0;
 		t[0] = std::log(x[0]);
 		t[1] = std::log(x[1]);
-		solver.solve_nelder_mead(function, &results);
-		solver.solve_nelder_mead(function_changed, &results);
+		nm_solver.solve(function, &results);
+		nm_solver.solve(function_changed, &results);
 		EXPECT_NEAR(function.evaluate(), function_changed.evaluate(), 1e-12);
 
 		x[0] = x[1] = 1.0;
 		t[0] = std::log(x[0]);
 		t[1] = std::log(x[1]);
-		solver.solve_lbfgs(function, &results);
-		solver.solve_lbfgs(function_changed, &results);
+		lbfgs_solver.solve(function, &results);
+		lbfgs_solver.solve(function_changed, &results);
 		EXPECT_NEAR(function.evaluate(), function_changed.evaluate(), 1e-12);
 	}
 
@@ -397,10 +402,10 @@ TEST(Solver, PositiveConstraint)
 		std::make_shared<AutoDiffTerm<Quadratic2, 2>>(),
 		x);
 
-	Solver solver;
+	LBFGSSolver solver;
 	solver.log_function = no_log_function;
 	SolverResults results;
-	solver.solve_lbfgs(function, &results);
+	solver.solve(function, &results);
 
 	EXPECT_NEAR(x[0], 2.0, 1e-7);
 	EXPECT_NEAR(x[1], 0.0, 1e-7);
@@ -417,94 +422,96 @@ TEST(Solver, BoxConstraint)
 		std::make_shared<AutoDiffTerm<Quadratic2, 2>>(),
 		x);
 
-	Solver solver;
+	LBFGSSolver solver;
 	solver.log_function = no_log_function;
 	SolverResults results;
-	solver.solve_lbfgs(function, &results);
+	solver.solve(function, &results);
 
 	EXPECT_NEAR(x[0],  2.0, 1e-4);
 	EXPECT_NEAR(x[1], -0.5, 1e-4);
 }
 
-TEST(Solver, constant_variables)
+template<typename SolverClass>
+void test_constant_variables()
 {
 	// This tests checks that the solver behaves identically when
 	// extra variables are added and held constant
 
-	Solver solver;
+	SolverClass solver;
 	solver.log_function = no_log_function;
 	SolverResults results;
-	auto method = Solver::NEWTON;
 
-	while (true) {
-		std::vector<double> v_normal, v_extra_1, v_extra_2;
 
-		{
-			double x[2] = {-1.2, 1.0};
-			Function f;
-			f.add_variable(x, 2);
-			f.add_term(std::make_shared<AutoDiffTerm<Rosenbrock, 2>>(),
-			           x);
+	std::vector<double> v_normal, v_extra_1, v_extra_2;
 
-			for (int i = 1; i <= 5; ++i) {
-				solver.maximum_iterations = i;
-				solver.solve(f, method, &results);
-				v_normal.push_back(f.evaluate());
-			}
-		}
+	{
+		double x[2] = {-1.2, 1.0};
+		Function f;
+		f.add_variable(x, 2);
+		f.add_term(std::make_shared<AutoDiffTerm<Rosenbrock, 2>>(),
+			        x);
 
-		// Add one extra variable.
-		{
-			double x[2] = {-1.2, 1.0};
-			double y[1] = {0.0};
-			Function f;
-			f.add_variable(y, 1);
-			f.add_variable(x, 2);
-			f.add_term(std::make_shared<AutoDiffTerm<Rosenbrock, 2>>(),
-			           x);
-
-			f.set_constant(y, true);
-
-			for (int i = 1; i <= 5; ++i) {
-				solver.maximum_iterations = i;
-				solver.solve(f, method, &results);
-				v_extra_1.push_back(f.evaluate());
-			}
-		}
-
-		// Add two extra variables.
-		{
-			double x[2] = {-1.2, 1.0};
-			double y[1] = {0.0};
-			double z[3] = {0, 0, 0};
-			Function f;
-			f.add_variable(y, 1);
-			f.add_variable(x, 2);
-			f.add_variable(z, 3);
-			f.add_term(std::make_shared<AutoDiffTerm<Rosenbrock, 2>>(),
-			           x);
-
-			f.set_constant(y, true);
-			f.set_constant(z, true);
-
-			for (int i = 1; i <= 5; ++i) {
-				solver.maximum_iterations = i;
-				solver.solve(f, method, &results);
-				v_extra_2.push_back(f.evaluate());
-			}
-		}
-
-		// Check that the results are identical.
-		for (int i = 0; i < v_normal.size(); ++i) {
-			CHECK(v_normal.at(i) == v_extra_1.at(i));
-			CHECK(v_normal.at(i) == v_extra_2.at(i));
-		}
-
-		if (method == Solver::NEWTON) {
-			method = Solver::LBFGS;
-		}
-		else {
-			break;
+		for (int i = 1; i <= 5; ++i) {
+			solver.maximum_iterations = i;
+			solver.solve(f, &results);
+			v_normal.push_back(f.evaluate());
 		}
 	}
+
+	// Add one extra variable.
+	{
+		double x[2] = {-1.2, 1.0};
+		double y[1] = {0.0};
+		Function f;
+		f.add_variable(y, 1);
+		f.add_variable(x, 2);
+		f.add_term(std::make_shared<AutoDiffTerm<Rosenbrock, 2>>(),
+			        x);
+
+		f.set_constant(y, true);
+
+		for (int i = 1; i <= 5; ++i) {
+			solver.maximum_iterations = i;
+			solver.solve(f, &results);
+			v_extra_1.push_back(f.evaluate());
+		}
+	}
+
+	// Add two extra variables.
+	{
+		double x[2] = {-1.2, 1.0};
+		double y[1] = {0.0};
+		double z[3] = {0, 0, 0};
+		Function f;
+		f.add_variable(y, 1);
+		f.add_variable(x, 2);
+		f.add_variable(z, 3);
+		f.add_term(std::make_shared<AutoDiffTerm<Rosenbrock, 2>>(),
+			        x);
+
+		f.set_constant(y, true);
+		f.set_constant(z, true);
+
+		for (int i = 1; i <= 5; ++i) {
+			solver.maximum_iterations = i;
+			solver.solve(f, &results);
+			v_extra_2.push_back(f.evaluate());
+		}
+	}
+
+	// Check that the results are identical.
+	for (int i = 0; i < v_normal.size(); ++i) {
+		CHECK(v_normal.at(i) == v_extra_1.at(i));
+		CHECK(v_normal.at(i) == v_extra_2.at(i));
+	}
+}
+
+TEST(NewtonSolver, constant_variables)
+{
+	test_constant_variables<NewtonSolver>();
+}
+
+TEST(LBFGSSolver, constant_variables)
+{
+	test_constant_variables<LBFGSSolver>();
 }

@@ -11,8 +11,8 @@
 
 namespace spii {
 
-void Solver::solve_lbfgs(const Function& function,
-                          SolverResults* results) const
+void LBFGSSolver::solve(const Function& function,
+                        SolverResults* results) const
 {
 	double global_start_time = wall_time();
 

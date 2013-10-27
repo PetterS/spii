@@ -20,7 +20,6 @@ namespace spii {
 // SolverResults contains the result of a call to Solver::solve.
 struct SPII_API SolverResults
 {
-	SolverResults();
 
 	// The exit condition specifies how the solver terminated.
 	enum {GRADIENT_TOLERANCE, // Gradient tolerance reached.
@@ -30,7 +29,7 @@ struct SPII_API SolverResults
 	      FUNCTION_NAN,       // Nan encountered.
 	      FUNCTION_INFINITY,  // Infinity encountered.
 	      INTERNAL_ERROR,     // Internal error.
-	      NA} exit_condition;
+	      NA} exit_condition = NA;
 
 	// Returns true if the exit_condition indicates convergence.
 	bool exit_success() const
@@ -40,21 +39,21 @@ struct SPII_API SolverResults
 		       exit_condition == ARGUMENT_TOLERANCE;
 	}
 
-	double startup_time;
-	double function_evaluation_time;
-	double stopping_criteria_time;
-	double matrix_factorization_time;
-	double lbfgs_update_time;
-	double linear_solver_time;
-	double backtracking_time;
-	double log_time;
-	double total_time;
+	double startup_time                = 0;
+	double function_evaluation_time    = 0;
+	double stopping_criteria_time      = 0;
+	double matrix_factorization_time   = 0;
+	double lbfgs_update_time           = 0;
+	double linear_solver_time          = 0;
+	double backtracking_time           = 0;
+	double log_time                    = 0;
+	double total_time                  = 0;
 
 	// The minimum value of the function being minimized is
 	// in this interval. These members are only set by global
 	// optmization solvers.
-	double optimum_lower;
-	double optimum_upper;
+	double optimum_lower = - std::numeric_limits<double>::infinity();
+	double optimum_upper =   std::numeric_limits<double>::infinity();
 };
 
 SPII_API std::ostream& operator<<(std::ostream& out, const SolverResults& results);
@@ -76,109 +75,37 @@ class SPII_API Solver
 {
 public:
 	Solver();
+	virtual ~Solver();
 
-	// Specifies which method to use when minimizing
-	// a function.
-	enum Method {
-	             // Newton's method. It requires first and
-	             // second-order derivatives. Generally converges
-	             // quickly. It is slow and requires a lot of
-	             // memory if the Hessian is dense.
-	             NEWTON,
-	             // L-BFGS. Requires only first-order derivatives
-	             // and generally converges quickly. Always uses
-	             // relatively little memory.
-	             LBFGS,
-	             // Nelder-Mead requires no derivatives. It generally
-	             // produces slightly more inaccurate solutions in many
-	             // more iterations.
-	             NELDER_MEAD,
-	             // For most problems, there is no reason to choose
-	             // pattern search over Nelder-Mead.
-	             PATTERN_SEARCH,
-				 // (Experimental) Global optimization using interval
-				 // arithmetic.
-				 GLOBAL
-	            };
-
-	// Minimizes a function. The results of the minimization will
-	// be stored in results.
-	void solve(const Function& function,
-	           Method method,
-	           SolverResults* results) const;
-
-	void solve_newton(const Function& function,
-	                  SolverResults* results) const;
-
-	void solve_lbfgs(const Function& function,
-	                 SolverResults* results) const;
-
-	void solve_nelder_mead(const Function& function,
-	                       SolverResults* results) const;
-
-	void solve_pattern_search(const Function& function,
-	                          SolverResults* results) const;
-
-	void solve_global(const Function& function,
-	                  const IntervalVector& start_box,
-	                  SolverResults* results) const;
-
-	// Mode of operation. How the Hessian is stored.
-	// Default: AUTO.
-	enum {DENSE, SPARSE, AUTO} sparsity_mode;
+	virtual void solve(const Function& function, SolverResults* results) const = 0;
 
 	// Function called each iteration with a log message.
 	// Default: print to std::cerr.
 	std::function<void(const std::string& log_message)> log_function;
 
-	// Maximum number of iterations. Default: 100.
-	int maximum_iterations;
+	// Maximum number of iterations.
+	int maximum_iterations = 100;
 
 	// Gradient tolerance. The solver terminates if
 	// ||g|| / ||g0|| < tol, where ||.|| is the maximum
-	// norm. Default: 1e-12.
-	double gradient_tolerance;
+	// norm.
+	double gradient_tolerance = 1e-12;
 
 	// Function improvement tolerance. The solver terminates
-	// if |df| / (|f| + tol) < tol. Default: 1e-12.
-	double function_improvement_tolerance;
+	// if |df| / (|f| + tol) < tol.
+	double function_improvement_tolerance = 1e-12;
 
 	// Argument improvement tolerance. The solver terminates
-	// if ||dx|| / (||x|| + tol) < tol. Default: 1e-12.
-	double argument_improvement_tolerance;
-
-	// Area tolerance (Nelder-Mead) The solver terminates if
-	// ||a|| / ||a0|| < tol, where ||.|| is the maximum
-	// norm. Default: 0 (i.e. not used).
-	double area_tolerance;
-
-	// Length tolerance (Nelder-Mead) The solver terminates if
-	// ||a|| / ||a0|| < tol, where ||.|| is the maximum
-	// norm. Default: 1e-12.
-	double length_tolerance;
-
-	// Number of vectors L-BFGS should save in its history.
-	// Default: 10.
-	int lbfgs_history_size;
-
-	// If the relative function improvement is less than this
-	// value, L-BFGS will discard its history and restart.
-	// Default: 1e-6.
-	double lbfgs_restart_tolerance;
+	// if ||dx|| / (||x|| + tol) < tol.
+	double argument_improvement_tolerance = 1e-12;
 
 	// The line search is completed when
 	//   f(x + alpha * p) <= f(x) + c * alpha * gTp.
 	// In each iteration, alpha *= rho.
-	double line_search_c;    // default: 1e-4.
-	double line_search_rho;  // default: 0.5.
+	double line_search_c   = 1e-4;
+	double line_search_rho = 0.5;
 
-	// The default factorization method is the BKP block
-	// diagonal modification (Nocedal and Wright, p. 55).
-	// Alternatively, it is possible to use iterative diagonal
-	// modification of the Hessian. This is also used for
-	// sparse systems.
-	enum {BKP, ITERATIVE} factorization_method;
-private:
+protected:
 
 	// Computes a Newton step given a function, a gradient and a
 	// Hessian.
@@ -208,6 +135,94 @@ private:
 	               const FactorizationCache& cache,
 	               Eigen::VectorXd* p,
 	               SolverResults* results) const;
+};
+
+// Newton's method. It requires first and
+// second-order derivatives. Generally converges
+// quickly. It is slow and requires a lot of
+// memory if the Hessian is dense.
+class SPII_API NewtonSolver
+	: public Solver
+{
+public:
+	// Mode of operation. How the Hessian is stored.
+	// Default: AUTO.
+	enum {DENSE, SPARSE, AUTO} sparsity_mode = AUTO;
+
+	// The default factorization method is the BKP block
+	// diagonal modification (Nocedal and Wright, p. 55).
+	// Alternatively, it is possible to use iterative diagonal
+	// modification of the Hessian. This is also used for
+	// sparse systems.
+	enum {BKP, ITERATIVE} factorization_method = BKP;
+
+	virtual void solve(const Function& function, SolverResults* results) const;
+};
+
+// L-BFGS. Requires only first-order derivatives
+// and generally converges quickly. Always uses
+// relatively little memory.
+class SPII_API LBFGSSolver
+	: public Solver
+{
+public:
+	// Number of vectors L-BFGS should save in its history.
+	int lbfgs_history_size = 10;
+
+	// If the relative function improvement is less than this
+	// value, L-BFGS will discard its history and restart.
+	double lbfgs_restart_tolerance = 1e-6;
+
+	virtual void solve(const Function& function, SolverResults* results) const;
+};
+
+// Nelder-Mead requires no derivatives. It generally
+// produces slightly more inaccurate solutions in many
+// more iterations.
+class SPII_API NelderMeadSolver
+	: public Solver
+{
+public:
+	// Area tolerance. The solver terminates if
+	// ||a|| / ||a0|| < tol, where ||.|| is the maximum
+	// norm.
+	double area_tolerance = 1e-12;
+
+	// Length tolerance. The solver terminates if
+	// ||a|| / ||a0|| < tol, where ||.|| is the maximum
+	// norm.
+	double length_tolerance = 1e-12;
+
+	virtual void solve(const Function& function, SolverResults* results) const;
+};
+
+// For most problems, there is no reason to choose
+// pattern search over Nelder-Mead.
+class SPII_API PatternSolver
+	: public Solver
+{
+public:
+	// Area tolerance. The solver terminates if
+	// ||a|| / ||a0|| < tol, where ||.|| is the maximum
+	// norm.
+	double area_tolerance = 1e-12;
+
+	virtual void solve(const Function& function, SolverResults* results) const;
+};
+
+// (Experimental) Global optimization using interval
+// arithmetic.
+class SPII_API GlobalSolver
+	: public Solver
+{
+public:
+	void solve_global(const Function& function,
+	                  const IntervalVector& start_box,
+	                  SolverResults* results) const;
+	
+	// Does not do anything. The global solver requires the
+	// extended interface above.
+	virtual void solve(const Function& function, SolverResults* results) const;
 };
 
 }  // namespace spii

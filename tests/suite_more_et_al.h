@@ -37,11 +37,10 @@ TEST(Solver, RosenbrockFar)
 {
 	double x[2] = {-1e6, 1e6};
 
-	Solver solver;
-	create_solver(&solver);
-	solver.gradient_tolerance = 1e-40;
-	solver.maximum_iterations = 100000;
-	double fval = run_test<Rosenbrock, 2>(x, &solver);
+	auto solver = create_solver();
+	solver->gradient_tolerance = 1e-40;
+	solver->maximum_iterations = 100000;
+	double fval = run_test<Rosenbrock, 2>(x, solver.get());
 
 	EXPECT_LT( std::fabs(x[0] - 1.0), 1e-9);
 	EXPECT_LT( std::fabs(x[1] - 1.0), 1e-9);
@@ -265,12 +264,11 @@ struct Meyer
 TEST(Solver, Meyer)
 {
 	double x[3] = {0.02, 4000.0, 250.0};
-	Solver solver;
-	create_solver(&solver);
-	if (solver.maximum_iterations < 500) {
-		solver.maximum_iterations = 500;
+	auto solver = create_solver();
+	if (solver->maximum_iterations < 500) {
+		solver->maximum_iterations = 500;
 	}
-	double fval = run_test<Meyer, 3>(x, &solver);
+	double fval = run_test<Meyer, 3>(x, solver.get());
 
 	EXPECT_LT( std::fabs(fval - 87.9458), 1e-3);
 }

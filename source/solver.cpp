@@ -6,25 +6,6 @@
 
 namespace spii {
 
-SolverResults::SolverResults()
-{
-	this->exit_condition = NA;
-
-	this->startup_time              = 0;
-	this->function_evaluation_time  = 0;
-	this->stopping_criteria_time    = 0;
-	this->matrix_factorization_time = 0;
-	this->lbfgs_update_time         = 0;
-	this->linear_solver_time        = 0;
-	this->backtracking_time         = 0;
-	this->log_time                  = 0;
-	this->total_time                = 0;
-
-	auto inf = std::numeric_limits<double>::infinity();
-	this->optimum_lower = -inf;
-	this->optimum_upper =  inf;
-}
-
 std::ostream& operator<<(std::ostream& out, const SolverResults& results)
 {
 	out << "----------------------------------------------\n";
@@ -54,52 +35,20 @@ std::ostream& operator<<(std::ostream& out, const SolverResults& results)
 
 Solver::Solver()
 {
-	this->sparsity_mode = AUTO;
 	this->log_function = []
 	                     (const std::string& msg)
 						 {
 							std::cerr << msg << std::endl;
 						 };
-	this->maximum_iterations = 100;
-	this->gradient_tolerance = 1e-12;
-	this->function_improvement_tolerance = 1e-12;
-	this->argument_improvement_tolerance = 1e-12;
-	this->area_tolerance = 1e-12;
-	this->length_tolerance = 1e-12;
-
-	this->lbfgs_history_size = 10;
-	this->lbfgs_restart_tolerance = 1e-6;
-
-	this->line_search_c = 1e-4;
-	this->line_search_rho = 0.5;
-
-	this->factorization_method = BKP;
 
 	#ifdef _MSC_VER
 		_set_output_format(_TWO_DIGIT_EXPONENT);
 	#endif
 }
 
-void Solver::solve(const Function& function,
-                   Method method,
-                   SolverResults* results) const
-{
-	if (method == NEWTON) {
-		solve_newton(function, results);
-	}
-	else if (method == LBFGS) {
-		solve_lbfgs(function, results);
-	}
-	else if (method == NELDER_MEAD) {
-		solve_nelder_mead(function, results);
-	}
-	else if (method == PATTERN_SEARCH) {
-		solve_pattern_search(function, results);
-	}
-	else {
-		throw std::runtime_error("Solver::solve: unknown method.");
-	}
-}
+Solver::~Solver()
+{ }
+
 
 }  // namespace spii
 

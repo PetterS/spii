@@ -168,7 +168,7 @@ int main_function()
 	param[2] = std::log(sigma);
 
 	// Use the standard solver settings.
-	Solver solver;
+	NewtonSolver solver;
 	SolverResults results;
 
 	// First, optimize the approximate log-likelihood to get a
@@ -176,7 +176,7 @@ int main_function()
 	Function approx_f;
 	approx_f.add_variable(&param[0], 3);
 	approx_f.add_term(std::make_shared<AutoDiffTerm<CIRApproximateLL, 3>>(data), &param[0]);
-	solver.solve_newton(approx_f, &results);
+	solver.solve(approx_f, &results);
 
 	// Print the estimated paramters.
 	kappa = std::exp(param[0]);
@@ -204,7 +204,7 @@ int main_function()
 	}
 
 	solver.function_improvement_tolerance = 1e-6;
-	solver.solve_newton(f, &results);
+	solver.solve(f, &results);
 
 	std::cerr << results;
 	f.print_timing_information(std::cerr);

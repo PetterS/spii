@@ -133,9 +133,15 @@ void split_interval(const IntervalVector& x,
 	}
 }
 
-void Solver::solve_global(const Function& function,
-                          const IntervalVector& x_interval,
-                          SolverResults* results) const
+void GlobalSolver::solve(const Function& function,
+                         SolverResults* results) const
+{
+	throw std::runtime_error("GlobalSolver::solve_global should be called.");
+}
+
+void GlobalSolver::solve_global(const Function& function,
+                                const IntervalVector& x_interval,
+                                SolverResults* results) const
 {
 	using namespace std;
 	double global_start_time = wall_time();

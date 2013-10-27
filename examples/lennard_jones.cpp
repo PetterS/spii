@@ -65,11 +65,11 @@ int main()
 		}
 	}
 
-	Solver solver;
-	solver.sparsity_mode = Solver::DENSE;
+	LBFGSSolver solver;
+	//solver.sparsity_mode = Solver::DENSE;  // For NewtonSolver.
 	solver.maximum_iterations = 3000;
 	SolverResults results;
-	solver.solve(potential, Solver::LBFGS, &results);
+	solver.solve(potential, &results);
 
 	std::cerr << results;
 	potential.print_timing_information(std::cout);

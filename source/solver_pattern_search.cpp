@@ -11,8 +11,8 @@
 
 namespace spii {
 
-void Solver::solve_pattern_search(const Function& function,
-                                  SolverResults* results) const
+void PatternSolver::solve(const Function& function,
+                          SolverResults* results) const
 {
 	double global_start_time = wall_time();
 

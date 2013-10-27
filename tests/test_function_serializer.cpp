@@ -152,13 +152,13 @@ TEST_CASE("Serialize/minimization", "")
 		fout << Serialize(f);
 		fout.close();
 
-		Solver solver;
+		NewtonSolver solver;
 		solver.log_function = [](const string&) { };
 		for (int i = 0; i < num_start_values; ++i) {
 			SolverResults r;
 			x[0] = start_values[i].first;
 			x[1] = start_values[i].second;
-			solver.solve_newton(f, &r);
+			solver.solve(f, &r);
 			results[i] = f.evaluate();
 		}
 	}
@@ -175,13 +175,13 @@ TEST_CASE("Serialize/minimization", "")
 		fin >> Serialize(&f2, &x, factory);
 		fin.close();
 
-		Solver solver;
+		NewtonSolver solver;
 		solver.log_function = [](const string&) { };
 		for (int i = 0; i < num_start_values; ++i) {
 			SolverResults r;
 			x[0] = start_values[i].first;
 			x[1] = start_values[i].second;
-			solver.solve_newton(f2, &r);
+			solver.solve(f2, &r);
 			CHECK(results[i] == f2.evaluate());
 		}
 	}
@@ -228,7 +228,7 @@ TEST_CASE("Serialize/FunctorData", "")
 	auto randn = bind(normal, prng);
 
 	double mu_result, sigma_result;
-	Solver solver;
+	LBFGSSolver solver;
 	solver.log_function = [](const string&) { };
 
 	{
@@ -251,7 +251,7 @@ TEST_CASE("Serialize/FunctorData", "")
 		mu    = 0.0;
 		sigma = 1.0;
 		SolverResults results;
-		solver.solve_lbfgs(f, &results);
+		solver.solve(f, &results);
 
 		mu_result = mu;
 		sigma_result = sigma;
@@ -269,7 +269,7 @@ TEST_CASE("Serialize/FunctorData", "")
 		SolverResults results;
 		user_space[0] = 0.0;
 		user_space[1] = 1.0;
-		solver.solve_lbfgs(f, &results);
+		solver.solve(f, &results);
 
 		CHECK(user_space[0] == mu_result);
 		CHECK(user_space[1] == sigma_result);

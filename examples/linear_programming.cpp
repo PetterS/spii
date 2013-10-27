@@ -112,15 +112,15 @@ int main()
 		           &x[0]);
 	}
 
-	Solver solver;
-	solver.sparsity_mode = Solver::DENSE;
+	NewtonSolver solver;
+	solver.sparsity_mode = NewtonSolver::DENSE;
 	solver.maximum_iterations = 100;
 	// nullptr does not work in gcc 4.5
 	solver.log_function = [](const std::string&) { };
 	SolverResults results;
 
 	for (int iter = 1; iter <= 8; ++iter) {
-		solver.solve_newton(f, &results);
+		solver.solve(f, &results);
 
 		double sumx = 0.0;
 		double cTx  = 0.0;

@@ -18,13 +18,17 @@ void info_log_function(const std::string& str)
 	INFO(str);
 }
 
-void create_solver(Solver* solver)
+std::unique_ptr<Solver> create_solver()
 {
+	std::unique_ptr<PatternSolver> solver(new PatternSolver);
+
 	solver->maximum_iterations = 500000;
 	solver->area_tolerance = 1e-18;
 	solver->function_improvement_tolerance = 1e-12;
 
 	solver->log_function = info_log_function;
+
+	return std::move(solver);
 }
 
 template<typename Functor, int dimension>
@@ -35,14 +39,13 @@ double run_test(double* var, const Solver* solver = 0)
 	f.add_variable(var, dimension);
 	f.add_term(std::make_shared<AutoDiffTerm<Functor, dimension>>(), var);
 
-	Solver own_solver;
-	create_solver(&own_solver);
-
+	auto own_solver = create_solver();
 	if (solver == 0) {
-		solver = &own_solver;
+		solver = own_solver.get();
 	}
+
 	SolverResults results;
-	solver->solve_pattern_search(f, &results);
+	solver->solve(f, &results);
 	INFO(results);
 
 	std::stringstream sout;
@@ -83,11 +86,10 @@ TEST(Solver, RosenbrockFar)
 {
 	double x[2] = {-1e6, 1e6};
 
-	Solver solver;
-	create_solver(&solver);
-	solver.gradient_tolerance = 1e-40;
-	solver.maximum_iterations = 100000;
-	double fval = run_test<Rosenbrock, 2>(x, &solver);
+	auto solver = create_solver();
+	solver->gradient_tolerance = 1e-40;
+	solver->maximum_iterations = 100000;
+	double fval = run_test<Rosenbrock, 2>(x, solver.get());
 
 	EXPECT_LT( std::fabs(x[0] - 1.0), 1e-9);
 	EXPECT_LT( std::fabs(x[1] - 1.0), 1e-9);
