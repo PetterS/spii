@@ -72,8 +72,6 @@ double run_test_with_factorization_method(double* var, Solver* solver)
 	return f.evaluate();
 }
 
-class Powell3D;
-
 template<typename Functor, int dimension>
 double run_test(double* var, Solver* solver_input = 0)
 {
@@ -97,7 +95,8 @@ double run_test(double* var, Solver* solver_input = 0)
 	//--------------------
 	//TODO: Investigate further.
 	//
-	if (typeid(Functor) == typeid(Powell3D)) {
+	std::string functor_name = typeid(Functor).name();
+	if (functor_name.find("Powell3D") != std::string::npos) {
 		solver->gradient_tolerance = 1e-1;
 	}
 	//--------------------
