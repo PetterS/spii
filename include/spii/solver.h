@@ -129,12 +129,17 @@ protected:
 	                          const double start_alpha = 1.0) const;
 
 	// Performs a BKP block diagonal factorization, modifies it, and
-	// solvers the linear system.
+	// solvers the linear system. Uses the Meschach library.
 	void BKP_dense(const Eigen::MatrixXd& H,
 	               const Eigen::VectorXd& g,
 	               const FactorizationCache& cache,
 	               Eigen::VectorXd* p,
 	               SolverResults* results) const;
+private:
+	// Used by check_exit_condition.
+	static const int amount_history_to_consider = 6;
+	mutable int norm_g_history_pos = 0;
+	mutable double normg_history[amount_history_to_consider];
 };
 
 // Newton's method. It requires first and
@@ -154,7 +159,9 @@ public:
 	// Alternatively, it is possible to use iterative diagonal
 	// modification of the Hessian. This is also used for
 	// sparse systems.
-	enum {BKP, ITERATIVE} factorization_method = BKP;
+	enum {BKP,       // Using the Meschach library (dense only). Production-ready.
+	      ITERATIVE, // Iterative diagonal modification (dense + sparse). Production-ready.
+	} factorization_method = BKP;
 
 	virtual void solve(const Function& function, SolverResults* results) const;
 };

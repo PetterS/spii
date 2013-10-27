@@ -44,6 +44,10 @@ Solver::Solver()
 	#ifdef _MSC_VER
 		_set_output_format(_TWO_DIGIT_EXPONENT);
 	#endif
+
+	for (auto& ng: normg_history) {
+		ng = 0.0;
+	}
 }
 
 Solver::~Solver()

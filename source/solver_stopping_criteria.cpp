@@ -23,9 +23,26 @@ bool Solver::check_exit_conditions(const double fval,
 	}
 
 	if (normg / normg0 < this->gradient_tolerance) {
-	    results->exit_condition = SolverResults::GRADIENT_TOLERANCE;
-		return true;
+		// We have reached a small enough gradient. Terminate if it
+		// does not seem to improve anymore.
+		
+		// Look at the recent history and find the largest gradient.
+		auto max_normg = normg_history[0];
+		for (auto ng: normg_history) {
+			max_normg = std::max(max_normg, ng);
+		}
+
+		// If it does not seem to improve more or if it is really small.
+		if (normg / max_normg >= 0.9 ||
+			normg / normg0 < (this->gradient_tolerance * this->gradient_tolerance)) {
+
+			results->exit_condition = SolverResults::GRADIENT_TOLERANCE;
+			return true;
+		}
 	}
+
+	norm_g_history_pos = (norm_g_history_pos + 1) % amount_history_to_consider;
+	normg_history[norm_g_history_pos] = normg;
 
 	if (last_iteration_successful &&
 	    std::fabs(fval - fprev) / (std::fabs(fval) + this->function_improvement_tolerance) <
