@@ -30,9 +30,11 @@ std::unique_ptr<Solver> create_solver()
 	std::unique_ptr<LBFGSSolver> solver(new LBFGSSolver);
 
 	solver->maximum_iterations = 1000;
-	solver->function_improvement_tolerance = 1e-16;
-	solver->gradient_tolerance = 1e-12;
-	solver->argument_improvement_tolerance = 1e-16;
+
+	solver->function_improvement_tolerance = 0;
+	solver->argument_improvement_tolerance = 0;
+	solver->gradient_tolerance = 1e-7;
+	
 	solver->lbfgs_history_size = 40;
 
 	solver->log_function = info_log_function;
@@ -66,9 +68,7 @@ double run_test(double* var, const Solver* solver = 0)
 	}
 	INFO(sout.str());
 
-	EXPECT_TRUE(results.exit_condition == SolverResults::ARGUMENT_TOLERANCE ||
-	            results.exit_condition == SolverResults::FUNCTION_TOLERANCE ||
-	            results.exit_condition == SolverResults::GRADIENT_TOLERANCE);
+	EXPECT_TRUE(results.exit_condition == SolverResults::GRADIENT_TOLERANCE);
 
 	return f.evaluate();
 }

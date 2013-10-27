@@ -178,7 +178,7 @@ NewtonSolver create_solver<NewtonSolver>()
 	solver.maximum_iterations = 5000;
 	solver.function_improvement_tolerance = 0;
 	solver.argument_improvement_tolerance = 0;
-	solver.gradient_tolerance = 1e-9;
+	solver.gradient_tolerance = 1e-8;
 
 	solver.line_search_c = 1e-2;
 	solver.line_search_rho = 0.6;
