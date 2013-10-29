@@ -301,6 +301,11 @@ public:
 		: functor(std::forward<T1>(t1), std::forward<T2>(t2), std::forward<T3>(t3))
 	{
 	}
+	template<typename T1, typename T2, typename T3, typename T4>
+	AutoDiffTerm(T1&& t1, T2&& t2, T3&& t3, T4&& t4)
+		: functor(std::forward<T1>(t1), std::forward<T2>(t2), std::forward<T3>(t3), std::forward<T4>(t4))
+	{
+	}
 	// Etc. if needed.
 
 	virtual void read(std::istream& in)

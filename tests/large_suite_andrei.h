@@ -124,51 +124,6 @@ LARGE_SUITE_END(all_methods)
 
 // ...
 
-/*
-BEGIN_MODEL2(FLETCBV3a)
-	value = 0.5 * (x[0]*x[0] + y[0]*y[0]);
-END_MODEL
-
-BEGIN_MODEL2(FLETCBV3b)
-	R d = x[0] - y[0];
-	value = 0.5 * d*d;
-END_MODEL
-
-struct FLETCBV3c 
-{ 
-	double h;
-	FLETCBV3c(double _h) : h(_h) { }
-	template<typename R> 
-	R operator()(const R* const x) const
-	{
-		R value = 0;
-		value -= (h*h + 2.0) / (h*h) * x[0] + 1.0 / (h*h) * cos(x[0]);
-END_MODEL
-
-LARGE_SUITE_BEGIN(FLETCBV3)
-	for (int i = 0; i < n; ++i) {
-		f.add_variable(&start[i], 1);
-	}
-	f.add_term(new AutoDiffTerm<FLETCBV3a, 1, 1>(
-		new FLETCBV3a), &start[0], &start[n-1]);
-
-	for (int i = 0; i < n-1; ++i) {
-		f.add_term(new AutoDiffTerm<FLETCBV3b, 1, 1>(
-			new FLETCBV3b), &start[i], &start[i+1]);
-	}
-
-	for (int i = 0; i < n; ++i) {
-		f.add_term(new AutoDiffTerm<FLETCBV3c, 1>(
-			new FLETCBV3c(1.0)), &start[i]);
-	}
-LARGE_SUITE_MIDDLE
-	const double h = 1.0 / (n + 1.0);
-	for (int i = 0; i < n; ++i) {
-		value[i] = (i+1) * h;
-	}
-LARGE_SUITE_END(all_methods)
-*/
-
 BEGIN_MODEL1(TRIDIA1)
 	R d = x[0] - 1.0;
 	value = d*d;
@@ -201,3 +156,4 @@ LARGE_SUITE_MIDDLE
 		value[i] = 1.0;
 	}
 LARGE_SUITE_END(all_methods)
+
