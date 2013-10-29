@@ -28,8 +28,8 @@ namespace spii {
 template<typename EigenMat>
 void Eigen_to_Meschach(const EigenMat& eigen_matrix, MAT* A)
 {
-	int m = eigen_matrix.rows();
-	int n = eigen_matrix.cols();
+	auto m = eigen_matrix.rows();
+	auto n = eigen_matrix.cols();
 
 	for (int i = 0; i < m; ++i) {
 		for (int j = 0; j < n; ++j) {
@@ -78,7 +78,7 @@ void Solver::BKP_dense(const Eigen::MatrixXd& H,
 	double start_time = wall_time();
 
 	auto cache = reinterpret_cast<FactorizationCacheInternal*>(cache_input.data);
-	int n = H.rows();
+	auto n = H.rows();
 
 	Eigen_to_Meschach(H, cache->Hmat);
 

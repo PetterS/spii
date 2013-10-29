@@ -18,10 +18,10 @@ extern "C" {
 template<typename EigenMat>
 MAT* Eigen_to_Meschach(const EigenMat& eigen_matrix)
 {
-	int m = eigen_matrix.rows();
-	int n = eigen_matrix.cols();
+	auto m = eigen_matrix.rows();
+	auto n = eigen_matrix.cols();
 
-	auto A = m_get(m, n);
+	auto A = m_get(int(m), int(n));
 	for (int i = 0; i < m; ++i) {
 		for (int j = 0; j < n; ++j) {
 			A->me[i][j] = eigen_matrix(i, j);

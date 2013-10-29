@@ -31,7 +31,7 @@
 	{ \
 		auto create_function = [](std::vector<double>& start, Function* f) -> void \
 		{ \
-			int n = start.size();
+			auto n = start.size();
 #define LARGE_SUITE_MIDDLE \
 		}; \
 		auto start_value = [](int n) -> std::vector<double> \

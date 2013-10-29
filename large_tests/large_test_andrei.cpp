@@ -41,7 +41,7 @@ const bool no_newton = false;
 	{ \
 		auto create_function = [](std::vector<double>& start, Function* f) -> void \
 		{ \
-			int n = start.size();
+			auto n = start.size();
 #define LARGE_SUITE_MIDDLE \
 		}; \
 		auto start_value = [](int n) -> std::vector<double> \
@@ -170,8 +170,8 @@ void run_DIXMAAN_test(double alpha, double beta, double gamma, double delta,
 	auto create_function = [&](std::vector<double>& start, Function* f) -> void
 	{
 		using std::make_shared;
-		int n = start.size();
-		int m = n / 3;
+		auto n = int(start.size());
+		auto m = n / 3;
 
 		for (int i = 1; i <= n; ++i) {
 			f->add_term(make_shared<AutoDiffTerm<DIXMAANa, 1>>(alpha, i, n, k1), &start[i-1]);

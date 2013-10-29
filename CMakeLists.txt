@@ -91,6 +91,8 @@ IF (MSVC)
   # To get rid of annoying min and max macros if windows.h
   # is included.
   ADD_DEFINITIONS("-DNOMINMAX=1")
+  # Macro redefinitions.
+  ADD_DEFINITIONS("/wd4005")
 ENDIF (MSVC)
 
 #
