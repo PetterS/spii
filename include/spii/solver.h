@@ -102,7 +102,7 @@ public:
 	// The line search is completed when
 	//   f(x + alpha * p) <= f(x) + c * alpha * gTp.
 	// In each iteration, alpha *= rho.
-	double line_search_c   = 1e-4;
+	double line_search_c   = 1e-2;
 	double line_search_rho = 0.5;
 
 protected:

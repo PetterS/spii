@@ -92,15 +92,6 @@ double run_test(double* var, Solver* solver_input = 0)
 	// this method.
 	solver->factorization_method = NewtonSolver::BKP;
 
-	//--------------------
-	//TODO: Investigate further.
-	//
-	std::string functor_name = typeid(Functor).name();
-	if (functor_name.find("Powell3D") != std::string::npos) {
-		solver->gradient_tolerance = 1e-1;
-	}
-	//--------------------
-
 	return run_test_with_factorization_method<Functor, dimension>(var, solver);
 }
 
