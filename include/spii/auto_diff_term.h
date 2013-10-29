@@ -132,33 +132,12 @@ class AutoDiffTerm<Functor, D0, 0, 0, 0, 0> :
 	public SizedTerm<D0, 0, 0, 0, 0>
 {
 public:
-	// When compilers (MSVC) support variadic templates, this code will
-	// be shorter.
-	AutoDiffTerm()
-	{ 
-	}
-	template<typename T1>
-	AutoDiffTerm(T1&& t1)
-		: functor(std::forward<T1>(t1))
-	{ 
-	}
-	template<typename T1, typename T2>
-	AutoDiffTerm(T1&& t1, T2&& t2)
-		: functor(std::forward<T1>(t1), std::forward<T2>(t2))
+
+	template<typename... Args>
+	AutoDiffTerm(Args&&... args)
+		: functor(std::forward<Args>(args)...)
 	{
 	}
-	template<typename T1, typename T2, typename T3>
-	AutoDiffTerm(T1&& t1, T2&& t2, T3&& t3)
-		: functor(std::forward<T1>(t1), std::forward<T2>(t2), std::forward<T3>(t3))
-	{
-	}
-	template<typename T1, typename T2, typename T3, typename T4>
-	AutoDiffTerm(T1&& t1, T2&& t2, T3&& t3, T4&& t4)
-		: functor(std::forward<T1>(t1), std::forward<T2>(t2), std::forward<T3>(t3),
-		          std::forward<T4>(t4))
-	{
-	}
-	// Etc. if needed.
 
 	virtual void read(std::istream& in)
 	{
@@ -281,32 +260,12 @@ class AutoDiffTerm<Functor, D0, D1, 0, 0, 0> :
 	public SizedTerm<D0, D1, 0, 0, 0>
 {
 public:
-	// When compilers (MSVC) support variadic templates, this code will
-	// be shorter.
-	AutoDiffTerm()
-	{ 
-	}
-	template<typename T1>
-	AutoDiffTerm(T1&& t1)
-		: functor(std::forward<T1>(t1))
-	{ 
-	}
-	template<typename T1, typename T2>
-	AutoDiffTerm(T1&& t1, T2&& t2)
-		: functor(std::forward<T1>(t1), std::forward<T2>(t2))
+
+	template<typename... Args>
+	AutoDiffTerm(Args&&... args)
+		: functor(std::forward<Args>(args)...)
 	{
 	}
-	template<typename T1, typename T2, typename T3>
-	AutoDiffTerm(T1&& t1, T2&& t2, T3&& t3)
-		: functor(std::forward<T1>(t1), std::forward<T2>(t2), std::forward<T3>(t3))
-	{
-	}
-	template<typename T1, typename T2, typename T3, typename T4>
-	AutoDiffTerm(T1&& t1, T2&& t2, T3&& t3, T4&& t4)
-		: functor(std::forward<T1>(t1), std::forward<T2>(t2), std::forward<T3>(t3), std::forward<T4>(t4))
-	{
-	}
-	// Etc. if needed.
 
 	virtual void read(std::istream& in)
 	{
@@ -500,27 +459,12 @@ class AutoDiffTerm<Functor, D0, D1, D2, 0, 0> :
 	public SizedTerm<D0, D1, D2, 0, 0>
 {
 public:
-	// When compilers (MSVC) support variadic templates, this code will
-	// be shorter.
-	AutoDiffTerm()
-	{ 
-	}
-	template<typename T1>
-	AutoDiffTerm(T1&& t1)
-		: functor(std::forward<T1>(t1))
-	{ 
-	}
-	template<typename T1, typename T2>
-	AutoDiffTerm(T1&& t1, T2&& t2)
-		: functor(std::forward<T1>(t1), std::forward<T2>(t2))
+
+	template<typename... Args>
+	AutoDiffTerm(Args&&... args)
+		: functor(std::forward<Args>(args)...)
 	{
 	}
-	template<typename T1, typename T2, typename T3>
-	AutoDiffTerm(T1&& t1, T2&& t2, T3&& t3)
-		: functor(std::forward<T1>(t1), std::forward<T2>(t2), std::forward<T3>(t3))
-	{
-	}
-	// Etc. if needed.
 
 	virtual void read(std::istream& in)
 	{
@@ -712,38 +656,12 @@ class AutoDiffTerm<Functor, D0, D1, D2, D3> :
 	public SizedTerm<D0, D1, D2, D3>
 {
 public:
-	// When compilers (MSVC) support variadic templates, this code will
-	// be shorter.
-	AutoDiffTerm()
-	{ 
-	}
-	template<typename T1>
-	AutoDiffTerm(T1&& t1)
-		: functor(std::forward<T1>(t1))
-	{ 
-	}
-	template<typename T1, typename T2>
-	AutoDiffTerm(T1&& t1, T2&& t2)
-		: functor(std::forward<T1>(t1), std::forward<T2>(t2))
+
+	template<typename... Args>
+	AutoDiffTerm(Args&&... args)
+		: functor(std::forward<Args>(args)...)
 	{
 	}
-	template<typename T1, typename T2, typename T3>
-	AutoDiffTerm(T1&& t1, T2&& t2, T3&& t3)
-		: functor(std::forward<T1>(t1), std::forward<T2>(t2), std::forward<T3>(t3))
-	{
-	}
-	template<typename T1, typename T2, typename T3, typename T4>
-	AutoDiffTerm(T1&& t1, T2&& t2, T3&& t3, T4&& t4)
-		: functor(std::forward<T1>(t1), std::forward<T2>(t2), std::forward<T3>(t3), std::forward<T4>(t4))
-	{
-	}
-	template<typename T1, typename T2, typename T3, typename T4, typename T5>
-	AutoDiffTerm(T1&& t1, T2&& t2, T3&& t3, T4&& t4, T5&& t5)
-		: functor(std::forward<T1>(t1), std::forward<T2>(t2), 
-							std::forward<T3>(t3), std::forward<T4>(t4), std::forward<T5>(t5))
-	{
-	}
-	// Etc. if needed.
 
 	virtual void read(std::istream& in)
 	{

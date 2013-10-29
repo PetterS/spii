@@ -91,7 +91,6 @@ IF (MSVC)
   # To get rid of annoying min and max macros if windows.h
   # is included.
   ADD_DEFINITIONS("-DNOMINMAX=1")
-  ADD_DEFINITIONS("-D_VARIADIC_MAX=6")
 ENDIF (MSVC)
 
 #
