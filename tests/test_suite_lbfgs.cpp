@@ -63,6 +63,7 @@ double run_test(double* var, const Solver* solver = 0)
 	INFO(results);
 
 	std::stringstream sout;
+	f.print_timing_information(sout);
 	for (int i = 0; i < dimension; ++i) {
 		sout << "x" << i + 1 << " = " << var[i] << ",  ";
 	}

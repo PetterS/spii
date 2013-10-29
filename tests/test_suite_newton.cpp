@@ -57,6 +57,7 @@ double run_test_with_factorization_method(double* var, Solver* solver)
 	INFO(results);
 
 	std::stringstream sout;
+	f.print_timing_information(sout);
 	for (int i = 0; i < dimension; ++i) {
 		sout << "x" << i + 1 << " = " << var[i] << ",  ";
 	}
