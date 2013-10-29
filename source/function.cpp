@@ -20,20 +20,24 @@ namespace spii {
 // variables and terms.
 struct AddedVariable
 {
-	int user_dimension;
-	int solver_dimension;
-	size_t global_index;
-	bool is_constant;
+	int user_dimension;   // The dimension the Term object sees for evaluation.
+	int solver_dimension; // The dimension of the variables the solver sees.
+	double* user_data;    // The pointer provided by the user.
+	size_t global_index;  // Global index into a vector of all scalars.
+	bool is_constant;     // Whether this variable is (currently) constant.
 	std::shared_ptr<ChangeOfVariables> change_of_variables;
-	mutable std::vector<double>  temp_space;
+	mutable std::vector<double>  temp_space; // Used internally during evaluation.
 };
 
 struct AddedTerm
 {
+	// The Term provided by the users.
 	std::shared_ptr<const Term> term;
-	std::vector<AddedVariable*> user_variables;
-	// Temporary storage for a point and hessian.
+	// The variables for which the Term should be evaluated.
+	std::vector<size_t> added_variables_indices;
+	// Temporary storage for a point.
 	mutable std::vector<double*> temp_variables;
+	// Temporary storage for the hessian.
 	mutable std::vector< std::vector<Eigen::MatrixXd> > hessian;
 };
 
@@ -79,7 +83,8 @@ public:
 	void clear();
 
 	// All variables added to the function.
-	std::map<double*, AddedVariable> variables;
+	std::vector<AddedVariable> variables;
+	std::map<double*, std::size_t> variables_map;
 
 	// Each variable can have several dimensions. This member
 	// keeps track of the total number of scalars.
@@ -142,6 +147,7 @@ void Function::Implementation::clear()
 
 	terms.clear();
 	variables.clear();
+	variables_map.clear();
 	number_of_scalars = 0;
 	number_of_constants = 0;
 
@@ -169,12 +175,14 @@ Function& Function::operator = (const Function& org)
 	impl->constant = org.impl->constant;
 
 	// TODO: respect global order.
-	std::map<const AddedVariable*, double*> user_variables;
-	for (const auto& added_variable: org.impl->variables) {
+	std::map<size_t, double*> user_variables;
+	for (const auto& added_variable: org.impl->variables_map) {
+		AddedVariable& var_info = org.impl->variables[added_variable.second];
+
 		impl->add_variable_internal(added_variable.first,
-		                            added_variable.second.user_dimension,
-		                            added_variable.second.change_of_variables);
-		user_variables[&added_variable.second] = added_variable.first;
+		                            var_info.user_dimension,
+		                            var_info.change_of_variables);
+		user_variables[var_info.global_index] = added_variable.first;
 	}
 	spii_assert(org.impl->variables.size() == user_variables.size());
 	spii_assert(get_number_of_variables() == org.get_number_of_variables());
@@ -182,8 +190,10 @@ Function& Function::operator = (const Function& org)
 
 	for (const auto& added_term: org.impl->terms) {
 		std::vector<double*> vars;
-		for (auto added_var: added_term.user_variables) {
-			vars.push_back(user_variables[added_var]);
+		for (auto var: added_term.added_variables_indices) {
+			auto index = org.impl->variables[var].global_index;
+			spii_assert(user_variables.find(index) != user_variables.end());
+			vars.push_back(user_variables[index]);
 		}
 		this->add_term(added_term.term, vars);
 	}
@@ -198,26 +208,30 @@ Function& Function::operator += (const Function& org)
 
 	// Check that there are no change of variables involved.
 	for (const auto& added_variable: org.impl->variables) {
-		spii_assert( ! added_variable.second.change_of_variables)
+		spii_assert( ! added_variable.change_of_variables)
 	}
 	for (const auto& added_variable: impl->variables) {
-		spii_assert( ! added_variable.second.change_of_variables)
+		spii_assert( ! added_variable.change_of_variables)
 	}
 
 	// TODO: respect global order.
-	std::map<const AddedVariable*, double*> user_variables;
-	for (const auto& added_variable: org.impl->variables) {
+	std::map<size_t, double*> user_variables;
+	for (const auto& added_variable: org.impl->variables_map) {
+		AddedVariable& var_info = org.impl->variables[added_variable.second];
+
 		// No-op if the variable already exists.
 		impl->add_variable_internal(added_variable.first,
-		                            added_variable.second.user_dimension,
-		                            added_variable.second.change_of_variables);
-		user_variables[&added_variable.second] = added_variable.first;
+		                            var_info.user_dimension,
+		                            var_info.change_of_variables);
+		user_variables[var_info.global_index] = added_variable.first;
 	}
 
 	for (auto const& added_term: org.impl->terms) {
 		std::vector<double*> vars;
-		for (auto added_var: added_term.user_variables) {
-			vars.push_back(user_variables[added_var]);
+		for (auto var: added_term.added_variables_indices) {
+			auto index = org.impl->variables[var].global_index;
+			spii_assert(user_variables.find(index) != user_variables.end());
+			vars.push_back(user_variables[index]);
 		}
 		this->add_term(added_term.term, vars);
 	}
@@ -240,11 +254,11 @@ void Function::add_variable(double* variable,
 size_t Function::get_variable_global_index(double* variable) const
 {
 	// Find the variable. This has to succeed.
-	auto itr = impl->variables.find(variable);
-	check(itr != impl->variables.end(), 
+	auto itr = impl->variables_map.find(variable);
+	check(itr != impl->variables_map.end(), 
 	      "Function::get_variable_global_index: variable not found.");
 
-	return itr->second.global_index;
+	return impl->variables[itr->second].global_index;
 }
 
 size_t Function::get_number_of_variables() const
@@ -272,9 +286,9 @@ void Function::Implementation::add_variable_internal(double* variable,
 {
 	this->local_storage_allocated = false;
 
-	auto itr = variables.find(variable);
-	if (itr != variables.end()) {
-		AddedVariable& var_info = itr->second;
+	auto itr = variables_map.find(variable);
+	if (itr != variables_map.end()) {
+		AddedVariable& var_info = variables[itr->second];
 
 		if (var_info.user_dimension != dimension) {
 			throw std::runtime_error("Function::add_variable: dimension mismatch "
@@ -296,9 +310,15 @@ void Function::Implementation::add_variable_internal(double* variable,
 		return;
 	}
 
-	AddedVariable& var_info = variables[variable];
-
+	variables.emplace_back();
+	AddedVariable& var_info = variables.back();
+	variables_map[variable] = variables.size() - 1;
+	
+	var_info.user_data = variable;
+	var_info.is_constant = false;
 	var_info.change_of_variables = change_of_variables;
+
+	// Set the correct user_dimension and solver_dimension.
 	if (change_of_variables){
 		if (dimension != change_of_variables->x_dimension()) {
 			throw std::runtime_error("Function::add_variable: "
@@ -315,9 +335,6 @@ void Function::Implementation::add_variable_internal(double* variable,
 	// Allocate local scratch spaces for evaluation.
 	// We need as much space as the dimension of x.
 	var_info.temp_space.resize(var_info.user_dimension);
-
-	var_info.is_constant = false;
-
 	// Give this variable a global index into a global
 	// state vector.
 	var_info.global_index = number_of_scalars;
@@ -327,35 +344,31 @@ void Function::Implementation::add_variable_internal(double* variable,
 void Function::Implementation::set_constant(double* variable, bool is_constant)
 {
 	// Find the variable. This has to succeed.
-	auto itr = variables.find(variable);
-	if (itr == variables.end()) {
+	auto itr = variables_map.find(variable);
+	if (itr == variables_map.end()) {
 		throw std::runtime_error("Function::set_constant: variable not found.");
 	}
 
-	itr->second.is_constant = is_constant;
+	variables[itr->second].is_constant = is_constant;
 
 	// Recompute all global indices. Expensive!
 	this->number_of_scalars = 0;
-	for (auto& itr: variables) {
-		auto& var_info = itr.second;
-
-		if (! var_info.is_constant) {
+	for (auto& variable: variables) {
+		if (!variable.is_constant) {
 			// Give this variable a global index into a global
 			// state vector.
-			var_info.global_index = this->number_of_scalars;
-			this->number_of_scalars += var_info.solver_dimension;
+			variable.global_index = this->number_of_scalars;
+			this->number_of_scalars += variable.solver_dimension;
 		}
 	}
 
 	this->number_of_constants = 0;
-	for (auto itr = variables.begin(); itr != variables.end(); ++itr) {
-		auto& var_info = itr->second;
-		
-		if (var_info.is_constant) {
+	for (auto& variable : variables) {
+		if (variable.is_constant) {
 			// Give this variable a global index into a global
 			// state vector.
-			var_info.global_index = this->number_of_scalars + this->number_of_constants;
-			this->number_of_constants += var_info.solver_dimension;
+			variable.global_index = this->number_of_scalars + this->number_of_constants;
+			this->number_of_constants += variable.solver_dimension;
 		}
 	}
 
@@ -377,38 +390,34 @@ void Function::add_term(std::shared_ptr<const Term> term, const std::vector<doub
 
 	// Check whether the variables exist.
 	for (int var = 0; var < term->number_of_variables(); ++var) {
-		auto var_itr = impl->variables.find(arguments[var]);
-		if (var_itr == impl->variables.end()) {
+		auto var_itr = impl->variables_map.find(arguments[var]);
+		if (var_itr == impl->variables_map.end()) {
 			add_variable(arguments[var], term->variable_dimension(var));
 		}
 		// The x-dimension of the variable must match what is expected by the term.
-		else if (var_itr->second.user_dimension != term->variable_dimension(var)) {
+		else if (impl->variables[var_itr->second].user_dimension != term->variable_dimension(var)) {
 			throw std::runtime_error("Function::add_term: variable dimension does not match term.");
 		}
 	}
 
-	//impl->added_terms.insert(term);
-
 	impl->terms.push_back(AddedTerm());
-	impl->terms.back().term = term;
+	auto& added_term = impl->terms.back();
+	added_term.term = term;
 
-	for (int var = 0; var < term->number_of_variables(); ++var) {
+	for (double* user_data: arguments) {
 		// Look up this variable.
-		AddedVariable& added_variable = impl->variables[arguments[var]];
-		impl->terms.back().user_variables.push_back(&added_variable);
-		// Stora a pointer to temporary storage for this variable.
-		double* temp_space = &added_variable.temp_space[0];
-		impl->terms.back().temp_variables.push_back(temp_space);
+		auto var_index = impl->variables_map[user_data];
+		added_term.added_variables_indices.push_back(var_index);
 	}
 
 	if (this->hessian_is_enabled) {
 		// Create enough space for the hessian.
-		impl->terms.back().hessian.resize(term->number_of_variables());
+		added_term.hessian.resize(term->number_of_variables());
 		for (int var0 = 0; var0 < term->number_of_variables(); ++var0) {
-			impl->terms.back().hessian[var0].resize(term->number_of_variables());
+			added_term.hessian[var0].resize(term->number_of_variables());
 			for (int var1 = 0; var1 < term->number_of_variables(); ++var1) {
-				impl->terms.back().hessian[var0][var1].resize(term->variable_dimension(var0),
-														term->variable_dimension(var1));
+				added_term.hessian[var0][var1].resize(term->variable_dimension(var0),
+				                                      term->variable_dimension(var1));
 			}
 		}
 	}
@@ -437,10 +446,10 @@ void Function::Implementation::allocate_local_storage() const
 	int max_variable_dimension = 1;
 	for (const auto& itr: variables) {
 		max_variable_dimension = std::max(max_variable_dimension,
-		                                  itr.second.user_dimension);
+		                                  itr.user_dimension);
 	}
 	for (const auto& term: terms) {
-		max_arity = std::max(max_arity, term.user_variables.size());
+		max_arity = std::max(max_arity, term.added_variables_indices.size());
 	}
 
 	this->thread_gradient_scratch.resize(this->number_of_threads);
@@ -450,6 +459,18 @@ void Function::Implementation::allocate_local_storage() const
 		this->thread_gradient_scratch[t].resize(max_arity);
 		for (int var = 0; var < max_arity; ++var) {
 			this->thread_gradient_scratch[t][var].resize(max_variable_dimension);
+		}
+	}
+
+	// Every term should have a pointer to the local space
+	// used when evaluating.
+	for (auto& term: terms) {
+		for (auto ind: term.added_variables_indices) {
+			// Look up this variable.
+			auto& added_variable = variables[ind];
+			// Stora a pointer to temporary storage for this variable.
+			double* temp_space = &added_variable.temp_space[0];
+			term.temp_variables.push_back(temp_space);
 		}
 	}
 
@@ -473,16 +494,20 @@ void Function::add_term(std::shared_ptr<const Term> term, double* argument0, dou
 
 void Function::print_timing_information(std::ostream& out) const
 {
+	out << "----------------------------------------------------\n";
 	out << "Function evaluations without gradient : " << evaluations_without_gradient << '\n';
 	out << "Function evaluations with gradient    : " << evaluations_with_gradient << '\n';
 	out << "Function evaluate time            : " << evaluate_time << '\n';
 	out << "Function evaluate time (with g/H) : " << evaluate_with_hessian_time << '\n';
 	out << "Function write g/H time           : " << write_gradient_hessian_time << '\n';
 	out << "Function copy data time           : " << copy_time << '\n';
+	out << "----------------------------------------------------\n";
 }
 
 double Function::Implementation::evaluate_from_local_storage() const
 {
+	spii_assert(this->local_storage_allocated);
+
 	interface->evaluations_without_gradient++;
 	double start_time = wall_time();
 
@@ -536,6 +561,10 @@ double Function::Implementation::evaluate_from_local_storage() const
 
 double Function::evaluate(const Eigen::VectorXd& x) const
 {
+	if (! impl->local_storage_allocated) {
+		impl->allocate_local_storage();
+	}
+
 	// Copy values from the global vector x to the temporary storage
 	// used for evaluating the term.
 	impl->copy_global_to_local(x);
@@ -545,6 +574,10 @@ double Function::evaluate(const Eigen::VectorXd& x) const
 
 double Function::evaluate() const
 {
+	if (! impl->local_storage_allocated) {
+		impl->allocate_local_storage();
+	}
+
 	// Copy the user state to the local storage
 	// for evaluation.
 	impl->copy_user_to_local();
@@ -554,30 +587,30 @@ double Function::evaluate() const
 
 void Function::create_sparse_hessian(Eigen::SparseMatrix<double>* H) const
 {
-	std::vector<Eigen::Triplet<double> > indices;
-	indices.reserve(impl->number_of_hessian_elements);
+	std::vector<Eigen::Triplet<double> > hessian_indices;
+	hessian_indices.reserve(impl->number_of_hessian_elements);
 	impl->number_of_hessian_elements = 0;
 
 	for (const auto& added_term: impl->terms) {
-		auto& variables = added_term.user_variables;
-		auto& term = added_term.term;
+		auto& indices = added_term.added_variables_indices;
+		auto& term    = added_term.term;
 
 		// Put the hessian into the global hessian.
 		for (int var0 = 0; var0 < term->number_of_variables(); ++var0) {
-			if ( ! variables[var0]->is_constant) {
+			if ( ! impl->variables[indices[var0]].is_constant) {
 
-				size_t global_offset0 = variables[var0]->global_index;
+				size_t global_offset0 = impl->variables[indices[var0]].global_index;
 				for (int var1 = 0; var1 < term->number_of_variables(); ++var1) {
-					if ( ! variables[var1]->is_constant) {
+					if ( ! impl->variables[indices[var1]].is_constant) {
 
-						size_t global_offset1 = variables[var1]->global_index;
+						size_t global_offset1 = impl->variables[indices[var1]].global_index;
 						for (size_t i = 0; i < term->variable_dimension(var0); ++i) {
 							for (size_t j = 0; j < term->variable_dimension(var1); ++j) {
 								int global_i = static_cast<int>(i + global_offset0);
 								int global_j = static_cast<int>(j + global_offset1);
-								indices.push_back(Eigen::Triplet<double>(global_i,
-																		 global_j,
-																		 1.0));
+								hessian_indices.push_back(Eigen::Triplet<double>(global_i,
+								                                                 global_j,
+								                                                 1.0));
 								impl->number_of_hessian_elements++;
 							}
 						}
@@ -591,7 +624,7 @@ void Function::create_sparse_hessian(Eigen::SparseMatrix<double>* H) const
 
 	auto n = static_cast<int>(impl->number_of_scalars);
 	H->resize(n, n);
-	H->setFromTriplets(indices.begin(), indices.end());
+	H->setFromTriplets(hessian_indices.begin(), hessian_indices.end());
 	H->makeCompressed();
 }
 
@@ -599,26 +632,30 @@ void Function::Implementation::copy_global_to_local(const Eigen::VectorXd& x) co
 {
 	double start_time = wall_time();
 
-	for (auto itr = variables.begin(); itr != variables.end(); ++itr) {
+	#ifdef USE_OPENMP
+		#pragma omp parallel for num_threads(this->number_of_threads)
+	#endif
+	for (std::ptrdiff_t i = 0; i < std::ptrdiff_t(variables.size()); ++i) {
+		const auto& var = variables[i];
 
-		if ( ! itr->second.is_constant) {
-			if (itr->second.change_of_variables == nullptr) {
-				for (int i = 0; i < itr->second.user_dimension; ++i) {
-					itr->second.temp_space[i] = x[itr->second.global_index + i];
+		if ( ! var.is_constant) {
+			if (var.change_of_variables == nullptr) {
+				for (int i = 0; i < var.user_dimension; ++i) {
+					var.temp_space[i] = x[var.global_index + i];
 				}
 			}
 			else {
-				itr->second.change_of_variables->t_to_x(
-					&itr->second.temp_space[0],
-					&x[itr->second.global_index]);
+				var.change_of_variables->t_to_x(
+					&var.temp_space[0],
+					&x[var.global_index]);
 			}
 		}
 		else {
 			// This variable is constant and is therefore not
 			// present in the global vector x of variables.
 			// Copy the constant from the user space instead.
-			for (int i = 0; i < itr->second.user_dimension; ++i) {
-				itr->second.temp_space[i] = itr->first[i];
+			for (int i = 0; i < var.user_dimension; ++i) {
+				var.temp_space[i] = var.user_data[i];
 			}
 		}
 	}
@@ -636,19 +673,18 @@ void Function::Implementation::copy_user_to_global(Eigen::VectorXd* x) const
 	double start_time = wall_time();
 
 	x->resize(this->number_of_scalars);
-	for (const auto& itr: variables) {
-		double* data = itr.first;
-		const auto& variable = itr.second;
+	for (const auto& var: variables) {
+		double* data = var.user_data;
 
-		if ( ! variable.is_constant) {
-			if (variable.change_of_variables == nullptr) {
-				for (int i = 0; i < variable.user_dimension; ++i) {
-					(*x)[variable.global_index + i] = data[i];
+		if ( ! var.is_constant) {
+			if (var.change_of_variables == nullptr) {
+				for (int i = 0; i < var.user_dimension; ++i) {
+					(*x)[var.global_index + i] = data[i];
 				}
 			}
 			else {
-				variable.change_of_variables->x_to_t(
-					&(*x)[variable.global_index],
+				var.change_of_variables->x_to_t(
+					&(*x)[var.global_index],
 					data);
 			}
 		}
@@ -666,20 +702,19 @@ void Function::Implementation::copy_global_to_user(const Eigen::VectorXd& x) con
 {
 	double start_time = wall_time();
 
-	for (const auto& itr: variables) {
-		double* data = itr.first;
-		const auto& variable = itr.second;
+	for (const auto& var: variables) {
+		double* data = var.user_data;
 
-		if ( ! variable.is_constant) {
-			if (variable.change_of_variables == nullptr) {
-				for (int i = 0; i < variable.user_dimension; ++i) {
-					data[i] = x[variable.global_index + i];
+		if ( ! var.is_constant) {
+			if (var.change_of_variables == nullptr) {
+				for (int i = 0; i < var.user_dimension; ++i) {
+					data[i] = x[var.global_index + i];
 				}
 			}
 			else {
-				variable.change_of_variables->t_to_x(
+				var.change_of_variables->t_to_x(
 					data,
-					&x[variable.global_index]);
+					&x[var.global_index]);
 			}
 		}
 	}
@@ -691,14 +726,13 @@ void Function::Implementation::copy_user_to_local() const
 {
 	double start_time = wall_time();
 
-	for (const auto& itr: variables) {
-		double* data = itr.first;
-		const auto& variable = itr.second;
+	for (const auto& var: variables) {
+		double* data = var.user_data;
 
 		// Both variables and constants are copied here.
 
-		for (int i = 0; i < variable.user_dimension; ++i) {
-			variable.temp_space[i] = data[i];
+		for (int i = 0; i < var.user_dimension; ++i) {
+			var.temp_space[i] = data[i];
 		}
 	}
 
@@ -780,23 +814,23 @@ double Function::Implementation::evaluate(const Eigen::VectorXd& x,
 		}
 
 		// Put the gradient from the term into the thread's global gradient.
-		const auto& variables = terms[i].user_variables;
-		for (int var = 0; var < variables.size(); ++var) {
+		const auto& indices = terms[i].added_variables_indices;
+		for (int var = 0; var < indices.size(); ++var) {
 
-			if ( ! variables[var]->is_constant) {
-				if (variables[var]->change_of_variables == nullptr) {
+			if ( ! variables[indices[var]].is_constant) {
+				if (variables[indices[var]].change_of_variables == nullptr) {
 					// No change of variables, just copy the gradient.
-					size_t global_offset = variables[var]->global_index;
-					for (int i = 0; i < variables[var]->user_dimension; ++i) {
+					size_t global_offset = variables[indices[var]].global_index;
+					for (int i = 0; i < variables[indices[var]].user_dimension; ++i) {
 						this->thread_gradient_storage[t][global_offset + i] +=
 							this->thread_gradient_scratch[t][var][i];
 					}
 				}
 				else {
 					// Transform the gradient from user space to solver space.
-					size_t global_offset = variables[var]->global_index;
+					size_t global_offset = variables[indices[var]].global_index;
 					if (global_offset < this->number_of_scalars) {
-						variables[var]->change_of_variables->update_gradient(
+						variables[indices[var]].change_of_variables->update_gradient(
 							&this->thread_gradient_storage[t][global_offset],
 							&x[global_offset],
 							&this->thread_gradient_scratch[t][var][0]);
@@ -848,21 +882,21 @@ double Function::Implementation::evaluate(const Eigen::VectorXd& x,
 
 		// Go through and evaluate each term.
 		for (auto itr = terms.begin(); itr != terms.end(); ++itr) {
-			auto& variables = itr->user_variables;
+			auto& indices = itr->added_variables_indices;
 
 			// Put the hessian into the global hessian.
 			for (int var0 = 0; var0 < itr->term->number_of_variables(); ++var0) {
 
-				if ( ! variables[var0]->is_constant) {
-					if (itr->user_variables[var0]->change_of_variables) {
+				if ( ! variables[indices[var0]].is_constant) {
+					if (variables[indices[var0]].change_of_variables) {
 						throw std::runtime_error("Change of variables not supported for Hessians");
 					}
 
-					size_t global_offset0 = variables[var0]->global_index;
+					size_t global_offset0 = variables[indices[var0]].global_index;
 					for (int var1 = 0; var1 < itr->term->number_of_variables(); ++var1) {
-						size_t global_offset1 = variables[var1]->global_index;
+						size_t global_offset1 = variables[indices[var1]].global_index;
 
-						if ( ! variables[var1]->is_constant) {
+						if ( ! variables[indices[var1]].is_constant) {
 
 							const Eigen::MatrixXd& part_hessian = itr->hessian[var0][var1];
 							for (int i = 0; i < itr->term->variable_dimension(var0); ++i) {
@@ -915,8 +949,8 @@ double Function::Implementation::evaluate(const Eigen::VectorXd& x,
 
 	double start_time = wall_time();
 
-	std::vector<Eigen::Triplet<double> > indices;
-	indices.reserve(this->number_of_hessian_elements);
+	std::vector<Eigen::Triplet<double> > hessian_indices;
+	hessian_indices.reserve(this->number_of_hessian_elements);
 	this->number_of_hessian_elements = 0;
 
 	interface->write_gradient_hessian_time += wall_time() - start_time;
@@ -954,16 +988,16 @@ double Function::Implementation::evaluate(const Eigen::VectorXd& x,
 		                                 &terms[i].hessian);
 
 		// Put the gradient from the term into the thread's global gradient.
-		const auto& variables = terms[i].user_variables;
-		for (int var = 0; var < variables.size(); ++var) {
+		const auto& indices = terms[i].added_variables_indices;
+		for (int var = 0; var < indices.size(); ++var) {
 
-			if ( ! variables[var]->is_constant) {
-				if (variables[var]->change_of_variables) {
+			if ( ! variables[indices[var]].is_constant) {
+				if (variables[indices[var]].change_of_variables) {
 					throw std::runtime_error("Change of variables not supported for sparse Hessian");
 				}
 
-				size_t global_offset = variables[var]->global_index;
-				for (int i = 0; i < variables[var]->user_dimension; ++i) {
+				size_t global_offset = variables[indices[var]].global_index;
+				for (int i = 0; i < variables[indices[var]].user_dimension; ++i) {
 					this->thread_gradient_storage[t][global_offset + i] +=
 						this->thread_gradient_scratch[t][var][i];
 				}
@@ -1007,16 +1041,17 @@ double Function::Implementation::evaluate(const Eigen::VectorXd& x,
 
 	// Collect the gradients and hessians from each term.
 	for (auto itr = terms.begin(); itr != terms.end(); ++itr) {
-		auto& variables = itr->user_variables;
+		auto& indices = itr->added_variables_indices;
+
 		// Put the hessian into the global hessian.
 		for (int var0 = 0; var0 < itr->term->number_of_variables(); ++var0) {
-			if ( ! variables[var0]->is_constant) {
+			if ( ! variables[indices[var0]].is_constant) {
 
-				size_t global_offset0 = variables[var0]->global_index;
+				size_t global_offset0 = variables[indices[var0]].global_index;
 				for (int var1 = 0; var1 < itr->term->number_of_variables(); ++var1) {
-					if ( ! variables[var1]->is_constant) {
+					if ( ! variables[indices[var1]].is_constant) {
 
-						size_t global_offset1 = variables[var1]->global_index;
+						size_t global_offset1 = variables[indices[var1]].global_index;
 						const Eigen::MatrixXd& part_hessian = itr->hessian[var0][var1];
 						for (int i = 0; i < itr->term->variable_dimension(var0); ++i) {
 							for (int j = 0; j < itr->term->variable_dimension(var1); ++j) {
@@ -1027,9 +1062,9 @@ double Function::Implementation::evaluate(const Eigen::VectorXd& x,
 								//	part_hessian(i, j);
 								int global_i = static_cast<int>(i + global_offset0);
 								int global_j = static_cast<int>(j + global_offset1);
-								indices.push_back(Eigen::Triplet<double>(global_i,
-																		 global_j,
-																		 part_hessian(i, j)));
+								hessian_indices.push_back(Eigen::Triplet<double>(global_i,
+								                                                 global_j,
+								                                                 part_hessian(i, j)));
 								this->number_of_hessian_elements++;
 							}
 						}
@@ -1041,7 +1076,7 @@ double Function::Implementation::evaluate(const Eigen::VectorXd& x,
 		}
 	}
 
-	hessian->setFromTriplets(indices.begin(), indices.end());
+	hessian->setFromTriplets(hessian_indices.begin(), hessian_indices.end());
 	//hessian->makeCompressed();
 
 	interface->write_gradient_hessian_time += wall_time() - start_time;
@@ -1066,10 +1101,9 @@ Interval<double>  Function::Implementation::evaluate(const std::vector<Interval<
 	for (int i = 0; i < terms.size(); ++i) {
 		// Evaluate the term.
 		scratch_space.clear();
-		for (auto itr = terms[i].user_variables.begin();
-		     itr != terms[i].user_variables.end(); ++itr) {
-			const auto& var = *itr;
-			scratch_space.push_back(&x[var->global_index]);
+		for (auto var: terms[i].added_variables_indices) {
+			auto global_index = variables[var].global_index;
+			scratch_space.push_back(&x[global_index]);
 		}
 		value += terms[i].term->evaluate_interval(&scratch_space[0]);
 	}
@@ -1099,12 +1133,12 @@ void Function::write_to_stream(std::ostream& out) const
 	out << impl->constant << endl;
 
 	vector<pair<std::size_t, std::size_t>> variable_dimensions; 
-	for (const auto& variable : impl->variables) {
-		if (variable.second.change_of_variables != nullptr) {
+	for (const auto& variable: impl->variables) {
+		if (variable.change_of_variables != nullptr) {
 			throw runtime_error("Function::write_to_stream: Change of variables not allowed.");
 		}
 
-		variable_dimensions.emplace_back(variable.second.global_index, variable.second.user_dimension);
+		variable_dimensions.emplace_back(variable.global_index, variable.user_dimension);
 	}
 	sort(variable_dimensions.begin(), variable_dimensions.end());
 	for (const auto& variable : variable_dimensions) {
@@ -1122,9 +1156,9 @@ void Function::write_to_stream(std::ostream& out) const
 	for (const auto& added_term : impl->terms) {
 		string term_name = TermFactory::fix_name(typeid(*added_term.term).name());
 		out << term_name << endl;
-		out << added_term.user_variables.size() << endl;
-		for (const auto& var : added_term.user_variables) {
-			out << var->global_index << " ";
+		out << added_term.added_variables_indices.size() << endl;
+		for (auto global_index : added_term.added_variables_indices) {
+			out << global_index << " ";
 		}
 		out << endl;
 		out << *added_term.term << endl;
