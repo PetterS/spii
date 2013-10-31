@@ -36,6 +36,10 @@ void run_test_main(const std::function<void(std::vector<double>&, Function*)>& c
 	solver.gradient_tolerance = 1e-7;
 	solver.maximum_iterations = 10000;
 
+	if (typeid(SolverClass) == typeid(NewtonSolver)) {
+		solver.maximum_iterations = 1000;
+	}
+
 	SolverResults results;
 	solver.solve(f, &results);
 
