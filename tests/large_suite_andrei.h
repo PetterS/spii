@@ -53,10 +53,9 @@ BEGIN_MODEL1(FreudenSteinRoth)
 END_MODEL
 
 LARGE_SUITE_BEGIN(FreudenSteinRoth)
-	for (int i = 0; i < n/2; ++i) {
-		f->add_variable(&start[2*i], 2);
-	}
-	for (int i = 0; i < n/2; ++i) {
+	// Reverse order will test adding variables along with
+	// terms in non-standard order.
+	for (int i = n/2 - 1; i >= 0; --i) {
 		f->add_term(std::make_shared<AutoDiffTerm<FreudenSteinRoth, 2>>(),
                     &start[2*i]);
 	}
@@ -81,10 +80,9 @@ BEGIN_MODEL1(Rosenbrock)
 END_MODEL
 
 LARGE_SUITE_BEGIN(Rosenbrock)
-	for (int i = 0; i < n/2; ++i) {
-		f->add_variable(&start[2*i], 2);
-	}
-	for (int i = 0; i < n/2; ++i) {
+	// Reverse order will test adding variables along with
+	// terms in non-standard order.
+	for (int i = n / 2 - 1; i >= 0; --i) {
 		f->add_term(std::make_shared<AutoDiffTerm<Rosenbrock, 2>>(), &start[2*i]);
 	}
 LARGE_SUITE_MIDDLE
@@ -105,9 +103,6 @@ BEGIN_MODEL1(WhiteHolst)
 END_MODEL
 
 LARGE_SUITE_BEGIN(WhiteHolst)
-	for (int i = 0; i < n/2; ++i) {
-		f->add_variable(&start[2*i], 2);
-	}
 	for (int i = 0; i < n/2; ++i) {
 		f->add_term(std::make_shared<AutoDiffTerm<WhiteHolst, 2>>(), &start[2*i]);
 	}
