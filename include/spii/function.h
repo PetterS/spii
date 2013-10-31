@@ -104,60 +104,14 @@ public:
 		add_variable_internal(variable, dimension,
 			 std::make_shared<AutoDiffChangeOfVariables<Change>>(new Change));
 	}
-	template<typename Change, typename T1>
+	template<typename Change, typename... Args>
 	void add_variable_with_change(double* variable,
 	                              int dimension,
-	                              T1&& t1)
+	                              Args&&... args)
 	{
 		add_variable_internal(variable, dimension,
 			std::make_shared<AutoDiffChangeOfVariables<Change>>(
-				new Change(std::forward<T1>(t1))
-			)
-		);
-	}
-	template<typename Change, typename T1, typename T2>
-	void add_variable_with_change(double* variable,
-	                              int dimension,
-	                              T1&& t1, T2&& t2)
-	{
-		add_variable_internal(variable, dimension,
-			std::make_shared<AutoDiffChangeOfVariables<Change>>(
-				new Change(std::forward<T1>(t1), std::forward<T2>(t2))
-			)
-		);
-	}
-	template<typename Change, typename T1, typename T2, typename T3>
-	void add_variable_with_change(double* variable,
-	                              int dimension,
-	                              T1&& t1, T2&& t2, T3&& t3)
-	{
-		add_variable_internal(variable, dimension,
-			std::make_shared<AutoDiffChangeOfVariables<Change>>(
-				new Change(std::forward<T1>(t1), std::forward<T2>(t2), std::forward<T3>(t3))
-			)
-		);
-	}
-	template<typename Change, typename T1, typename T2, typename T3, typename T4>
-	void add_variable_with_change(double* variable,
-	                              int dimension,
-	                              T1&& t1, T2&& t2, T3&& t3, T4&& t4)
-	{
-		add_variable_internal(variable, dimension,
-			std::make_shared<AutoDiffChangeOfVariables<Change>>(
-				new Change(std::forward<T1>(t1), std::forward<T2>(t2), std::forward<T3>(t3),
-				           std::forward<T4>(t4))
-			)
-		);
-	}
-	template<typename Change, typename T1, typename T2, typename T3, typename T4, typename T5>
-	void add_variable_with_change(double* variable,
-	                              int dimension,
-	                              T1&& t1, T2&& t2, T3&& t3, T4&& t4, T5&& t5)
-	{
-		add_variable_internal(variable, dimension,
-			std::make_shared<AutoDiffChangeOfVariables<Change>>(
-				new Change(std::forward<T1>(t1), std::forward<T2>(t2), std::forward<T3>(t3),
-				           std::forward<T4>(t4), std::forward<T4>(t5))
+				new Change(std::forward<Args>(args)...)
 			)
 		);
 	}
