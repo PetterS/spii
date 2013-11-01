@@ -91,7 +91,7 @@ LARGE_SUITE_MIDDLE
 	for (int i = 0; i < n; ++i) {
 		value[i] = (i+1) * h;
 	}
-LARGE_SUITE_END(no_newton)
+LARGE_SUITE_END(all_methods)
 
 
 struct DIXMAANa
@@ -196,7 +196,7 @@ void run_DIXMAAN_test(double alpha, double beta, double gamma, double delta,
 		return value;
 	};
 
-	run_test(create_function, start_value, no_newton);
+	run_test(create_function, start_value, all_methods);
 }
 
 TEST_CASE("DIXMAANA")
