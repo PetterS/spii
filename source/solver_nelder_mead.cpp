@@ -259,6 +259,17 @@ void NelderMeadSolver::solve(const Function& function,
 			results->exit_condition = SolverResults::NO_CONVERGENCE;
 			break;
 		}
+
+		if (this->callback_function) {
+			CallbackInformation information;
+			information.objective_value = simplex[0].value;
+			information.x = &simplex[0].x;
+
+			if (!callback_function(information)) {
+				results->exit_condition = SolverResults::USER_ABORT;
+				break;
+			}
+		}
 		results->stopping_criteria_time += wall_time() - start_time;
 
 		//

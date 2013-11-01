@@ -131,6 +131,19 @@ void LBFGSSolver::solve(const Function& function,
 			results->exit_condition = SolverResults::NO_CONVERGENCE;
 			break;
 		}
+
+		if (this->callback_function) {
+			CallbackInformation information;
+			information.objective_value = fval;
+			information.x = &x;
+			information.g = &g;
+
+			if (!callback_function(information)) {
+				results->exit_condition = SolverResults::USER_ABORT;
+				break;
+			}
+		}
+
 		results->stopping_criteria_time += wall_time() - start_time;
 
 		//

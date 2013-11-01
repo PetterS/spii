@@ -17,6 +17,7 @@ std::ostream& operator<<(std::ostream& out, const SolverResults& results)
 	EXIT_ENUM_IF(NO_CONVERGENCE);
 	EXIT_ENUM_IF(FUNCTION_NAN);
 	EXIT_ENUM_IF(FUNCTION_INFINITY);
+	EXIT_ENUM_IF(USER_ABORT);
 	EXIT_ENUM_IF(INTERNAL_ERROR);
 	EXIT_ENUM_IF(NA);
 	out << "----------------------------------------------\n";

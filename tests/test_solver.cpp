@@ -515,3 +515,39 @@ TEST(LBFGSSolver, constant_variables)
 {
 	test_constant_variables<LBFGSSolver>();
 }
+
+template<typename SolverClass>
+void test_callback_function()
+{
+	Function f;
+	double x[2] = { -1.2, 1.0 };
+	f.add_term<AutoDiffTerm<Rosenbrock, 2>>(x);
+
+	SolverClass solver;
+	solver.callback_function = [&f](const CallbackInformation& information) -> bool
+	{
+		REQUIRE(information.x);
+		CHECK(f.evaluate(*information.x) == information.objective_value);
+		return false;
+	};
+	solver.log_function = nullptr;
+
+	SolverResults results;
+	solver.solve(f, &results);
+	CHECK(results.exit_condition == SolverResults::USER_ABORT);
+}
+
+TEST(NewtonSolver, callback_function)
+{
+	test_callback_function<NewtonSolver>();
+}
+
+TEST(LBFGSSolver, callback_function)
+{
+	test_callback_function<LBFGSSolver>();
+}
+
+TEST(NelderMeadSolver, callback_function)
+{
+	test_callback_function<NelderMeadSolver>();
+}
