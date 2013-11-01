@@ -3,6 +3,13 @@
 #define SPII_FUNCTION_H
 // This header defines the Function class which is used
 // to store an objective function to be optimized.
+//
+// The Function class is NOT thread-safe. Multiple threads
+// may not evaluate the same Function object concurrently.
+//
+// The evaluation itself is parallelized across multiple
+// threads.
+//
 
 #include <cstddef>
 #include <map>
@@ -57,34 +64,25 @@ public:
 	Function& operator += (double constant_value);
 
 	// Adds a new term to the function. Will throw an error if a variable
-	// is already added to the function, and it does not match the
+	// is already added to the function and it does not match the
 	// dimensionality required by the Term.
 	//
 	// If the variable has not previously been used, it will be added.
 	//
-	// The term_deletion member specified whether the Function is responsible
-	// for calling delete on the term. In any case, it is safe to add the
-	// same term twice.
+	// Adding the same term twice with different variables is safe
+	// (and a good thing to do).
 	void add_term(std::shared_ptr<const Term> term, const std::vector<double*>& arguments);
-	void add_term(std::shared_ptr<const Term> term, double* argument1);
-	void add_term(std::shared_ptr<const Term> term, double* argument1, double* argument2);
 
-	template<typename MyTerm>
-	void add_term(double* argument1)
+	template<typename... PointerToDouble>
+	void add_term(std::shared_ptr<const Term> term, PointerToDouble... args)
 	{
-		add_term(std::make_shared<MyTerm>(), argument1);
+		add_term(term, {args...});
 	}
 
-	template<typename MyTerm>
-	void add_term(double* argument1, double* argument2)
+	template<typename MyTerm, typename... PointerToDouble>
+	void add_term(PointerToDouble... args)
 	{
-		add_term(std::make_shared<MyTerm>(), argument1, argument2);
-	}
-
-	template<typename MyTerm>
-	void add_term(double* argument1, double* argument2, double* argument3)
-	{
-		add_term(std::make_shared<MyTerm>(), argument1, argument2, argument3);
+		add_term(std::make_shared<MyTerm>(), {args...});
 	}
 
 	// Returns the current number of terms contained in the function.
@@ -104,6 +102,7 @@ public:
 		add_variable_internal(variable, dimension,
 			 std::make_shared<AutoDiffChangeOfVariables<Change>>(new Change));
 	}
+
 	template<typename Change, typename... Args>
 	void add_variable_with_change(double* variable,
 	                              int dimension,

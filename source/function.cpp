@@ -477,21 +477,6 @@ void Function::Implementation::allocate_local_storage() const
 	this->local_storage_allocated = true;
 }
 
-void Function::add_term(std::shared_ptr<const Term> term, double* argument0)
-{
-	std::vector<double*> arguments;
-	arguments.push_back(argument0);
-	add_term(term, arguments);
-}
-
-void Function::add_term(std::shared_ptr<const Term> term, double* argument0, double* argument1)
-{
-	std::vector<double*> arguments;
-	arguments.push_back(argument0);
-	arguments.push_back(argument1);
-	add_term(term, arguments);
-}
-
 void Function::print_timing_information(std::ostream& out) const
 {
 	out << "----------------------------------------------------\n";
