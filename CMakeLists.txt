@@ -25,6 +25,9 @@ OPTION(OPENMP
        "Enable multi-threading (requires OpenMP)"
        ON)
 
+# For Clang-based tools.
+SET(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 IF (${OPENMP})
   FIND_PACKAGE(OpenMP)
   IF(${OPENMP_FOUND})
