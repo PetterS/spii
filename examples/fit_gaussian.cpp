@@ -31,13 +31,15 @@ struct NegLogLikelihood
 
 int main_function()
 {
-	std::mt19937 prng(1u);
-	std::normal_distribution<double> normal;
-	auto randn = std::bind(normal, prng);
+	using namespace std;
+
+	mt19937 prng(1u);
+	normal_distribution<double> normal;
+	auto randn = bind(normal, prng);
 
 	double mu    = 5.0;
 	double sigma = 3.0;
-	std::cout << "mu = " << mu << ", sigma = " << sigma << std::endl;
+	cout << "mu = " << mu << ", sigma = " << sigma << endl;
 
 	Function f;
 	f.add_variable(&mu, 1);
@@ -51,10 +53,18 @@ int main_function()
 	mu    = 0.0;
 	sigma = 1.0;
 	LBFGSSolver solver;
+
+	solver.callback_function = [&](const CallbackInformation& information) -> bool
+	{
+		f.copy_global_to_user(*information.x);
+		cerr << "  -- mu = " << mu << ", sigma = " << sigma << endl;
+		return true;
+	};
+
 	SolverResults results;
 	solver.solve(f, &results);
-	std::cout << "Estimated:" << std::endl;
-	std::cout << "f = " << f.evaluate() << " mu = " << mu << ", sigma = " << sigma << std::endl << std::endl;
+	cout << "Estimated:" << endl;
+	cout << "f = " << f.evaluate() << " mu = " << mu << ", sigma = " << sigma << endl << endl;
 
 	return 0;
 }
