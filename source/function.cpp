@@ -120,18 +120,18 @@ public:
 	Function* interface;
 };
 
-Function::Function() :
-	impl(new Function::Implementation(this))
+Function::Function() 
+	: impl{new Function::Implementation{this}}
 { }
 
 Function::Function(const Function& org)
-	: impl(new Function::Implementation(this))
+	: impl{new Function::Implementation{this}}
 {
 	*this = org;
 }
 
 Function::Implementation::Implementation(Function* function_interface) 
-	: interface(function_interface)
+	: interface{function_interface}
 {
 	clear();
 } 

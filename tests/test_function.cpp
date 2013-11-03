@@ -57,7 +57,7 @@ TEST(Function, variable_not_found_is_added)
 {
 	Function f;
 	double x[2] = {0};
-	f.add_term(std::make_shared<AutoDiffTerm<Term1, 2>>(), x);
+	f.add_term<AutoDiffTerm<Term1, 2>>(x);
 	CHECK(f.get_number_of_terms() == 1);
 	CHECK(f.get_number_of_variables() == 1);
 	CHECK(f.get_number_of_scalars() == 2);
@@ -68,7 +68,7 @@ TEST(Function, term_variable_mismatch)
 	Function f;
 	double x[5] = {0};
 	f.add_variable(x, 5);
-	EXPECT_THROW(f.add_term(std::make_shared<AutoDiffTerm<Term1, 4>>(), x), std::runtime_error);
+	EXPECT_THROW((f.add_term<AutoDiffTerm<Term1, 4>>(x)), std::runtime_error);
 }
 
 class DestructorTerm :
@@ -117,8 +117,8 @@ TEST(Function, calls_term_destructor)
 	int counter2 = 0;
 
 	{
-		auto term1 = std::shared_ptr<const Term>(new DestructorTerm(&counter1));
-		auto term2 = std::shared_ptr<const Term>(new DestructorTerm(&counter2));
+		auto term1 = std::make_shared<DestructorTerm>(&counter1);
+		auto term2 = std::make_shared<DestructorTerm>(&counter2);
 
 		function->add_term(term1, x);
 		function->add_term(term1, x);
@@ -142,8 +142,8 @@ TEST(Function, copy_constructor)
 	int counter2 = 0;
 
 	{
-		auto term1 = std::shared_ptr<const Term>(new DestructorTerm(&counter1));
-		auto term2 = std::shared_ptr<const Term>(new DestructorTerm(&counter2));
+		auto term1 = std::make_shared<DestructorTerm>(&counter1);
+		auto term2 = std::make_shared<DestructorTerm>(&counter2);
 
 		function->add_term(term1, x);
 		function->add_term(term1, x);
@@ -255,8 +255,8 @@ TEST(Function, add_constant)
 	f.add_variable(y, 1);
 	f.add_variable(z, 1);
 
-	f.add_term(std::make_shared<AutoDiffTerm<Term1, 2>>(), x);
-	f.add_term(std::make_shared<AutoDiffTerm<Term2, 1, 1>>(), y, z);
+	f.add_term<AutoDiffTerm<Term1, 2>>(x);
+	f.add_term<AutoDiffTerm<Term2, 1, 1>>(y, z);
 
 	double fval = f.evaluate();
 	f += 1.0;
@@ -276,8 +276,8 @@ TEST(Function, add_functions)
 	f.add_variable(y, 1);
 	f.add_variable(z, 1);
 
-	f.add_term(std::make_shared<AutoDiffTerm<Term1, 2>>(), x);
-	f.add_term(std::make_shared<AutoDiffTerm<Term2, 1, 1>>(), y, z);
+	f.add_term<AutoDiffTerm<Term1, 2>>(x);
+	f.add_term<AutoDiffTerm<Term2, 1, 1>>(y, z);
 	f += 7.0;
 
 	Function f2;
@@ -301,8 +301,8 @@ TEST(Function, evaluate_x)
 	f.add_variable(y, 1);
 	f.add_variable(z, 1);
 
-	f.add_term(std::make_shared<AutoDiffTerm<Term1, 2>>(), x);
-	f.add_term(std::make_shared<AutoDiffTerm<Term2, 1, 1>>(), y, z);
+	f.add_term<AutoDiffTerm<Term1, 2>>(x);
+	f.add_term<AutoDiffTerm<Term2, 1, 1>>(y, z);
 
 	Eigen::VectorXd xg(4);
 	xg[0] = 6.0;
@@ -326,13 +326,13 @@ TEST(Function, copy_and_assignment)
 	auto f2 = new Function;
 
 	{
-		auto destructor_term = std::shared_ptr<const Term>(new DestructorTerm(&counter));
+		auto destructor_term = std::make_shared<DestructorTerm>(&counter);
 	
 		f1->add_variable(x, 2);
 		f1->add_variable(y, 1);
 		f1->add_variable(z, 1);
-		f1->add_term(std::make_shared<AutoDiffTerm<Term1, 2>>(), x);
-		f1->add_term(std::make_shared<AutoDiffTerm<Term2, 1, 1>>(), y, z);
+		f1->add_term<AutoDiffTerm<Term1, 2>>(x);
+		f1->add_term<AutoDiffTerm<Term2, 1, 1>>(y, z);
 		f1->add_term(destructor_term, y);
 		REQUIRE(counter == 0);
 
@@ -345,10 +345,10 @@ TEST(Function, copy_and_assignment)
 	}
 	REQUIRE(counter == 0);
 
-	auto f3 = new Function(*f1);
+	auto f3 = new Function{*f1};
 	REQUIRE(counter == 0);
 
-	auto f4 = new Function(*f2);
+	auto f4 = new Function{*f2};
 	REQUIRE(counter == 0);
 
 	CHECK(f3->get_number_of_scalars() == f1->get_number_of_scalars());

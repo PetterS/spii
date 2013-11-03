@@ -16,8 +16,8 @@ public:
 	map<string, TermCreator> creators;
 };
 
-TermFactory::TermFactory() :
-	impl(new TermFactory::Implementation)
+TermFactory::TermFactory()
+	: impl{new TermFactory::Implementation}
 {
 }
 

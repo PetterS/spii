@@ -42,30 +42,24 @@ void test_method(const Solver& solver)
 	EXPECT_LT( std::fabs(f.evaluate()), 1e-9);
 }
 
-// nullptr would have been better, but is not present
-// in gcc 4.5.
-namespace {
-auto no_log_function = [](const std::string&) { };
-} 
-
 TEST(Solver, NEWTON)
 {
 	NewtonSolver solver;
-	solver.log_function = no_log_function;
+	solver.log_function = nullptr;
 	test_method(solver);
 }
 
 TEST(Solver, LBFGS)
 {
 	LBFGSSolver solver;
-	solver.log_function = no_log_function;
+	solver.log_function = nullptr;
 	test_method(solver);
 }
 
 TEST(Solver, NELDER_MEAD)
 {
 	NelderMeadSolver solver;
-	solver.log_function = no_log_function;
+	solver.log_function = nullptr;
 	solver.maximum_iterations = 10000;
 	solver.area_tolerance = 1e-40;
 	test_method(solver);
@@ -74,7 +68,7 @@ TEST(Solver, NELDER_MEAD)
 TEST(Solver, PATTERN_SEARCH)
 {
 	PatternSolver solver;
-	solver.log_function = no_log_function;
+	solver.log_function = nullptr;
 	solver.maximum_iterations = 100000;
 	test_method(solver);
 }
@@ -87,7 +81,7 @@ TEST(Solver, function_tolerance)
 	f.add_term(std::make_shared<AutoDiffTerm<Rosenbrock, 2>>(), x);
 
 	NewtonSolver solver;
-	solver.log_function = no_log_function;
+	solver.log_function = nullptr;
 	solver.maximum_iterations = 50;
 	solver.gradient_tolerance = 0;
 	solver.argument_improvement_tolerance = 0;
@@ -105,7 +99,7 @@ TEST(Solver, argument_improvement_tolerance)
 	f.add_term(std::make_shared<AutoDiffTerm<Rosenbrock, 2>>(), x);
 
 	NewtonSolver solver;
-	solver.log_function = no_log_function;
+	solver.log_function = nullptr;
 	solver.maximum_iterations = 50;
 	solver.gradient_tolerance = 0;
 	solver.function_improvement_tolerance = 0;
@@ -123,7 +117,7 @@ TEST(Solver, gradient_tolerance)
 	f.add_term(std::make_shared<AutoDiffTerm<Rosenbrock, 2>>(), x);
 
 	NewtonSolver solver;
-	solver.log_function = no_log_function;
+	solver.log_function = nullptr;
 	solver.maximum_iterations = 50;
 	solver.function_improvement_tolerance = 0;
 	solver.argument_improvement_tolerance = 0;
@@ -161,7 +155,7 @@ TEST(Solver, inf_nan)
 	f_inf.add_term(std::make_shared<AutoDiffTerm<InfFunctor, 1>>(), x);
 
 	NewtonSolver solver;
-	solver.log_function = no_log_function;
+	solver.log_function = nullptr;
 	SolverResults results;
 
 	solver.solve(f_nan, &results);
@@ -224,7 +218,7 @@ TEST(Solver, L_GBFS_exact)
 
 		LBFGSSolver solver;
 		SolverResults results;
-		solver.log_function = no_log_function;
+		solver.log_function = nullptr;
 		solver.lbfgs_history_size = 10;
 		solver.maximum_iterations = iters[i];
 
@@ -275,7 +269,7 @@ TEST(Solver, Newton_exact)
 
 		NewtonSolver solver;
 		SolverResults results;
-		solver.log_function = no_log_function;
+		solver.log_function = nullptr;
 		solver.maximum_iterations = iters[i];
 
 		solver.solve(f, &results);
@@ -361,10 +355,10 @@ TEST(Solver, SimpleConstraints)
 	                          t);
 
 	NelderMeadSolver nm_solver;
-	nm_solver.log_function = no_log_function;
+	nm_solver.log_function = nullptr;
 	
 	LBFGSSolver lbfgs_solver;
-	lbfgs_solver.log_function = no_log_function;
+	lbfgs_solver.log_function = nullptr;
 
 	SolverResults results;
 	results.exit_condition = SolverResults::NA;
@@ -403,7 +397,7 @@ TEST(Solver, PositiveConstraint)
 		x);
 
 	LBFGSSolver solver;
-	solver.log_function = no_log_function;
+	solver.log_function = nullptr;
 	SolverResults results;
 	solver.solve(function, &results);
 
@@ -423,7 +417,7 @@ TEST(Solver, BoxConstraint)
 		x);
 
 	LBFGSSolver solver;
-	solver.log_function = no_log_function;
+	solver.log_function = nullptr;
 	SolverResults results;
 	solver.solve(function, &results);
 
@@ -438,7 +432,7 @@ void test_constant_variables()
 	// extra variables are added and held constant
 
 	SolverClass solver;
-	solver.log_function = no_log_function;
+	solver.log_function = nullptr;
 	SolverResults results;
 
 
