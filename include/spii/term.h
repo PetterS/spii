@@ -48,7 +48,7 @@ class SizedTerm :
 	public Term
 {
 public:
-	virtual int number_of_variables() const
+	virtual int number_of_variables() const override
 	{
 		if (D1 == 0) return 1;
 		if (D2 == 0) return 2;
@@ -57,7 +57,7 @@ public:
 		return 5;
 	}
 
-	virtual int variable_dimension(int var) const
+	virtual int variable_dimension(int var) const override
 	{
 		if (var == 0) return D0;
 		if (var == 1) return D1;

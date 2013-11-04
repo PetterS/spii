@@ -188,7 +188,7 @@ public:
 	      ITERATIVE, // Iterative diagonal modification (dense + sparse). Production-ready.
 	} factorization_method = BKP;
 
-	virtual void solve(const Function& function, SolverResults* results) const;
+	virtual void solve(const Function& function, SolverResults* results) const override;
 };
 
 // L-BFGS. Requires only first-order derivatives
@@ -205,7 +205,7 @@ public:
 	// value, L-BFGS will discard its history and restart.
 	double lbfgs_restart_tolerance = 1e-6;
 
-	virtual void solve(const Function& function, SolverResults* results) const;
+	virtual void solve(const Function& function, SolverResults* results) const override;
 };
 
 // Nelder-Mead requires no derivatives. It generally
@@ -225,7 +225,7 @@ public:
 	// norm.
 	double length_tolerance = 1e-12;
 
-	virtual void solve(const Function& function, SolverResults* results) const;
+	virtual void solve(const Function& function, SolverResults* results) const override;
 };
 
 // For most problems, there is no reason to choose
@@ -239,7 +239,7 @@ public:
 	// norm.
 	double area_tolerance = 1e-12;
 
-	virtual void solve(const Function& function, SolverResults* results) const;
+	virtual void solve(const Function& function, SolverResults* results) const override;
 };
 
 // (Experimental) Global optimization using interval
@@ -254,7 +254,7 @@ public:
 	
 	// Does not do anything. The global solver requires the
 	// extended interface above.
-	virtual void solve(const Function& function, SolverResults* results) const;
+	virtual void solve(const Function& function, SolverResults* results) const override;
 };
 
 }  // namespace spii

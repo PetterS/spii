@@ -139,23 +139,23 @@ public:
 	{
 	}
 
-	virtual void read(std::istream& in)
+	virtual void read(std::istream& in) override
 	{
 		call_read_if_exists(in, functor);
 	}
 
-	virtual void write(std::ostream& out) const
+	virtual void write(std::ostream& out) const override
 	{
 		call_write_if_exists(out, functor);
 	}
 
-	virtual double evaluate(double * const * const variables) const
+	virtual double evaluate(double * const * const variables) const override
 	{
 		return functor(variables[0]);
 	}
 
 	virtual double evaluate(double * const * const variables,
-	                        std::vector<Eigen::VectorXd>* gradient) const
+	                        std::vector<Eigen::VectorXd>* gradient) const override
 	{
 		using namespace fadbad;
 
@@ -176,7 +176,7 @@ public:
 
 	virtual double evaluate(double * const * const variables,
 	                        std::vector<Eigen::VectorXd>* gradient,
-	                        std::vector< std::vector<Eigen::MatrixXd> >* hessian) const
+	                        std::vector< std::vector<Eigen::MatrixXd> >* hessian) const override
 	{
 		using namespace fadbad;
 		#ifdef USE_BF_DIFFERENTIATION
@@ -277,13 +277,13 @@ public:
 		call_write_if_exists(out, functor);
 	}
 
-	virtual double evaluate(double * const * const variables) const
+	virtual double evaluate(double * const * const variables) const override
 	{
 		return functor(variables[0], variables[1]);
 	}
 
 	virtual double evaluate(double * const * const variables,
-	                        std::vector<Eigen::VectorXd>* gradient) const
+	                        std::vector<Eigen::VectorXd>* gradient) const override
 	{
 		using namespace fadbad;
 
@@ -315,7 +315,7 @@ public:
 
 	virtual double evaluate(double * const * const variables,
 	                        std::vector<Eigen::VectorXd>* gradient,
-	                        std::vector< std::vector<Eigen::MatrixXd> >* hessian) const
+	                        std::vector< std::vector<Eigen::MatrixXd> >* hessian) const override
 	{
 		using namespace fadbad;
 		#ifdef USE_BF_DIFFERENTIATION
@@ -466,23 +466,23 @@ public:
 	{
 	}
 
-	virtual void read(std::istream& in)
+	virtual void read(std::istream& in) override
 	{
 		call_read_if_exists(in, this->functor);
 	}
 
-	virtual void write(std::ostream& out) const
+	virtual void write(std::ostream& out) const override
 	{
 		call_write_if_exists(out, this->functor);
 	}
 
-	virtual double evaluate(double * const * const variables) const
+	virtual double evaluate(double * const * const variables) const override
 	{
 		return functor(variables[0], variables[1], variables[2]);
 	}
 
 	virtual double evaluate(double * const * const variables,
-	                        std::vector<Eigen::VectorXd>* gradient) const
+	                        std::vector<Eigen::VectorXd>* gradient) const override
 	{
 		using namespace fadbad;
 		typedef F<double, D0 + D1 + D2> Dual;
@@ -526,7 +526,7 @@ public:
 
 	virtual double evaluate(double * const * const variables,
 	                        std::vector<Eigen::VectorXd>* gradient,
-	                        std::vector< std::vector<Eigen::MatrixXd> >* hessian) const
+	                        std::vector< std::vector<Eigen::MatrixXd> >* hessian) const override
 	{
 		using namespace fadbad;
 		typedef F<double, D0 + D1 + D2> Dual;
@@ -663,23 +663,23 @@ public:
 	{
 	}
 
-	virtual void read(std::istream& in)
+	virtual void read(std::istream& in) override
 	{
 		call_read_if_exists(in, this->functor);
 	}
 
-	virtual void write(std::ostream& out) const
+	virtual void write(std::ostream& out) const override
 	{
 		call_write_if_exists(out, this->functor);
 	}
 
-	virtual double evaluate(double * const * const variables) const
+	virtual double evaluate(double * const * const variables) const override
 	{
 		return functor(variables[0], variables[1], variables[2], variables[3]);
 	}
 
 	virtual double evaluate(double * const * const variables,
-	                        std::vector<Eigen::VectorXd>* gradient) const
+	                        std::vector<Eigen::VectorXd>* gradient) const override
 	{
 		using namespace fadbad;
 		typedef F<double, D0 + D1 + D2 + D3> Dual;
@@ -734,7 +734,7 @@ public:
 
 	virtual double evaluate(double * const * const variables,
 	                        std::vector<Eigen::VectorXd>* gradient,
-	                        std::vector< std::vector<Eigen::MatrixXd> >* hessian) const
+	                        std::vector< std::vector<Eigen::MatrixXd> >* hessian) const override
 	{
 		using namespace fadbad;
 		typedef F<double, D0 + D1 + D2 + D3> Dual;
