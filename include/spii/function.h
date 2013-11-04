@@ -177,6 +177,7 @@ public:
 	// is performed, the time taken is added to the appropiate variable.
 	mutable int evaluations_without_gradient    = 0;
 	mutable int evaluations_with_gradient       = 0;
+	mutable double allocation_time              = 0.0;
 	mutable double evaluate_time                = 0.0;
 	mutable double evaluate_with_hessian_time   = 0.0;
 	mutable double write_gradient_hessian_time  = 0.0;

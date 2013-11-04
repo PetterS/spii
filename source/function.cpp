@@ -388,38 +388,31 @@ void Function::add_term(std::shared_ptr<const Term> term, const std::vector<doub
 		throw std::runtime_error("Function::add_term: incorrect number of arguments.");
 	}
 
-	// Check whether the variables exist.
-	for (int var = 0; var < term->number_of_variables(); ++var) {
-		auto var_itr = impl->variables_map.find(arguments[var]);
-		if (var_itr == impl->variables_map.end()) {
-			add_variable(arguments[var], term->variable_dimension(var));
-		}
-		// The x-dimension of the variable must match what is expected by the term.
-		else if (impl->variables[var_itr->second].user_dimension != term->variable_dimension(var)) {
-			throw std::runtime_error("Function::add_term: variable dimension does not match term.");
-		}
-	}
-
-	impl->terms.push_back(AddedTerm());
+	impl->terms.emplace_back();
 	auto& added_term = impl->terms.back();
 	added_term.term = term;
+	added_term.added_variables_indices.reserve(arguments.size());
 
-	for (double* user_data: arguments) {
-		// Look up this variable.
-		auto var_index = impl->variables_map[user_data];
-		added_term.added_variables_indices.push_back(var_index);
-	}
-
-	if (this->hessian_is_enabled) {
-		// Create enough space for the hessian.
-		added_term.hessian.resize(term->number_of_variables());
-		for (int var0 = 0; var0 < term->number_of_variables(); ++var0) {
-			added_term.hessian[var0].resize(term->number_of_variables());
-			for (int var1 = 0; var1 < term->number_of_variables(); ++var1) {
-				added_term.hessian[var0][var1].resize(term->variable_dimension(var0),
-				                                      term->variable_dimension(var1));
+	try {
+		// Check whether the variables exist.
+		for (int var = 0; var < term->number_of_variables(); ++var) {
+			auto var_itr = impl->variables_map.find(arguments[var]);
+			if (var_itr == impl->variables_map.end()) {
+				add_variable(arguments[var], term->variable_dimension(var));
+				var_itr = impl->variables_map.find(arguments[var]);
 			}
+			// The x-dimension of the variable must match what is expected by the term.
+			else if (impl->variables[var_itr->second].user_dimension != term->variable_dimension(var)) {
+				throw std::runtime_error("Function::add_term: variable dimension does not match term.");
+			}
+
+			// Look up this variable.
+			auto var_index = var_itr->second;
+			added_term.added_variables_indices.emplace_back(var_index);
 		}
+	} catch(...) {
+		impl->terms.pop_back();
+		throw;
 	}
 }
 
@@ -442,6 +435,8 @@ void Function::set_number_of_threads(int num)
 
 void Function::Implementation::allocate_local_storage() const
 {
+	auto start_time = wall_time();
+
 	size_t max_arity = 1;
 	int max_variable_dimension = 1;
 	for (const auto& itr: variables) {
@@ -464,17 +459,32 @@ void Function::Implementation::allocate_local_storage() const
 
 	// Every term should have a pointer to the local space
 	// used when evaluating.
-	for (auto& term: terms) {
-		for (auto ind: term.added_variables_indices) {
+	for (auto& added_term: terms) {
+		for (auto ind: added_term.added_variables_indices) {
 			// Look up this variable.
 			auto& added_variable = variables[ind];
 			// Stora a pointer to temporary storage for this variable.
 			double* temp_space = &added_variable.temp_space[0];
-			term.temp_variables.push_back(temp_space);
+			added_term.temp_variables.push_back(temp_space);
+		}
+
+		if (interface->hessian_is_enabled) {
+			const auto& term = added_term.term;
+			// Create enough space for the hessian.
+			added_term.hessian.resize(term->number_of_variables());
+			for (int var0 = 0; var0 < term->number_of_variables(); ++var0) {
+				added_term.hessian[var0].resize(term->number_of_variables());
+				for (int var1 = 0; var1 < term->number_of_variables(); ++var1) {
+					added_term.hessian[var0][var1].resize(term->variable_dimension(var0),
+														  term->variable_dimension(var1));
+				}
+			}
 		}
 	}
 
 	this->local_storage_allocated = true;
+
+	interface->allocation_time += wall_time() - start_time;
 }
 
 void Function::print_timing_information(std::ostream& out) const
@@ -482,6 +492,7 @@ void Function::print_timing_information(std::ostream& out) const
 	out << "----------------------------------------------------\n";
 	out << "Function evaluations without gradient : " << evaluations_without_gradient << '\n';
 	out << "Function evaluations with gradient    : " << evaluations_with_gradient << '\n';
+	out << "Function memory allocation time   : " << allocation_time << '\n';
 	out << "Function evaluate time            : " << evaluate_time << '\n';
 	out << "Function evaluate time (with g/H) : " << evaluate_with_hessian_time << '\n';
 	out << "Function write g/H time           : " << write_gradient_hessian_time << '\n';
