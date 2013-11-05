@@ -17,7 +17,7 @@
 namespace spii
 {
 
-double wall_time();
+double SPII_API wall_time();
 
 void SPII_API check(bool expr, const char* message);
 void SPII_API assertion_failed(const char* expr, const char* file, int line);
