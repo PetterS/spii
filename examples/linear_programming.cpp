@@ -1,4 +1,4 @@
-// Petter Strandmark 2012.
+// Petter Strandmark 2012–2013.
 
 #include <functional>
 #include <iostream>
@@ -13,8 +13,8 @@ using namespace spii;
 
 struct LinearObjective
 {
-	std::vector<double> c;
-	LinearObjective( const std::vector<double>& c)
+	double c;
+	LinearObjective(double c)
 	{
 		this->c = c;
 	}
@@ -22,104 +22,138 @@ struct LinearObjective
 	template<typename R>
 	R operator()(const R* const x) const
 	{
-		R f = 0.0;
-		for (size_t i = 0; i < c.size(); ++i) {
-			f += c[i] * x[i];
-		}
-		return f;
+		return c * x[0];
 	}
 };
 
 // Barrier for aTx <= b.
-struct LogBarrier
+class LogBarrierTerm
+	: public spii::Term
 {
+public:
 	std::vector<double> a;
 	double b;
 	double* mu;
-	LogBarrier(const std::vector<double>& a, double b, double* mu)
+	LogBarrierTerm(const std::vector<double>& a, double b, double* mu)
 	{
 		this->a = a;
 		this->b = b;
 		this->mu = mu;
 	}
 
-	template<typename R>
-	R operator()(const R* const x) const
+	virtual int number_of_variables() const override
 	{
-		R constraint = -b;
+		return a.size();
+	}
+
+	virtual int variable_dimension(int var) const override
+	{
+		return 1;
+	}
+
+	virtual double evaluate(double * const * const x) const
+	{
+		double constraint = -b;
 		for (size_t i = 0; i < a.size(); ++i) {
-			constraint += a[i] * x[i];
+			constraint += a[i] * x[i][0];
 		}
 
 		// constraint <= 0 is converted to a barrier
 		// - mu * log(-constraint).
-		return - (*mu) * log(-constraint);
+		return -(*mu) * std::log(-constraint);
+	}
+
+	virtual double evaluate(double * const * const x,
+	                        std::vector<Eigen::VectorXd>* gradient) const override
+	{
+		double constraint = -b;
+		for (size_t i = 0; i < a.size(); ++i) {
+			constraint += a[i] * x[i][0];
+		}
+
+		auto inside_log = -constraint;
+		auto minus_mu_inv_inside_log = (*mu) * 1.0 / inside_log;
+		for (size_t i = 0; i < a.size(); ++i) {
+			(*gradient)[i](0) = minus_mu_inv_inside_log * (-a[i]);
+		}
+
+		// constraint <= 0 is converted to a barrier
+		// - mu * log(-constraint).
+		return -(*mu) * std::log(inside_log);
+	}
+
+	virtual double evaluate(double * const * const variables,
+	                        std::vector<Eigen::VectorXd>* gradient,
+	                        std::vector< std::vector<Eigen::MatrixXd> >* hessian) const
+	{
+		spii::check(false, "FoEGeneralTerm: Hessians not supported.");
+		return 0.0;
 	}
 };
 
-int main()
+int main_function()
 {
 	std::mt19937 prng(0);
 	std::normal_distribution<double> normal;
 	auto randn = std::bind(normal, prng);
 
-	#define n 10
+	const int n = 1000;
 
 	// Variables.
 	std::vector<double> x(n, 0.0);
+	std::vector<double*> all_x_pointers;
+	for (auto& single_x : x) {
+		all_x_pointers.push_back(&single_x);
+	}
 
 	// Barrier parameter.
 	double mu = 1.0;
 
 	// Objective function.
 	Function f;
-	f.add_variable(&x[0], n);
 
 	// Generate random objective vector.
 	std::vector<double> c(n);
 	for (size_t i = 0; i < n; ++i) {
 		c[i] = randn();
+		f.add_term(std::make_shared<AutoDiffTerm<LinearObjective, 1>>(c[i]),
+		           &x[i]);
 	}
-	f.add_term(std::make_shared<AutoDiffTerm<LinearObjective, n>>(c),
-	           &x[0]);
 
 	// sum x_i <= 10
 	double b = 10;
 	std::vector<double> a1(n, 1.0);
-	f.add_term(std::make_shared<AutoDiffTerm<LogBarrier, n>>(a1, b, &mu),
-	           &x[0]);
+	f.add_term(std::make_shared<LogBarrierTerm>(a1, b, &mu),
+	           all_x_pointers);
 
-	//  sum x_i >=  10  <=>
-	// -sum x_i <= -10
+	//  sum x_i >= -10  <=>
+	// -sum x_i <= 10
 	std::vector<double> a2(n, -1.0);
 	b = 10;
-	f.add_term(std::make_shared<AutoDiffTerm<LogBarrier, n>>(a2, b, &mu),
-	           &x[0]);
+	f.add_term(std::make_shared<LogBarrierTerm>(a2, b, &mu),
+	           all_x_pointers);
 
 	// Add barriers for individual scalars.
 	//
 	//		-100 <= x[i] <= 100
 	//
+	std::vector<double> a3(1, 1.0);
+	auto individual_barrier_high = std::make_shared<LogBarrierTerm>(a3, 100, &mu);
+	std::vector<double> a4(1, -1.0);
+	auto individual_barrier_low = std::make_shared<LogBarrierTerm>(a4, 100, &mu);
 	for (size_t i = 0; i < n; ++i) {
-		std::vector<double> a3(n, 0.0);
-		std::vector<double> a4(n, 0.0);
-		b = 100;
-		a3[i] =  1.0;
-		a4[i] = -1.0;
-		f.add_term(std::make_shared<AutoDiffTerm<LogBarrier, n>>(a3, b, &mu),
-		           &x[0]);
-		f.add_term(std::make_shared<AutoDiffTerm<LogBarrier, n>>(a4, b, &mu),
-		           &x[0]);
+		f.add_term(individual_barrier_high, &x[i]);
+		f.add_term(individual_barrier_low, &x[i]);
 	}
 
-	NewtonSolver solver;
-	solver.sparsity_mode = NewtonSolver::DENSE;
+	LBFGSSolver solver;
 	solver.maximum_iterations = 100;
-	// nullptr does not work in gcc 4.5
-	solver.log_function = [](const std::string&) { };
+	solver.log_function = nullptr;
 	SolverResults results;
 
+	double total_time = 0.0;
 	for (int iter = 1; iter <= 8; ++iter) {
+		auto start_time = wall_time();
 		solver.solve(f, &results);
 
 		double sumx = 0.0;
@@ -133,10 +167,24 @@ int main()
 			maxx = std::max(x[i], maxx);
 		}
 
+		total_time += wall_time() - start_time;
 		std::printf("mu=%.2e, f=%+.4e, cTx=%+.4e, sum(x)=%+.4e, (min,max)(x)=(%.3e, %3e)\n",
-			mu, f.evaluate(), cTx, sumx, minx, maxx);
+		            mu, f.evaluate(), cTx, sumx, minx, maxx);
 
 		mu /= 10.0;
 	}
-	std::cerr << "Solution to the linear programming problem is cTx = " << f.evaluate() << '\n';
+	std::cout << "Solution to the linear programming problem is cTx = " << f.evaluate() << '\n';
+	std::cout << "Elapsed time: " << total_time << " s.\n";
+
+	return 0;
+}
+
+int main()
+{
+	try {
+		return main_function();
+	}
+	catch (std::exception& e) {
+		std::cerr << "Exception: " << e.what() << std::endl;
+	}
 }
