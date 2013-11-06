@@ -6,6 +6,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <typeinfo>
+#include <unordered_map>
 
 #ifdef USE_OPENMP
 	#include <omp.h>
@@ -37,8 +38,6 @@ struct AddedTerm
 	std::vector<size_t> added_variables_indices;
 	// Temporary storage for a point.
 	mutable std::vector<double*> temp_variables;
-	// Temporary storage for the hessian.
-	mutable std::vector< std::vector<Eigen::MatrixXd> > hessian;
 };
 
 class Function::Implementation
@@ -112,6 +111,13 @@ public:
 		thread_gradient_scratch;
 	mutable std::vector<Eigen::VectorXd>
 		thread_gradient_storage;
+	// Temporary storage for the hessian.
+	typedef std::vector<std::vector<Eigen::MatrixXd>> HessianStorage;
+	mutable std::vector<HessianStorage> thread_hessian_scratch;
+	mutable std::vector<Eigen::MatrixXd> thread_dense_hessian_storage;
+
+	typedef std::vector<Eigen::Triplet<double>> SparseHessianStorage;
+	mutable std::vector<SparseHessianStorage> thread_sparse_hessian_storage;
 
 	// Stored how many element were used the last time the Hessian
 	// was created.
@@ -467,16 +473,19 @@ void Function::Implementation::allocate_local_storage() const
 			double* temp_space = &added_variable.temp_space[0];
 			added_term.temp_variables.push_back(temp_space);
 		}
+	}
 
-		if (interface->hessian_is_enabled) {
-			const auto& term = added_term.term;
-			// Create enough space for the hessian.
-			added_term.hessian.resize(term->number_of_variables());
-			for (int var0 = 0; var0 < term->number_of_variables(); ++var0) {
-				added_term.hessian[var0].resize(term->number_of_variables());
-				for (int var1 = 0; var1 < term->number_of_variables(); ++var1) {
-					added_term.hessian[var0][var1].resize(term->variable_dimension(var0),
-														  term->variable_dimension(var1));
+	if (interface->hessian_is_enabled) {
+		this->thread_hessian_scratch.resize(this->number_of_threads);
+		for (int t = 0; t < this->number_of_threads; ++t) {
+			auto& hessian = this->thread_hessian_scratch[t];
+
+			hessian.resize(max_arity);
+			for (int var0 = 0; var0 < max_arity; ++var0) {
+				hessian[var0].resize(max_arity);
+				for (int var1 = 0; var1 < max_arity; ++var1) {
+					hessian[var0][var1].resize(max_variable_dimension,
+					                           max_variable_dimension);
 				}
 			}
 		}
@@ -583,8 +592,10 @@ double Function::evaluate() const
 
 void Function::create_sparse_hessian(Eigen::SparseMatrix<double>* H) const
 {
-	std::vector<Eigen::Triplet<double> > hessian_indices;
-	hessian_indices.reserve(impl->number_of_hessian_elements);
+	double start_time = wall_time();
+
+	Implementation::SparseHessianStorage hessian_indices;
+	//std::map<std::pair<int, int>, double> hessian_indices;
 	impl->number_of_hessian_elements = 0;
 
 	for (const auto& added_term: impl->terms) {
@@ -604,10 +615,9 @@ void Function::create_sparse_hessian(Eigen::SparseMatrix<double>* H) const
 							for (size_t j = 0; j < term->variable_dimension(var1); ++j) {
 								int global_i = static_cast<int>(i + global_offset0);
 								int global_j = static_cast<int>(j + global_offset1);
-								hessian_indices.push_back(Eigen::Triplet<double>(global_i,
-								                                                 global_j,
-								                                                 1.0));
-								impl->number_of_hessian_elements++;
+								
+								//hessian_indices[std::make_pair(global_i, global_j)] = 1.0;
+								hessian_indices.emplace_back(global_i, global_j, 1.0);
 							}
 						}
 
@@ -618,10 +628,14 @@ void Function::create_sparse_hessian(Eigen::SparseMatrix<double>* H) const
 		}
 	}
 
+	impl->number_of_hessian_elements = hessian_indices.size();
+
 	auto n = static_cast<int>(impl->number_of_scalars);
 	H->resize(n, n);
 	H->setFromTriplets(hessian_indices.begin(), hessian_indices.end());
 	H->makeCompressed();
+
+	this->allocation_time += wall_time() - start_time;
 }
 
 void Function::Implementation::copy_global_to_local(const Eigen::VectorXd& x) const
@@ -763,11 +777,26 @@ double Function::Implementation::evaluate(const Eigen::VectorXd& x,
 		this->allocate_local_storage();
 	}
 
+	double start_time = wall_time();
+	if (hessian) {
+		#ifdef USE_OPENMP
+			thread_dense_hessian_storage.resize(this->number_of_threads);
+		#else
+			thread_dense_hessian_storage.resize(1);
+		#endif
+		for (int t = 0; t < this->number_of_threads; ++t) {
+			thread_dense_hessian_storage[t].resize(static_cast<int>(this->number_of_scalars),
+			                                       static_cast<int>(this->number_of_scalars));
+			thread_dense_hessian_storage[t].setZero();
+		}
+	}
+	interface->allocation_time += wall_time() - start_time;
+
 	// Copy values from the global vector x to the temporary storage
 	// used for evaluating the term.
 	this->copy_global_to_local(x);
 
-	double start_time = wall_time();
+	start_time = wall_time();
 
 	// Initialize each thread's global gradient.
 	for (int t = 0; t < this->number_of_threads; ++t) {
@@ -800,7 +829,40 @@ double Function::Implementation::evaluate(const Eigen::VectorXd& x,
 			// into local storage.
 			value += terms[i].term->evaluate(&terms[i].temp_variables[0],
 											 &this->thread_gradient_scratch[t],
-											 &terms[i].hessian);
+											 &this->thread_hessian_scratch[t]);
+
+
+			const auto& term = terms[i].term;
+			const auto& indices = terms[i].added_variables_indices;
+			// Put the hessian into the global hessian.
+			for (int var0 = 0; var0 < term->number_of_variables(); ++var0) {
+
+				if ( ! variables[indices[var0]].is_constant) {
+					if (variables[indices[var0]].change_of_variables) {
+						throw std::runtime_error("Change of variables not supported for Hessians");
+					}
+
+					size_t global_offset0 = variables[indices[var0]].global_index;
+					for (int var1 = 0; var1 < term->number_of_variables(); ++var1) {
+						size_t global_offset1 = variables[indices[var1]].global_index;
+
+						if ( ! variables[indices[var1]].is_constant) {
+
+							const Eigen::MatrixXd& part_hessian = this->thread_hessian_scratch[t][var0][var1];
+							for (int i = 0; i < term->variable_dimension(var0); ++i) {
+								for (int j = 0; j < term->variable_dimension(var1); ++j) {
+									thread_dense_hessian_storage[t]
+										.coeffRef(i + global_offset0, j + global_offset1)
+									+= part_hessian(i, j);
+								}
+							}
+
+						}
+					}
+				}
+			}
+
+
 		}
 		else {
 			// Evaluate the term and put its gradient into local
@@ -875,38 +937,8 @@ double Function::Implementation::evaluate(const Eigen::VectorXd& x,
 		hessian->resize( static_cast<int>(this->number_of_scalars),
 						 static_cast<int>(this->number_of_scalars));
 		hessian->setZero();
-
-		// Go through and evaluate each term.
-		for (auto itr = terms.begin(); itr != terms.end(); ++itr) {
-			auto& indices = itr->added_variables_indices;
-
-			// Put the hessian into the global hessian.
-			for (int var0 = 0; var0 < itr->term->number_of_variables(); ++var0) {
-
-				if ( ! variables[indices[var0]].is_constant) {
-					if (variables[indices[var0]].change_of_variables) {
-						throw std::runtime_error("Change of variables not supported for Hessians");
-					}
-
-					size_t global_offset0 = variables[indices[var0]].global_index;
-					for (int var1 = 0; var1 < itr->term->number_of_variables(); ++var1) {
-						size_t global_offset1 = variables[indices[var1]].global_index;
-
-						if ( ! variables[indices[var1]].is_constant) {
-
-							const Eigen::MatrixXd& part_hessian = itr->hessian[var0][var1];
-							for (int i = 0; i < itr->term->variable_dimension(var0); ++i) {
-								for (int j = 0; j < itr->term->variable_dimension(var1); ++j) {
-									hessian->coeffRef(i + global_offset0, j + global_offset1) +=
-										part_hessian(i, j);
-								}
-							}
-
-						}
-					}
-				}
-
-			}
+		for (int t = 0; t < this->number_of_threads; ++t) {
+			(*hessian) += this->thread_dense_hessian_storage[t];
 		}
 	}
 
@@ -939,15 +971,26 @@ double Function::Implementation::evaluate(const Eigen::VectorXd& x,
 		this->allocate_local_storage();
 	}
 
+	double start_time = wall_time();
+	#ifdef USE_OPENMP
+		thread_sparse_hessian_storage.resize(this->number_of_threads);
+	#else
+		thread_sparse_hessian_storage.resize(1);
+	#endif
+	for (int t = 0; t < this->number_of_threads; ++t) {
+		// TODO: Most likely too much space per thread here.
+		thread_sparse_hessian_storage[t].reserve(this->number_of_hessian_elements);
+		thread_sparse_hessian_storage[t].clear();
+	}
+	this->number_of_hessian_elements = 0;
+
+	interface->allocation_time += wall_time() - start_time;
+
 	// Copy values from the global vector x to the temporary storage
 	// used for evaluating the term.
 	this->copy_global_to_local(x);
 
-	double start_time = wall_time();
-
-	std::vector<Eigen::Triplet<double> > hessian_indices;
-	hessian_indices.reserve(this->number_of_hessian_elements);
-	this->number_of_hessian_elements = 0;
+	start_time = wall_time();
 
 	interface->write_gradient_hessian_time += wall_time() - start_time;
 	start_time = wall_time();
@@ -981,7 +1024,7 @@ double Function::Implementation::evaluate(const Eigen::VectorXd& x,
 		// into local storage.
 		value += terms[i].term->evaluate(&terms[i].temp_variables[0],
 		                                 &this->thread_gradient_scratch[t],
-		                                 &terms[i].hessian);
+		                                 &this->thread_hessian_scratch[t]);
 
 		// Put the gradient from the term into the thread's global gradient.
 		const auto& indices = terms[i].added_variables_indices;
@@ -996,6 +1039,33 @@ double Function::Implementation::evaluate(const Eigen::VectorXd& x,
 				for (int i = 0; i < variables[indices[var]].user_dimension; ++i) {
 					this->thread_gradient_storage[t][global_offset + i] +=
 						this->thread_gradient_scratch[t][var][i];
+				}
+			}
+		}
+
+		// Put the hessian from the term into the thread's global hessian.
+		const auto& term = terms[i].term;
+		for (int var0 = 0; var0 < term->number_of_variables(); ++var0) {
+			if ( ! variables[indices[var0]].is_constant) {
+
+				size_t global_offset0 = variables[indices[var0]].global_index;
+				for (int var1 = 0; var1 < term->number_of_variables(); ++var1) {
+					if ( ! variables[indices[var1]].is_constant) {
+
+						size_t global_offset1 = variables[indices[var1]].global_index;
+						const Eigen::MatrixXd& part_hessian = this->thread_hessian_scratch[t][var0][var1];
+						for (int i = 0; i < term->variable_dimension(var0); ++i) {
+							for (int j = 0; j < term->variable_dimension(var1); ++j) {
+
+								int global_i = static_cast<int>(i + global_offset0);
+								int global_j = static_cast<int>(j + global_offset1);
+								thread_sparse_hessian_storage[t].push_back(Eigen::Triplet<double>(global_i,
+								                                                                  global_j,
+								                                                                  part_hessian(i, j)));
+							}
+						}
+					}
+
 				}
 			}
 		}
@@ -1035,44 +1105,14 @@ double Function::Implementation::evaluate(const Eigen::VectorXd& x,
 		(*gradient) += this->thread_gradient_storage[t].segment(0, this->number_of_scalars);
 	}
 
-	// Collect the gradients and hessians from each term.
-	for (auto itr = terms.begin(); itr != terms.end(); ++itr) {
-		auto& indices = itr->added_variables_indices;
-
-		// Put the hessian into the global hessian.
-		for (int var0 = 0; var0 < itr->term->number_of_variables(); ++var0) {
-			if ( ! variables[indices[var0]].is_constant) {
-
-				size_t global_offset0 = variables[indices[var0]].global_index;
-				for (int var1 = 0; var1 < itr->term->number_of_variables(); ++var1) {
-					if ( ! variables[indices[var1]].is_constant) {
-
-						size_t global_offset1 = variables[indices[var1]].global_index;
-						const Eigen::MatrixXd& part_hessian = itr->hessian[var0][var1];
-						for (int i = 0; i < itr->term->variable_dimension(var0); ++i) {
-							for (int j = 0; j < itr->term->variable_dimension(var1); ++j) {
-								//std::cerr << "var=(" << var0 << ',' << var1 << ") ";
-								//std::cerr << "ij=(" << i << ',' << j << ") ";
-								//std::cerr << "writing to (" << i + global_offset0 << ',' << j + global_offset1 << ")\n";
-								//hessian->coeffRef(i + global_offset0, j + global_offset1) +=
-								//	part_hessian(i, j);
-								int global_i = static_cast<int>(i + global_offset0);
-								int global_j = static_cast<int>(j + global_offset1);
-								hessian_indices.push_back(Eigen::Triplet<double>(global_i,
-								                                                 global_j,
-								                                                 part_hessian(i, j)));
-								this->number_of_hessian_elements++;
-							}
-						}
-					}
-
-				}
-			}
-
+	for (int t = 1; t < thread_sparse_hessian_storage.size(); ++t) {
+		for (const auto& triple: thread_sparse_hessian_storage[t]) {
+			thread_sparse_hessian_storage[0].emplace_back(triple);
 		}
 	}
 
-	hessian->setFromTriplets(hessian_indices.begin(), hessian_indices.end());
+	hessian->setFromTriplets(thread_sparse_hessian_storage[0].begin(),
+	                         thread_sparse_hessian_storage[0].end());
 	//hessian->makeCompressed();
 
 	interface->write_gradient_hessian_time += wall_time() - start_time;
