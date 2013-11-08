@@ -43,7 +43,7 @@ public:
 
 	virtual int number_of_variables() const override
 	{
-		return a.size();
+		return int(a.size());
 	}
 
 	virtual int variable_dimension(int var) const override
@@ -86,7 +86,7 @@ public:
 	                        std::vector<Eigen::VectorXd>* gradient,
 	                        std::vector< std::vector<Eigen::MatrixXd> >* hessian) const
 	{
-		spii::check(false, "FoEGeneralTerm: Hessians not supported.");
+		spii::check(false, "Hessians not supported.");
 		return 0.0;
 	}
 };
