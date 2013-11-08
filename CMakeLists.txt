@@ -1,5 +1,5 @@
 # Author: petter.strandmark@gmail.com (Petter Strandmark)
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.0)
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8.4)
 PROJECT(SPII C CXX)
 
 SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
@@ -46,6 +46,7 @@ INCLUDE_DIRECTORIES(
   SYSTEM thirdparty/Catch
   thirdparty/Eigen
   SYSTEM thirdparty/meschach
+  SYSTEM thirdparty/ceres-solver-data
   )
 
 FILE(GLOB SPII_HEADERS ${CMAKE_SOURCE_DIR}/include/spii/*.h)

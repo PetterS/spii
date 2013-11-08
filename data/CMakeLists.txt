@@ -33,3 +33,9 @@ configure_file(nist/Rat42.dat ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nist/Rat42.dat C
 configure_file(nist/Rat43.dat ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nist/Rat43.dat COPYONLY)
 configure_file(nist/Roszman1.dat ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nist/Roszman1.dat COPYONLY)
 configure_file(nist/Thurber.dat ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/nist/Thurber.dat COPYONLY)
+
+# Ceres files.
+configure_file(../thirdparty/ceres-solver-data/2x2.foe ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/2x2.foe COPYONLY)
+configure_file(../thirdparty/ceres-solver-data/3x3.foe ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/3x3.foe COPYONLY)
+configure_file(../thirdparty/ceres-solver-data/5x5.foe ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/5x5.foe COPYONLY)
+configure_file(../thirdparty/ceres-solver-data/ceres_noisy.pgm ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/ceres_noisy.pgm COPYONLY)
