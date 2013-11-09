@@ -113,7 +113,7 @@ void NelderMeadSolver::solve(const Function& function,
 	//
 	// START MAIN ITERATION
 	//
-	results->startup_time   = wall_time() - global_start_time;
+	results->startup_time   += wall_time() - global_start_time;
 	results->exit_condition = SolverResults::INTERNAL_ERROR;
 	int iter = 0;
 	int n_shrink_in_a_row = 0;
@@ -315,7 +315,7 @@ void NelderMeadSolver::solve(const Function& function,
 
 	// Return the best point as solution.
 	function.copy_global_to_user(simplex[0].x);
-	results->total_time = wall_time() - global_start_time;
+	results->total_time += wall_time() - global_start_time;
 
 	if (this->log_function) {
 		char str[1024];
