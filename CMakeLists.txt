@@ -19,6 +19,7 @@ LIST(APPEND SEARCH_HEADERS /usr/local/homebrew/include) # Mac OS X
 LIST(APPEND SEARCH_HEADERS /opt/local/include)
 
 ENABLE_TESTING()
+SET(CTEST_OUTPUT_ON_FAILURE TRUE)
 
 # Multithreading using OpenMP
 OPTION(OPENMP
