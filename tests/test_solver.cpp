@@ -545,3 +545,35 @@ TEST(NelderMeadSolver, callback_function)
 {
 	test_callback_function<NelderMeadSolver>();
 }
+
+
+template<typename SolverClass>
+void test_empty_function_crash_bug()
+{
+	SolverClass solver;
+	solver.log_function = nullptr;
+	Function function;
+	SolverResults results;
+	solver.solve(function, &results);
+	CHECK(results.exit_condition == SolverResults::FUNCTION_TOLERANCE);
+}
+
+TEST(NewtonSolver, empty_function_crash_bug)
+{
+	test_empty_function_crash_bug<NewtonSolver>();
+}
+
+TEST(LBFGSSolver, empty_function_crash_bug)
+{
+	test_empty_function_crash_bug<LBFGSSolver>();
+}
+
+TEST(NelderMeadSolver, empty_function_crash_bug)
+{
+	test_empty_function_crash_bug<NelderMeadSolver>();
+}
+
+TEST(PatternSolver, empty_function_crash_bug)
+{
+	test_empty_function_crash_bug<PatternSolver>();
+}

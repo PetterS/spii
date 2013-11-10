@@ -19,6 +19,11 @@ void PatternSolver::solve(const Function& function,
 	// Dimension of problem.
 	size_t n = function.get_number_of_scalars();
 
+	if (n == 0) {
+		results->exit_condition = SolverResults::FUNCTION_TOLERANCE;
+		return;
+	}
+
 	// Current point, gradient and Hessian.
 	double fval   = std::numeric_limits<double>::quiet_NaN();
 	double fprev  = std::numeric_limits<double>::quiet_NaN();

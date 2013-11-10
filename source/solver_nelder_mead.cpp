@@ -84,6 +84,11 @@ void NelderMeadSolver::solve(const Function& function,
 	// Dimension of problem.
 	size_t n = function.get_number_of_scalars();
 
+	if (n == 0) {
+		results->exit_condition = SolverResults::FUNCTION_TOLERANCE;
+		return;
+	}
+
 	// The Nelder-Mead simplex.
 	std::vector<SimplexPoint> simplex(n + 1);
 
