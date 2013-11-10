@@ -111,7 +111,7 @@ void minimize_function(const spii::Function& function, PGMImage<double>* solutio
 	spii::LBFGSSolver solver;
 	solver.function_improvement_tolerance = 1e-3;
 
-	solver.maximum_iterations = 16;
+	solver.maximum_iterations = 1000;
 
 	int iteration = 0;
 	solver.callback_function =
