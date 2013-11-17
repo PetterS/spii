@@ -6,7 +6,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <typeinfo>
-#include <unordered_map>
+#include <unordered_set>
 
 #ifdef USE_OPENMP
 	#include <omp.h>
@@ -38,6 +38,17 @@ struct AddedTerm
 	std::vector<size_t> added_variables_indices;
 	// Temporary storage for a point.
 	mutable std::vector<double*> temp_variables;
+};
+
+struct IntPairHash
+{
+	size_t operator()(const std::pair<int, int>& p) const
+	{
+		// http://stackoverflow.com/questions/738054/hash-function-for-a-pair-of-long-long
+		std::hash<int> hash;
+		size_t seed = hash(p.first);
+		return hash(p.second) + 0x9e3779b9 + (seed<<6) + (seed>>2);
+	}
 };
 
 class Function::Implementation
@@ -261,8 +272,8 @@ size_t Function::get_variable_global_index(double* variable) const
 {
 	// Find the variable. This has to succeed.
 	auto itr = impl->variables_map.find(variable);
-	check(itr != impl->variables_map.end(), 
-	      "Function::get_variable_global_index: variable not found.");
+	check(itr != impl->variables_map.end()) 
+	      << "Function::get_variable_global_index: variable not found.";
 
 	return impl->variables[itr->second].global_index;
 }
@@ -286,12 +297,41 @@ void Function::add_variable_internal(double* variable,
 	impl->add_variable_internal(variable, dimension, change_of_variables);
 }
 
+
+template<typename Map, typename T>
+std::pair<typename Map::const_iterator,
+          typename Map::const_iterator>
+	find_surrounding_elements(const Map& map, const T& t)
+{
+	std::pair<typename Map::const_iterator,
+		typename Map::const_iterator> output;
+	if (map.empty()) {
+		return {map.end(), map.end()};
+	}
+
+	auto upper = map.upper_bound(t);
+	output.second = upper;
+	output.first = upper;
+	if (upper != map.begin())
+		output.first--;
+
+	if (output.first->first >= t) {
+		output.first = map.end();
+	}
+	if (output.second->first <= t) {
+		output.second = map.end();
+	}
+	return output;
+}
+
 void Function::Implementation::add_variable_internal(double* variable,
                                                     int dimension,
                                                     std::shared_ptr<ChangeOfVariables> change_of_variables)
 {
 	this->local_storage_allocated = false;
 
+	// Check if variable already exists, and if it
+	// does, that it still has the same dimensions.
 	auto itr = variables_map.find(variable);
 	if (itr != variables_map.end()) {
 		AddedVariable& var_info = variables[itr->second];
@@ -314,6 +354,24 @@ void Function::Implementation::add_variable_internal(double* variable,
 		}
 
 		return;
+	}
+	else if (!variables_map.empty()) {
+		// The variable does not yet exist, check that
+		// it does not overlap any other.
+		auto elems = find_surrounding_elements(variables_map, variable);
+
+		auto succ = elems.second;
+		if (succ != variables_map.end()) {
+			check(variable + dimension <= variables[succ->second].user_data)
+			      << "Variables overlap.";
+		}
+
+		auto prev = elems.first;
+		if (prev != variables_map.end()) {
+			const auto& prev_var = variables[prev->second];
+			check(prev_var.user_data + prev_var.user_dimension <= variable)
+			      << "Variables overlap.";
+		}
 	}
 
 	variables.emplace_back();
@@ -590,12 +648,14 @@ double Function::evaluate() const
 	return impl->evaluate_from_local_storage();
 }
 
+
 void Function::create_sparse_hessian(Eigen::SparseMatrix<double>* H) const
 {
 	double start_time = wall_time();
 
 	Implementation::SparseHessianStorage hessian_indices;
-	//std::map<std::pair<int, int>, double> hessian_indices;
+	//std::set<std::pair<int, int>> hessian_indices_set;
+	std::unordered_set<std::pair<int, int>, IntPairHash> hessian_indices_set;
 	impl->number_of_hessian_elements = 0;
 
 	for (const auto& added_term: impl->terms) {
@@ -616,8 +676,8 @@ void Function::create_sparse_hessian(Eigen::SparseMatrix<double>* H) const
 								int global_i = static_cast<int>(i + global_offset0);
 								int global_j = static_cast<int>(j + global_offset1);
 								
-								//hessian_indices[std::make_pair(global_i, global_j)] = 1.0;
-								hessian_indices.emplace_back(global_i, global_j, 1.0);
+								hessian_indices_set.emplace(global_i, global_j);
+								//hessian_indices.emplace_back(global_i, global_j, 1.0);
 							}
 						}
 
@@ -626,6 +686,11 @@ void Function::create_sparse_hessian(Eigen::SparseMatrix<double>* H) const
 
 			}
 		}
+	}
+
+	hessian_indices.reserve(hessian_indices_set.size());
+	for (const auto& ij: hessian_indices_set) {
+		hessian_indices.emplace_back(ij.first, ij.second, 1.0);
 	}
 
 	impl->number_of_hessian_elements = hessian_indices.size();

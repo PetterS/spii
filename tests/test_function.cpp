@@ -889,3 +889,30 @@ TEST(Function, evaluate_interval)
 	EXPECT_DOUBLE_EQ(result.get_lower(), expected.get_lower());
 	EXPECT_DOUBLE_EQ(result.get_upper(), expected.get_upper());
 }
+
+TEST_CASE("variables_overlap_1")
+{
+	Function f;
+	double x[5];
+	f.add_variable(&x[0], 5);
+	EXPECT_THROW(f.add_variable(&x[2], 1), std::exception);
+}
+
+TEST_CASE("variables_overlap_2")
+{
+	Function f;
+	double x[5];
+	f.add_variable(&x[2], 1);
+	EXPECT_THROW(f.add_variable(&x[0], 5), std::exception);
+}
+
+TEST_CASE("variables_overlap_3")
+{
+	Function f;
+	double x[5];
+	f.add_variable(&x[3], 1);
+	f.add_variable(&x[4], 2);
+	f.add_variable(&x[0], 1);
+	f.add_variable(&x[1], 1);
+	EXPECT_THROW(f.add_variable(&x[2], 2), std::exception);
+}
