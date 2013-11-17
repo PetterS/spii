@@ -225,10 +225,10 @@ Function& Function::operator += (const Function& org)
 
 	// Check that there are no change of variables involved.
 	for (const auto& added_variable: org.impl->variables) {
-		spii_assert( ! added_variable.change_of_variables)
+		spii_assert(!added_variable.change_of_variables);
 	}
 	for (const auto& added_variable: impl->variables) {
-		spii_assert( ! added_variable.change_of_variables)
+		spii_assert(!added_variable.change_of_variables);
 	}
 
 	// TODO: respect global order.
@@ -272,8 +272,8 @@ size_t Function::get_variable_global_index(double* variable) const
 {
 	// Find the variable. This has to succeed.
 	auto itr = impl->variables_map.find(variable);
-	check(itr != impl->variables_map.end()) 
-	      << "Function::get_variable_global_index: variable not found.";
+	check(itr != impl->variables_map.end(),
+	      "Function::get_variable_global_index: variable not found.");
 
 	return impl->variables[itr->second].global_index;
 }
@@ -306,7 +306,7 @@ std::pair<typename Map::const_iterator,
 	std::pair<typename Map::const_iterator,
 		typename Map::const_iterator> output;
 	if (map.empty()) {
-		return {map.end(), map.end()};
+		return std::make_pair(map.end(), map.end());
 	}
 
 	auto upper = map.upper_bound(t);
@@ -362,15 +362,15 @@ void Function::Implementation::add_variable_internal(double* variable,
 
 		auto succ = elems.second;
 		if (succ != variables_map.end()) {
-			check(variable + dimension <= variables[succ->second].user_data)
-			      << "Variables overlap.";
+			check(variable + dimension <= variables[succ->second].user_data,
+			      "Variables overlap.");
 		}
 
 		auto prev = elems.first;
 		if (prev != variables_map.end()) {
 			const auto& prev_var = variables[prev->second];
-			check(prev_var.user_data + prev_var.user_dimension <= variable)
-			      << "Variables overlap.";
+			check(prev_var.user_data + prev_var.user_dimension <= variable,
+			      "Variables overlap.");
 		}
 	}
 
@@ -648,7 +648,6 @@ double Function::evaluate() const
 	return impl->evaluate_from_local_storage();
 }
 
-
 void Function::create_sparse_hessian(Eigen::SparseMatrix<double>* H) const
 {
 	double start_time = wall_time();
@@ -677,7 +676,6 @@ void Function::create_sparse_hessian(Eigen::SparseMatrix<double>* H) const
 								int global_j = static_cast<int>(j + global_offset1);
 								
 								hessian_indices_set.emplace(global_i, global_j);
-								//hessian_indices.emplace_back(global_i, global_j, 1.0);
 							}
 						}
 
@@ -686,6 +684,7 @@ void Function::create_sparse_hessian(Eigen::SparseMatrix<double>* H) const
 
 			}
 		}
+
 	}
 
 	hessian_indices.reserve(hessian_indices_set.size());
