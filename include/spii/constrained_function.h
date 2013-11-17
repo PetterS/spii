@@ -19,6 +19,11 @@ class SPII_API ConstrainedFunction
 {
 public:
 	ConstrainedFunction();
+	
+	// Disable copying for now.
+	ConstrainedFunction(const ConstrainedFunction&) = delete;
+	ConstrainedFunction(ConstrainedFunction&&)      = delete;
+
 	~ConstrainedFunction();
 
 	// Function improvement tolerance. The constrained solver stops
@@ -88,9 +93,6 @@ public:
 	void solve(const Solver& solver, SolverResults* results);
 
 private:
-	// Disable copying for now.
-	ConstrainedFunction(const ConstrainedFunction&);
-
 	class Implementation;
 	// unique_pointer would have been nice, but there are issues
 	// with sharing these objects across DLL boundaries in VC++.

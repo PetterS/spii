@@ -25,6 +25,8 @@ public:
 
 	TermFactory();
 	~TermFactory();
+	TermFactory(const TermFactory&)      = delete;
+	void operator = (const TermFactory&) = delete;
 
 	template<typename T>
 	void teach_term()
@@ -38,10 +40,6 @@ public:
 	void teach_term(const std::string& term_name, const TermCreator& creator);
 
 private:
-	// = delete when all compilers support it.
-	TermFactory(const TermFactory&);
-	void operator = (const TermFactory&);
-
 	class Implementation;
 	// unique_pointer would have been nice, but there are issues
 	// with sharing these objects across DLL boundaries in VC++.
