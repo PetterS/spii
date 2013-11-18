@@ -81,7 +81,7 @@ double run_test(double* var, Solver* solver_input = 0)
 		solver_input = own_solver.get();
 	}
 	auto solver = dynamic_cast<NewtonSolver*>(solver_input);
-	spii_assert(solver);
+	spii_assert(solver != nullptr);
 
 	// First, test that the iterative factorization method
 	// achieves convergence. 
