@@ -39,8 +39,8 @@ public:
 		return R(y) * (w[0]*x(0) + w[1]*x[1] + *b) + 1.0;
 	}
 private:
-	int y;
-	const Eigen::Vector2d& x;
+	const int y;
+	const Eigen::Vector2d x;
 };
 
 int main_function()
