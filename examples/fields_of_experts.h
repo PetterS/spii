@@ -191,7 +191,7 @@ FieldsOfExperts::FieldsOfExperts(const std::string& filename)
 		}
 	}
 
-	spii_assert(foe_file);
+	spii_assert(bool{foe_file});
 
 	// There cannot be anything else in the file. Try reading another number and
 	// return failure if that succeeded.
