@@ -5922,7 +5922,7 @@ namespace {
     };
 
     inline bool shouldUseColourForPlatform() {
-        return isatty( fileno(stdout) );
+        return isatty( 1 );
     }
 
     PosixColourImpl platformColourImpl;
