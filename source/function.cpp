@@ -675,7 +675,17 @@ void Function::create_sparse_hessian(Eigen::SparseMatrix<double>* H) const
 								int global_i = static_cast<int>(i + global_offset0);
 								int global_j = static_cast<int>(j + global_offset1);
 								
-								hessian_indices_set.emplace(global_i, global_j);
+								// Fix for old versions of libstdc++ that do not have
+								// emplace.
+								#ifdef __GLIBCXX__
+									#if __GLIBCXX__ <= 20120322
+										hessian_indices_set.insert(global_i, global_j);
+									#else
+										hessian_indices_set.emplace(global_i, global_j);
+									#endif
+								#else
+									hessian_indices_set.emplace(global_i, global_j);
+								#endif
 							}
 						}
 
