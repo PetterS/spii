@@ -84,7 +84,9 @@ IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR CMAKE_COMPILER_IS_GNUCXX)
   # No warnings for C. The Meschach library contains really old code.
   # -fPIC for building a shared library.
   set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -w -fpic")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -fpic")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-function -fpic")
+  # -Wunused-function triggers incorrect warnings for variadic template
+  # recursion base case with Clang 3.2.
 ENDIF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR CMAKE_COMPILER_IS_GNUCXX)
 
 #
