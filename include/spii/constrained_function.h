@@ -34,7 +34,7 @@ public:
 	// When updating the dual variables, the constrained solver
 	// stop if the maximum norm of the change is less than this
 	// tolerance.
-	double dual_change_tolerance = 1e-8;
+	double dual_change_tolerance = 1e-4;
 
 	// The maximum number of (outer) iterations the solver will
 	// perform.

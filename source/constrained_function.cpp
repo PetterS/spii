@@ -22,6 +22,8 @@ public:
 	double cached_value = 0;
 };
 
+// Phi wrapper function. 
+//
 // Nocedal & Wright p. 524
 // Equation 17.65.
 //
@@ -63,8 +65,8 @@ public:
 		double t = term->evaluate(variables, gradient);
 
 		if (- t - *sigma / *mu <= 0) {
-			for (size_t i = 0; i < number_of_variables(); ++i) {
-				for (size_t j = 0; j < variable_dimension(i); ++j) {
+			for (int i = 0; i < number_of_variables(); ++i) {
+				for (int j = 0; j < variable_dimension(i); ++j) {
 					(*gradient)[i][j] = *sigma * (*gradient)[i][j] 
 					                    + (*mu) * t * (*gradient)[i][j];
 				}
@@ -72,8 +74,8 @@ public:
 			return *sigma * t + (*mu / 2) * t*t; 
 		}
 		else {
-			for (size_t i = 0; i < number_of_variables(); ++i) {
-				for (size_t j = 0; j < variable_dimension(i); ++j) {
+			for (int i = 0; i < number_of_variables(); ++i) {
+				for (int j = 0; j < variable_dimension(i); ++j) {
 					(*gradient)[i][j] = 0;
 				}
 			}
@@ -154,7 +156,12 @@ bool ConstrainedFunction::is_feasible() const
 
 void ConstrainedFunction::solve(const Solver& solver, SolverResults* results)
 {
-	results->exit_condition = SolverResults::NA;
+	results->exit_condition = SolverResults::INTERNAL_ERROR;
+
+	if (impl->augmented_lagrangian.get_number_of_variables() == 0) {
+		results->exit_condition = SolverResults::FUNCTION_TOLERANCE;
+		return;
+	}
 
 	auto& mu = impl->mu;
 	mu = 10;
@@ -206,6 +213,7 @@ void ConstrainedFunction::solve(const Solver& solver, SolverResults* results)
 			// Update the dual variables (explicit formula).
 
 			double max_change = 0;
+			double max_lambda = 0;
 			for (auto& itr: impl->constraints) {
 				auto c_x = itr.second.cached_value;
 				auto& lambda = itr.second.lambda;
@@ -218,6 +226,7 @@ void ConstrainedFunction::solve(const Solver& solver, SolverResults* results)
 					lambda = lambda + mu * c_x;
 				}
 				max_change = std::max(max_change, std::abs(prev - lambda));
+				max_lambda = std::max(max_lambda, std::abs(lambda));
 			}
 
 			if (log_function) {
@@ -227,7 +236,8 @@ void ConstrainedFunction::solve(const Solver& solver, SolverResults* results)
 				log_function(sout.str());
 			}
 
-			if (max_change < this->dual_change_tolerance) {
+			if (max_change / (max_lambda + this->dual_change_tolerance) < this->dual_change_tolerance
+			    && max_violation < 1e-8) {
 				results->exit_condition = SolverResults::GRADIENT_TOLERANCE;
 				break;
 			}
