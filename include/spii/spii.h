@@ -6,8 +6,6 @@
 #include <stdexcept>
 #include <string>
 
-#include <iostream>
-
 #ifdef _WIN32
 #	ifdef spii_EXPORTS
 #		define SPII_API __declspec(dllexport)
@@ -36,8 +34,14 @@ namespace {
 
 	std::string to_string()
 	{ 
-		std::cerr << "TOSTRING CALLED\n";
 		return {};
+	}
+
+	// Overload for string literals.
+	template<size_t n>
+	std::string to_string(const char(&c_str)[n])
+	{
+		return{ c_str };
 	}
 
 	template<typename T, typename... Args>
@@ -59,35 +63,29 @@ namespace {
 // Will throw if expression is false.
 //
 template<typename... Args>
-void check(bool everything_OK, Args&&... args)
+void check(bool everything_OK, const char* message)
 {
-	if (everything_OK) {
-		return;
+	if (!everything_OK) {
+		throw std::runtime_error(message);
 	}
-
-	auto message = to_string(std::forward<Args>(args)...);
-	throw std::runtime_error(message);
 }
 
 template<typename... Args>
-void verbose_error(const char* expr, const char* file_cstr, int line, Args&&... args)
+void check(bool everything_OK, Args&&... args)
 {
-	using namespace std;
-
-	// Extract the file name only.
-	string file(file_cstr);
-	auto pos = file.find_last_of("/\\");
-	if (pos == string::npos) {
-		pos = 0;
+	if (!everything_OK) {
+		throw std::runtime_error(to_string(std::forward<Args>(args)...));
 	}
-	file = file.substr(pos + 1);  // Returns empty string if pos + 1 == length.
-
-	stringstream stream;
-	stream << "Assertion failed: " << expr << " in " << file << ":" << line << ". ";
-	auto message = to_string(&stream, std::forward<Args>(args)...);
-	throw std::runtime_error(message);
 }
 
+// Prepares a message and throws an exception.
+void SPII_API verbose_error_internal(const char* expr, const char* full_file_cstr, int line, const std::string& args);
+
+template<typename... Args>
+void verbose_error(const char* expr, const char* full_file_cstr, int line, Args&&... args)
+{
+	verbose_error_internal(expr, full_file_cstr, line, to_string(std::forward<Args>(args)...));
+}
 
 #define spii_assert(expr, ...) (expr) ? ((void)0) : spii::verbose_error(#expr, __FILE__, __LINE__, spii::to_string(__VA_ARGS__))
 

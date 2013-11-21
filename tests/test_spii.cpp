@@ -10,7 +10,8 @@ using namespace std;
 
 TEST_CASE("spii_assert", "")
 {
-	CHECK_THROWS_AS(spii_assert(1 == 2), runtime_error);
+
+	CHECK_THROWS_AS(spii_assert(1 == 2, "message"), runtime_error);
 	CHECK_NOTHROW(spii_assert(1 == 1, "message"));
 }
 
