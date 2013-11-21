@@ -336,21 +336,16 @@ void Function::Implementation::add_variable_internal(double* variable,
 	if (itr != variables_map.end()) {
 		AddedVariable& var_info = variables[itr->second];
 
-		if (var_info.user_dimension != dimension) {
-			throw std::runtime_error("Function::add_variable: dimension mismatch "
-			                         "with previously added variable.");
-		}
+		check(var_info.user_dimension == dimension,
+		      "Function::add_variable: dimension mismatch "
+			  "with previously added variable.");
 
 		var_info.change_of_variables = change_of_variables;
 		if (change_of_variables) {
-			if (var_info.user_dimension != change_of_variables->x_dimension()) {
-				throw std::runtime_error("Function::add_variable: "
-			                             "x_dimension can not change.");
-			}
-			if (var_info.solver_dimension != change_of_variables->t_dimension()) {
-				throw std::runtime_error("Function::add_variable: "
-			                             "t_dimension can not change.");
-			}
+			check(var_info.user_dimension == change_of_variables->x_dimension(),
+			      "Function::add_variable: x_dimension can not change.");
+			check(var_info.solver_dimension == change_of_variables->t_dimension(),
+			      "Function::add_variable: t_dimension can not change.");
 		}
 
 		return;
@@ -384,10 +379,8 @@ void Function::Implementation::add_variable_internal(double* variable,
 
 	// Set the correct user_dimension and solver_dimension.
 	if (change_of_variables){
-		if (dimension != change_of_variables->x_dimension()) {
-			throw std::runtime_error("Function::add_variable: "
-			                         "dimension does not match the change of variables.");
-		}
+		check(dimension == change_of_variables->x_dimension(), 
+		      "Function::add_variable: dimension does not match the change of variables.");
 		var_info.user_dimension   = change_of_variables->x_dimension();
 		var_info.solver_dimension = change_of_variables->t_dimension();
 	}
@@ -409,9 +402,8 @@ void Function::Implementation::set_constant(double* variable, bool is_constant)
 {
 	// Find the variable. This has to succeed.
 	auto itr = variables_map.find(variable);
-	if (itr == variables_map.end()) {
-		throw std::runtime_error("Function::set_constant: variable not found.");
-	}
+	check(itr != variables_map.end(), 
+	      "Function::set_constant: variable not found.");
 
 	variables[itr->second].is_constant = is_constant;
 
@@ -448,9 +440,8 @@ void Function::add_term(std::shared_ptr<const Term> term, const std::vector<doub
 {
 	impl->local_storage_allocated = false;
 
-	if (term->number_of_variables() != arguments.size()) {
-		throw std::runtime_error("Function::add_term: incorrect number of arguments.");
-	}
+	check(term->number_of_variables() == arguments.size(),
+	      "Function::add_term: incorrect number of arguments.");
 
 	impl->terms.emplace_back();
 	auto& added_term = impl->terms.back();
