@@ -152,7 +152,9 @@ int main_function()
 	for (size_t i = 0; i < n; ++i) {
 		spii_assert(-100-eps <= x[i] && x[i] <= 100+eps, "x[", i, "] = ", x[i]);
 		sum += x[i];
-		std::cout << "c[" << i << "] = " << c[i] << ", x[" << i << "] = " << x[i] << std::endl;
+		if (i < 10) {
+			std::cout << "c[" << i << "] = " << c[i] << ", x[" << i << "] = " << x[i] << std::endl;
+		}
 	}
 	spii_assert(-10-eps <= sum && sum <= 10+eps, "sum = ", sum);
 

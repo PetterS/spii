@@ -97,7 +97,7 @@ int main_function()
 	std::normal_distribution<double> normal;
 	auto randn = std::bind(normal, prng);
 
-	const int n = 1000;
+	const int n = 10;
 
 	// Variables.
 	std::vector<double> x(n, 0.0);
