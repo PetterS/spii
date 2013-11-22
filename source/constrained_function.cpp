@@ -262,18 +262,25 @@ void ConstrainedFunction::solve(const Solver& solver, SolverResults* results)
 
 		if (log_function) {
 			log_function("");
+			int num_printed = 0;
 			for (auto& itr: impl->constraints) {
 				auto c_x = itr.second.cached_value;
 				auto& lambda = itr.second.lambda;
+				if (lambda != 0) {
+					stringstream sout_name, sout;
+					sout_name << "lambda[" << itr.first << "]";
+					sout << left << setfill('.') << setw(25) << sout_name.str()
+					     << ": " << setfill(' ') << setw(10) << lambda;
+					if (c_x > 0) {
+						sout << " Violation : " << c_x;
+					}
+					log_function(sout.str());
 
-				stringstream sout_name, sout;
-				sout_name << "lambda[" << itr.first << "]";
-				sout << left << setfill('.') << setw(25) << sout_name.str() 
-						<< ": " << setfill(' ') << setw(10) << lambda;
-				if (c_x > 0) {
-					sout << " Violation : " << c_x;
+					if (num_printed++ >= 10) {
+						log_function("Not printing more dual variables.");
+						break;
+					}
 				}
-				log_function(sout.str());
 			}
 			log_function("");
 		}
