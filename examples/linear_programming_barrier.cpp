@@ -72,7 +72,7 @@ public:
 		}
 
 		auto inside_log = -constraint;
-		auto minus_mu_inv_inside_log = (*mu) * 1.0 / inside_log;
+		auto minus_mu_inv_inside_log = - (*mu) * 1.0 / inside_log;
 		for (size_t i = 0; i < a.size(); ++i) {
 			(*gradient)[i](0) = minus_mu_inv_inside_log * (-a[i]);
 		}
@@ -173,6 +173,7 @@ int main_function()
 
 		mu /= 10.0;
 	}
+
 	std::cout << "Solution to the linear programming problem is cTx = " << f.evaluate() << '\n';
 	std::cout << "Elapsed time: " << total_time << " s.\n";
 
