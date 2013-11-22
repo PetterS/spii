@@ -174,6 +174,18 @@ int main_function()
 		mu /= 10.0;
 	}
 
+	// Check that all constraints are satisfied.
+	double sum = 0;
+	double eps = 1e-8;
+	for (size_t i = 0; i < n; ++i) {
+		spii_assert(-100-eps <= x[i] && x[i] <= 100+eps, "x[", i, "] = ", x[i]);
+		sum += x[i];
+		if (i < 10) {
+			std::cout << "c[" << i << "] = " << c[i] << ", x[" << i << "] = " << x[i] << std::endl;
+		}
+	}
+	spii_assert(-10-eps <= sum && sum <= 10+eps, "sum = ", sum);
+
 	std::cout << "Solution to the linear programming problem is cTx = " << f.evaluate() << '\n';
 	std::cout << "Elapsed time: " << total_time << " s.\n";
 
