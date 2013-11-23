@@ -147,7 +147,7 @@ bool ConstrainedFunction::is_feasible() const
 {
 	for (auto& itr: impl->constraints) {
 		auto c_x = itr.second.evaluate();
-		if (c_x > 1e-12) {
+		if (c_x > this->feasibility_tolerance) {
 			return false;
 		}
 	}
@@ -212,8 +212,11 @@ void ConstrainedFunction::solve(const Solver& solver, SolverResults* results)
 			// The maximum constraint violation is small enough.
 			// Update the dual variables (explicit formula).
 
+			auto lagrangian_before = impl->augmented_lagrangian.evaluate();
+
 			double max_change = 0;
 			double max_lambda = 0;
+			double delta_lambda = 0;
 			for (auto& itr: impl->constraints) {
 				auto c_x = itr.second.cached_value;
 				auto& lambda = itr.second.lambda;
@@ -226,18 +229,34 @@ void ConstrainedFunction::solve(const Solver& solver, SolverResults* results)
 					lambda = lambda + mu * c_x;
 				}
 				max_change = std::max(max_change, std::abs(prev - lambda));
-				max_lambda = std::max(max_lambda, std::abs(lambda));
+				max_lambda = std::max(max_lambda, std::abs(prev));
+				delta_lambda += (prev - lambda) * (prev - lambda);
 			}
+			delta_lambda = std::sqrt(delta_lambda);
+
+			auto lagrangian_after = impl->augmented_lagrangian.evaluate();
+			auto lagrangian_relative_change =
+				std::abs(lagrangian_after - lagrangian_before) / (std::abs(lagrangian_before) + 1e-8);
+			double dL_dd = 0.0;
+			if (delta_lambda > 0) {
+				dL_dd = (lagrangian_after - lagrangian_before) / delta_lambda;
+			}
+
+			auto relative_change = 
+				max_change / (max_lambda + this->dual_change_tolerance);
 
 			if (log_function) {
 				stringstream sout;
 				sout << "Updating dual variables. "
-				     << "Maximum change: " << max_change << ".";
+				     << "Max (relative) change: " << max_change << " ("
+					 << relative_change << ").";
 				log_function(sout.str());
+				log_function(to_string("Delta lambda = ", delta_lambda));
+				log_function(to_string("Relative aug. lagr. change: ", dL_dd));
 			}
 
-			if (max_change / (max_lambda + this->dual_change_tolerance) < this->dual_change_tolerance
-			    && max_violation < 1e-8) {
+			if (std::abs(dL_dd) < this->dual_change_tolerance
+			    && max_violation < this->feasibility_tolerance) {
 				results->exit_condition = SolverResults::GRADIENT_TOLERANCE;
 				break;
 			}
@@ -254,7 +273,7 @@ void ConstrainedFunction::solve(const Solver& solver, SolverResults* results)
 			}
 
 			// Increase penalty parameter.
-			mu *= 100;
+			mu *= 2;
 
 			// Nocedal & Wright.
 			nu = 1.0 / std::pow(mu, 0.1);

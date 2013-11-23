@@ -32,9 +32,14 @@ public:
 	double function_improvement_tolerance = 0;
 
 	// When updating the dual variables, the constrained solver
-	// stop if the maximum norm of the change is less than this
-	// tolerance.
-	double dual_change_tolerance = 1e-4;
+	// stops if the change in lagrangian value divided by the
+	// dual variable change is less than this tolerance.
+	// (and the feasibility tolerance is satisfied)
+	double dual_change_tolerance = 1e-6;
+
+	// Feasibility tolerance. A point is considered feasible if
+	// maximum violation is less than this value.
+	double feasibility_tolerance = 1e-10;
 
 	// The maximum number of (outer) iterations the solver will
 	// perform.

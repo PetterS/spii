@@ -1,4 +1,6 @@
 // Petter Strandmark 2013.
+//
+// This is a test of ConstrainedFunction with a known optimum.
 
 #include <functional>
 #include <iostream>
@@ -90,7 +92,7 @@ int main_function()
 	std::normal_distribution<double> normal;
 	auto randn = std::bind(normal, prng);
 
-	const int n = 10;
+	const int n = 100;
 
 	// Variables.
 	std::vector<double> x(n, 0.0);
