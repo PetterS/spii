@@ -25,12 +25,22 @@ namespace spii
 double SPII_API wall_time();
 
 
-// Helper functions that sends all its arguments to the provided
-// pointer to stream.
+// to_string converts all its arguments to a string and
+// concatenates.
 //
 // Anonymous namespace is needed because the base case for the
 // template recursion is a normal function.
 namespace {
+
+	void add_to_stream(std::ostream*)
+	{  }
+
+	template<typename T, typename... Args>
+	void add_to_stream(std::ostream* stream, T&& t, Args&&... args)
+	{
+		(*stream) << std::forward<T>(t);
+		add_to_stream(stream, std::forward<Args>(args)...);
+	}
 
 	std::string to_string()
 	{ 
@@ -44,12 +54,11 @@ namespace {
 		return{ c_str };
 	}
 
-	template<typename T, typename... Args>
-	std::string to_string(T&& t, Args&&... args)
+	template<typename... Args>
+	std::string to_string(Args&&... args)
 	{
 		std::stringstream stream;
-		stream << std::forward<T>(t)
-			   << to_string(std::forward<Args>(args)...);
+		add_to_stream(&stream, std::forward<Args>(args)...); 
 		return stream.str();
 	}
 }
