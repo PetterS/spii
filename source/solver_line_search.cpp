@@ -38,8 +38,8 @@ double perform_Wolfe_linesearch(const Solver& solver,
 	auto c2 = solver.line_search_c2;
 	//
 
-	std::vector<double> bracket;
-	std::vector<double> bracket_fval;
+	double bracket[2];
+	double bracket_fval[2];
 	//std::vector<Eigen::VectorXd> bracket_gval;
 	bool done = false;
 
@@ -51,8 +51,10 @@ double perform_Wolfe_linesearch(const Solver& solver,
 	while (iterations <= max_iterations) {
 
 		if (f_new > f + c1 * alpha * gtp || (iterations > 1 && f_new >= f_prev)) {
-			bracket = {alpha_prev, alpha};
-			bracket_fval = {f_prev, f_new};
+			bracket[0] = alpha_prev;
+			bracket[1] = alpha;
+			bracket_fval[0] = f_prev;
+			bracket_fval[1] = f_new;
 			//bracket_gval = {g_prev, g_new};
 			break;
 		}
@@ -61,8 +63,10 @@ double perform_Wolfe_linesearch(const Solver& solver,
 			return alpha;
 		}
 		else if (gtp_new >= 0) {
-			bracket = {alpha_prev, alpha};
-			bracket_fval = {f_prev, f_new};
+			bracket[0] = alpha_prev;
+			bracket[1] = alpha;
+			bracket_fval[0] = f_prev;
+			bracket_fval[1] = f_new;
 			//bracket_gval = {g_prev, g_new};
 			break;
 		}
