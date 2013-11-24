@@ -17,10 +17,9 @@ using namespace spii;
 struct LinearObjective
 {
 	double c;
-	LinearObjective(double c)
-	{
-		this->c = c;
-	}
+	LinearObjective(double c_)
+		: c(c_)
+	{  }
 
 	template<typename R>
 	R operator()(const R* const x) const
@@ -53,7 +52,7 @@ public:
 		return 1;
 	}
 
-	virtual double evaluate(double * const * const x) const
+	virtual double evaluate(double * const * const x) const override
 	{
 		double constraint = -b;
 		for (size_t i = 0; i < a.size(); ++i) {
@@ -79,7 +78,8 @@ public:
 
 	virtual double evaluate(double * const * const variables,
 	                        std::vector<Eigen::VectorXd>* gradient,
-	                        std::vector< std::vector<Eigen::MatrixXd> >* hessian) const
+	                        std::vector< std::vector<Eigen::MatrixXd> >* hessian
+	                       ) const override
 	{
 		spii::check(false, "Hessians not supported.");
 		return 0.0;
