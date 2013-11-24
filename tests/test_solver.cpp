@@ -268,9 +268,66 @@ TEST(Solver, Newton_exact)
 		f.add_term(std::make_shared<AutoDiffTerm<Rosenbrock, 2>>(), x);
 
 		NewtonSolver solver;
+		solver.line_search_type = Solver::ARMIJO;
+
 		SolverResults results;
 		solver.log_function = nullptr;
 		solver.maximum_iterations = iters[i];
+
+		solver.solve(f, &results);
+		double fval = f.evaluate();
+		EXPECT_LE( std::abs(fval - fvals[i]) / std::abs(fval), 1e-5);
+	}
+}
+
+TEST(Solver, Newton_exact_Wolfe)
+{
+	// Test that the Newton solver follows a reference
+	// MATLAB implementation (minFunc) configured to
+	// use the same line search method.
+
+	// The Rosenbrock function has a positive definite
+	// Hessian at eery iteration step, so this test does
+	// not test the iterative Cholesky factorization.
+
+	std::vector<double> fvals = {
+		4.73188e+00,
+		4.08740e+00,
+		3.22867e+00,
+		2.76783e+00,
+		2.17872e+00,
+		1.66968e+00,
+		1.26823e+00,
+		9.13472e-01,
+		6.86341e-01,
+		4.35423e-01,
+		3.19604e-01,
+		1.92120e-01,
+		1.13097e-01,
+		5.32981e-02,
+		2.88735e-02,
+		6.63610e-03,
+		2.23143e-03,
+		4.18107e-05,
+		1.70026e-07,
+		2.75421e-13};
+
+	for (int i = 0; i < fvals.size(); ++i) {
+		double x[2] = {-1.2, 1.0};
+		Function f;
+		f.add_variable(x, 2);
+		f.add_term(std::make_shared<AutoDiffTerm<Rosenbrock, 2>>(), x);
+
+		NewtonSolver solver;
+
+		// MinFunc configuration.
+		solver.line_search_type = Solver::WOLFE;
+		solver.line_search_c  = 1e-4;
+		solver.line_search_c2 = 0.9;
+
+		SolverResults results;
+		solver.log_function = nullptr;
+		solver.maximum_iterations = i + 1;
 
 		solver.solve(f, &results);
 		double fval = f.evaluate();

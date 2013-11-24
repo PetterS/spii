@@ -124,11 +124,23 @@ public:
 	// if ||dx|| / (||x|| + tol) < tol.
 	double argument_improvement_tolerance = 1e-12;
 
-	// The line search is completed when
+	enum {ARMIJO, WOLFE} line_search_type = ARMIJO;
+
+	// The Armijo line search is completed when
+	//
 	//   f(x + alpha * p) <= f(x) + c * alpha * gTp.
-	// In each iteration, alpha *= rho.
+	//
+	// This condition is also part of Wolfe line search.
 	double line_search_c   = 1e-2;
+
+	// In each Armijo iteration, alpha *= rho.
 	double line_search_rho = 0.5;
+
+	// The Wolfe conditions are
+	//
+	// |g_newTp| <= -c2 * gTp
+	//
+	double line_search_c2 = 0.9;
 
 protected:
 
