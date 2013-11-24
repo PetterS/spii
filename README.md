@@ -12,8 +12,15 @@ Features
 * Nelder-Mead for nondifferentiable problems.
 * Automatic differentiation to compute gradient and hessian using FADBAD++ (included).
 * Multi-threaded using OpenMP.
-* Change of variables (experimental).
-* Global optimization with interval arithmetic (experimental).
+
+####Experimental features
+This repository also contains some experimental features. These features are not ready for production and do not have very extensive test coverage. They may change or be removed in the future.
+* Wolfe line search.
+* Global optimization with interval arithmetic.
+* Constrained optimization (augmented lagrangian).
+
+####To Do
+* Sparse block-diagonal factorization.
 
 Compilation
 -----------
@@ -31,7 +38,7 @@ It is even easier on Windows. The status of the automatic builds using gcc and C
 
 Benchmarks
 ----------
-The solver comes with extensive benchmarks.
+The solver comes with extensive benchmarks and tests.
 
 * The NIST collection of non-linear least-squares problems. http://www.itl.nist.gov/div898/strd/nls/nls_main.shtml
 * Test functions from More et al. [2].
