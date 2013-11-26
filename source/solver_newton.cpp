@@ -97,6 +97,7 @@ void NewtonSolver::solve(const Function& function,
 	}
 
 	FactorizationCache factorization_cache((int)n);
+	CheckExitConditionsCache exit_condition_cache;
 
 	//
 	// START MAIN ITERATION
@@ -147,7 +148,7 @@ void NewtonSolver::solve(const Function& function,
 		start_time = wall_time();
 		if (this->check_exit_conditions(fval, fprev, normg,
 			                            normg0, x.norm(), normdx,
-			                            true, results)) {
+			                            true, &exit_condition_cache, results)) {
 			break;
 		}
 		if (iter >= this->maximum_iterations) {

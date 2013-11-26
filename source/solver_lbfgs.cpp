@@ -62,6 +62,8 @@ void LBFGSSolver::solve(const Function& function,
 	// Needed from the previous iteration.
 	Eigen::VectorXd x_prev(n), s_tmp(n), y_tmp(n);
 
+	CheckExitConditionsCache exit_condition_cache;
+
 	//
 	// START MAIN ITERATION
 	//
@@ -129,7 +131,8 @@ void LBFGSSolver::solve(const Function& function,
 		start_time = wall_time();
 		if (iter > 1 && this->check_exit_conditions(fval, fprev, normg,
 		                                            normg0, x.norm(), normdx,
-		                                            last_iteration_successful, results)) {
+		                                            last_iteration_successful, 
+		                                            &exit_condition_cache, results)) {
 			break;
 		}
 		if (iter >= this->maximum_iterations) {

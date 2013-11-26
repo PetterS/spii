@@ -4,7 +4,7 @@
 // The Solver class is a lightweight class defining settings
 // for a solver.
 //
-// The member function Solver::solve uses minimizes a Function
+// The member function Solver::solve minimizes a Function
 // using the settings in the Solver.
 //
 
@@ -77,14 +77,12 @@ struct CallbackInformation
 	const Eigen::SparseMatrix<double>* H_sparse = nullptr; 
 };
 
-struct FactorizationCacheInternal;
-class FactorizationCache
-{
-public:
-	FactorizationCache(int n);
-	~FactorizationCache();
-	FactorizationCacheInternal* data;
-};
+
+// Used to call Solver::BKP_dense.
+class SPII_API FactorizationCache;
+
+// Used to call Solver::check_exit_conditions.
+struct CheckExitConditionsCache;
 
 #ifdef _WIN32
 	SPII_API_EXTERN_TEMPLATE template class SPII_API std::function<void(const std::string&)>;
@@ -146,6 +144,8 @@ protected:
 
 	// Computes a Newton step given a function, a gradient and a
 	// Hessian.
+	//
+	// Stores the used cache in the cache
 	bool check_exit_conditions(const double fval,
 	                           const double fprev,
 	                           const double gnorm,
@@ -153,6 +153,7 @@ protected:
 	                           const double xnorm,
 	                           const double dxnorm,
 	                           const bool last_iteration_successful,
+	                           CheckExitConditionsCache* cache,
 	                           SolverResults* results) const;
 
 	// Performs a line search from x along direction p. Returns
@@ -172,11 +173,6 @@ protected:
 	               const FactorizationCache& cache,
 	               Eigen::VectorXd* p,
 	               SolverResults* results) const;
-private:
-	// Used by check_exit_condition.
-	static const int amount_history_to_consider = 6;
-	mutable int norm_g_history_pos = 0;
-	mutable double normg_history[amount_history_to_consider];
 };
 
 // Newton's method. It requires first and
@@ -268,6 +264,38 @@ public:
 	// extended interface above.
 	virtual void solve(const Function& function, SolverResults* results) const override;
 };
+
+
+
+
+
+// Definitions of helper classes.
+
+struct FactorizationCacheInternal;
+class SPII_API FactorizationCache
+{
+public:
+	FactorizationCache(int n);
+	~FactorizationCache();
+	FactorizationCacheInternal* data;
+};
+
+
+struct CheckExitConditionsCache
+{
+public:
+	CheckExitConditionsCache()
+	{
+		for (auto& ng: normg_history) {
+			ng = 0.0;
+		}
+	}
+
+	static const int amount_history_to_consider = 6;
+	int norm_g_history_pos = 0;
+	double normg_history[amount_history_to_consider];
+};
+
 
 }  // namespace spii
 

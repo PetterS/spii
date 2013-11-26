@@ -11,6 +11,7 @@ bool Solver::check_exit_conditions(const double fval,
                                    const double normx,
                                    const double normdx,
                                    const bool last_iteration_successful,
+                                   CheckExitConditionsCache* cache,
                                    SolverResults* results) const
 {
 	if (fval != fval) {
@@ -27,8 +28,8 @@ bool Solver::check_exit_conditions(const double fval,
 		// does not seem to improve anymore.
 		
 		// Look at the recent history and find the largest gradient.
-		auto max_normg = normg_history[0];
-		for (auto ng: normg_history) {
+		auto max_normg = cache->normg_history[0];
+		for (auto ng: cache->normg_history) {
 			max_normg = std::max(max_normg, ng);
 		}
 
@@ -41,8 +42,8 @@ bool Solver::check_exit_conditions(const double fval,
 		}
 	}
 
-	norm_g_history_pos = (norm_g_history_pos + 1) % amount_history_to_consider;
-	normg_history[norm_g_history_pos] = normg;
+	cache->norm_g_history_pos = (cache->norm_g_history_pos + 1) % cache->amount_history_to_consider;
+	cache->normg_history[cache->norm_g_history_pos] = normg;
 
 	if (last_iteration_successful &&
 	    std::fabs(fval - fprev) / (std::fabs(fval) + this->function_improvement_tolerance) <
