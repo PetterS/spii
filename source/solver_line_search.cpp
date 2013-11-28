@@ -1,10 +1,49 @@
 // Petter Strandmark 2012–2013.
+#include <array>
+#include <limits>
 
 #include <Eigen/Dense>
 
 #include <spii/solver.h>
 
 namespace spii {
+
+namespace
+{
+	// constexpr when supported.
+	const double nan = std::numeric_limits<double>::quiet_NaN();
+}
+
+double
+polynomial_interpolation(std::array<double, 2> x,
+                         std::array<double, 2> f,
+                         std::array<double, 2> df,
+						 double xmin = nan, double xmax = nan)
+{
+	int minpos = 0;
+	if (x[1] < x[0]) {
+		minpos = 1;
+	}
+	int maxpos = 1 - minpos;
+
+	if (xmin != xmin) {
+		xmin = x[minpos];
+	}
+	if (xmax != xmax) {
+		xmax = x[maxpos];
+	}
+
+	auto d1 = df[minpos] + df[maxpos] - 3*(f[minpos] - f[maxpos]) / (x[minpos] - x[maxpos]);
+	auto inside_sqrt = d1*d1 - df[0]*df[1];
+	if (inside_sqrt >= 0) {
+		auto d2 = std::sqrt(inside_sqrt);
+		auto t = x[maxpos] - (x[maxpos] - x[minpos])*((df[maxpos] + d2 - d1)/(df[maxpos] - df[minpos] + 2*d2));
+		return std::min(std::max(t, xmin), xmax);
+	}
+	else {
+		return (xmin + xmax) / 2;
+	}
+}
 
 double perform_Wolfe_linesearch(const Solver& solver,
                                 const Function& function,
@@ -38,9 +77,9 @@ double perform_Wolfe_linesearch(const Solver& solver,
 	auto c2 = solver.line_search_c2;
 	//
 
-	double bracket[2];
-	double bracket_fval[2];
-	//std::vector<Eigen::VectorXd> bracket_gval;
+	std::array<double, 2> bracket;
+	std::array<double, 2> bracket_fval;
+	std::array<double, 2> bracket_gTpval;
 	bool done = false;
 
 	//
@@ -51,11 +90,9 @@ double perform_Wolfe_linesearch(const Solver& solver,
 	while (iterations <= max_iterations) {
 
 		if (f_new > f + c1 * alpha * gtp || (iterations > 1 && f_new >= f_prev)) {
-			bracket[0] = alpha_prev;
-			bracket[1] = alpha;
-			bracket_fval[0] = f_prev;
-			bracket_fval[1] = f_new;
-			//bracket_gval = {g_prev, g_new};
+			bracket        = {alpha_prev, alpha};
+			bracket_fval   = {f_prev, f_new};
+			bracket_gTpval = {g_prev.dot(p), g_new.dot(p)};
 			break;
 		}
 		else if (std::abs(gtp_new) <= -c2 * gtp) {
@@ -63,11 +100,9 @@ double perform_Wolfe_linesearch(const Solver& solver,
 			return alpha;
 		}
 		else if (gtp_new >= 0) {
-			bracket[0] = alpha_prev;
-			bracket[1] = alpha;
-			bracket_fval[0] = f_prev;
-			bracket_fval[1] = f_new;
-			//bracket_gval = {g_prev, g_new};
+			bracket        = {alpha_prev, alpha};
+			bracket_fval   = {f_prev, f_new};
+			bracket_gTpval = {g_prev.dot(p), g_new.dot(p)};
 			break;
 		}
 
@@ -76,7 +111,15 @@ double perform_Wolfe_linesearch(const Solver& solver,
 		double minStep = alpha + 0.01*(alpha - temp);
 		double maxStep = 10 * alpha;
 
-		alpha = maxStep;
+		if (solver.wolfe_interpolation_strategy == Solver::BISECTION) {
+			alpha = maxStep;
+		}
+		else {
+			alpha = polynomial_interpolation({temp, alpha},
+			                                 {f_prev, f_new},
+			                                 {gtp_prev, gtp_new}, 
+			                                 minStep, maxStep);
+		}
 
 		f_prev = f_new;
 		g_prev = g_new;
@@ -96,7 +139,14 @@ double perform_Wolfe_linesearch(const Solver& solver,
 	while (!done && iterations <= max_iterations) {
 
 		// Compute new trial value.
-		alpha = (bracket[0] + bracket[1]) / 2.0;
+		if (solver.wolfe_interpolation_strategy == Solver::BISECTION) {
+			alpha = (bracket[0] + bracket[1]) / 2.0;
+		}
+		else {
+			alpha = polynomial_interpolation(bracket,
+			                                 bracket_fval,
+			                                 bracket_gTpval);
+		}	 
 
 		auto max_bracket = std::max({bracket[0], bracket[1]});
 		auto min_bracket = std::min({bracket[0], bracket[1]});
@@ -139,9 +189,9 @@ double perform_Wolfe_linesearch(const Solver& solver,
 		if (!armijo || f_new >= f_low) {
 			// Armijo condition not satisfied or not lower than lowest
 			// point
-			bracket[hi_pos] = alpha;
-			bracket_fval[hi_pos] = f_new;
-			//bracket_gval[hi_pos] = g_new;
+			bracket[hi_pos]        = alpha;
+			bracket_fval[hi_pos]   = f_new;
+			bracket_gTpval[hi_pos] = g_new.dot(p);
 			t_pos = hi_pos;
 		}
 		else {
@@ -151,15 +201,15 @@ double perform_Wolfe_linesearch(const Solver& solver,
 			}
 			else if (gtp_new * (bracket[hi_pos] - bracket[lo_pos]) >= 0) {
 				// Old HI becomes new LO
-				bracket[hi_pos] = bracket[lo_pos];
-				bracket_fval[hi_pos] = bracket_fval[lo_pos];
-				//bracket_gval[hi_pos] = bracket_gval[lo_pos];
+				bracket[hi_pos]        = bracket[lo_pos];
+				bracket_fval[hi_pos]   = bracket_fval[lo_pos];
+				bracket_gTpval[hi_pos] = bracket_gTpval[lo_pos];
 			}
 
 			// New point becomes new LO
-			bracket[lo_pos] = alpha;
-			bracket_fval[lo_pos] = f_new;
-			//bracket_gval[lo_pos] = g_new;
+			bracket[lo_pos]        = alpha;
+			bracket_fval[lo_pos]   = f_new;
+			bracket_gTpval[lo_pos] = g_new.dot(p);
 			t_pos = lo_pos;
 		}
 

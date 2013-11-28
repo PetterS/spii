@@ -124,6 +124,10 @@ public:
 
 	enum {ARMIJO, WOLFE} line_search_type = ARMIJO;
 
+	// Interpolation type only affects Wolfe line search.
+	enum {BISECTION, CUBIC}
+		wolfe_interpolation_strategy = CUBIC;
+
 	// The Armijo line search is completed when
 	//
 	//   f(x + alpha * p) <= f(x) + c * alpha * gTp.

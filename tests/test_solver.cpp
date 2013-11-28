@@ -322,6 +322,7 @@ TEST(Solver, Newton_exact_Wolfe)
 
 		// MinFunc configuration.
 		solver.line_search_type = Solver::WOLFE;
+		solver.wolfe_interpolation_strategy = Solver::BISECTION;
 		solver.line_search_c  = 1e-4;
 		solver.line_search_c2 = 0.9;
 
@@ -332,6 +333,124 @@ TEST(Solver, Newton_exact_Wolfe)
 		solver.solve(f, &results);
 		double fval = f.evaluate();
 		EXPECT_LE( std::abs(fval - fvals[i]) / std::abs(fval), 1e-5);
+	}
+}
+
+TEST(Solver, LBFGS_exact_Wolfe_far)
+{
+	// Test that the Newton solver follows a reference
+	// MATLAB implementation (minFunc) configured to
+	// use the same line search method.
+
+	// The Rosenbrock function has a positive definite
+	// Hessian at eery iteration step, so this test does
+	// not test the iterative Cholesky factorization.
+
+	std::vector<double> fvals = {
+		1.46190e+14,
+		3.41218e+13,
+		1.24973e+13,
+		3.86189e+12,
+		1.27251e+12,
+		4.07749e+11,
+		1.31310e+11,
+		4.17776e+10,
+		1.31168e+10};
+
+	for (int i = 0; i < fvals.size(); ++i) {
+		double x[2] = {-1200, 1000};
+		Function f;
+		f.add_variable(x, 2);
+		f.add_term(std::make_shared<AutoDiffTerm<Rosenbrock, 2>>(), x);
+
+		LBFGSSolver solver;
+
+		// MinFunc configuration.
+		solver.line_search_type = Solver::WOLFE;
+		solver.wolfe_interpolation_strategy = Solver::BISECTION;
+		solver.line_search_c  = 1e-4;
+		solver.line_search_c2 = 0.9;
+
+		SolverResults results;
+		solver.log_function = nullptr;
+		solver.maximum_iterations = i + 1;
+
+		solver.solve(f, &results);
+		double fval = f.evaluate();
+		EXPECT_LE( std::abs(fval - fvals[i]) / std::abs(fval), 1e-5);
+	}
+}
+
+TEST_CASE("LBFGS_exact_Wolfe_interpolation")
+{
+	// Test that the Newton solver follows a reference
+	// MATLAB implementation (minFunc) configured to
+	// use the same line search method.
+
+	// The Rosenbrock function has a positive definite
+	// Hessian at eery iteration step, so this test does
+	// not test the iterative Cholesky factorization.
+
+	std::vector<double> fvals = {
+		1.69372e+10,
+		3.63800e+09,
+		1.35617e+09,
+		4.07136e+08,
+		1.30647e+08,
+		3.95499e+07,
+		1.15617e+07,
+		3.08730e+06,
+		7.06478e+05,
+		1.20698e+05,
+		1.19546e+04,
+		5.30431e+02,
+		1.24938e+02,
+		1.22820e+02,
+		1.22820e+02,
+		1.22819e+02,
+		1.22818e+02,
+		1.22816e+02,
+		1.22808e+02,
+		1.22790e+02,
+		1.22741e+02,
+		1.22610e+02,
+		1.22244e+02,
+		1.05808e+02,
+		1.05502e+02,
+		9.98985e+01,
+		9.52870e+01,
+		8.98113e+01,
+		8.35851e+01,
+		8.27050e+01,
+		7.90132e+01,
+		7.38046e+01,
+		7.05325e+01,
+		6.80851e+01,
+		6.20812e+01};
+
+	for (int i = 0; i < fvals.size(); ++i) {
+		double x[2] = {-120, 100};
+		Function f;
+		f.add_variable(x, 2);
+		f.add_term<AutoDiffTerm<Rosenbrock, 2>>(x);
+
+		LBFGSSolver solver;
+		solver.log_function = nullptr;
+
+		// MinFunc configuration.
+		solver.line_search_type = Solver::WOLFE;
+		solver.wolfe_interpolation_strategy = Solver::CUBIC;
+		solver.line_search_c  = 1e-4;
+		solver.line_search_c2 = 0.9;
+
+		SolverResults results;
+		//solver.log_function = nullptr;
+		solver.maximum_iterations = i + 1;
+
+		solver.solve(f, &results);
+		double fval = f.evaluate();
+		CAPTURE(i)
+		REQUIRE( (std::abs(fval - fvals[i]) / std::abs(fval)) < 1e-4);
 	}
 }
 
