@@ -77,11 +77,6 @@ double perform_Wolfe_linesearch(const Solver& solver,
 	auto c2 = solver.line_search_c2;
 	//
 
-	// GCC 4.7 required explicit conversion
-	// to std::array. This typedef will be
-	// removed later here and below.
-	typedef std::array<double, 2> GCC_47_Fix;
-
 	std::array<double, 2> bracket;
 	std::array<double, 2> bracket_fval;
 	std::array<double, 2> bracket_gTpval;
@@ -95,9 +90,9 @@ double perform_Wolfe_linesearch(const Solver& solver,
 	while (iterations <= max_iterations) {
 
 		if (f_new > f + c1 * alpha * gtp || (iterations > 1 && f_new >= f_prev)) {
-			bracket        = GCC_47_Fix{alpha_prev, alpha};
-			bracket_fval   = GCC_47_Fix{f_prev, f_new};
-			bracket_gTpval = GCC_47_Fix{g_prev.dot(p), g_new.dot(p)};
+			bracket        = {alpha_prev, alpha};
+			bracket_fval   = {f_prev, f_new};
+			bracket_gTpval = {g_prev.dot(p), g_new.dot(p)};
 			break;
 		}
 		else if (std::abs(gtp_new) <= -c2 * gtp) {
@@ -105,9 +100,9 @@ double perform_Wolfe_linesearch(const Solver& solver,
 			return alpha;
 		}
 		else if (gtp_new >= 0) {
-			bracket        = GCC_47_Fix{alpha_prev, alpha};
-			bracket_fval   = GCC_47_Fix{f_prev, f_new};
-			bracket_gTpval = GCC_47_Fix{g_prev.dot(p), g_new.dot(p)};
+			bracket        = {alpha_prev, alpha};
+			bracket_fval   = {f_prev, f_new};
+			bracket_gTpval = {g_prev.dot(p), g_new.dot(p)};
 			break;
 		}
 
@@ -120,9 +115,9 @@ double perform_Wolfe_linesearch(const Solver& solver,
 			alpha = maxStep;
 		}
 		else {
-			alpha = polynomial_interpolation(GCC_47_Fix{temp, alpha},
-			                                 GCC_47_Fix{f_prev, f_new},
-			                                 GCC_47_Fix{gtp_prev, gtp_new}, 
+			alpha = polynomial_interpolation({temp, alpha},
+			                                 {f_prev, f_new},
+			                                 {gtp_prev, gtp_new}, 
 			                                 minStep, maxStep);
 		}
 
