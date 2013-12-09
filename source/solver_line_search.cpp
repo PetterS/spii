@@ -18,7 +18,7 @@ double
 polynomial_interpolation(std::array<double, 2> x,
                          std::array<double, 2> f,
                          std::array<double, 2> df,
-						 double xmin = nan, double xmax = nan)
+                         double xmin = nan, double xmax = nan)
 {
 	int minpos = 0;
 	if (x[1] < x[0]) {
@@ -77,6 +77,11 @@ double perform_Wolfe_linesearch(const Solver& solver,
 	auto c2 = solver.line_search_c2;
 	//
 
+	// GCC 4.7 required explicit conversion
+	// to std::array. This typedef will be
+	// removed later here and below.
+	typedef std::array<double, 2> GCC_47_Fix;
+
 	std::array<double, 2> bracket;
 	std::array<double, 2> bracket_fval;
 	std::array<double, 2> bracket_gTpval;
@@ -90,9 +95,9 @@ double perform_Wolfe_linesearch(const Solver& solver,
 	while (iterations <= max_iterations) {
 
 		if (f_new > f + c1 * alpha * gtp || (iterations > 1 && f_new >= f_prev)) {
-			bracket        = {alpha_prev, alpha};
-			bracket_fval   = {f_prev, f_new};
-			bracket_gTpval = {g_prev.dot(p), g_new.dot(p)};
+			bracket        = GCC_47_Fix{alpha_prev, alpha};
+			bracket_fval   = GCC_47_Fix{f_prev, f_new};
+			bracket_gTpval = GCC_47_Fix{g_prev.dot(p), g_new.dot(p)};
 			break;
 		}
 		else if (std::abs(gtp_new) <= -c2 * gtp) {
@@ -100,9 +105,9 @@ double perform_Wolfe_linesearch(const Solver& solver,
 			return alpha;
 		}
 		else if (gtp_new >= 0) {
-			bracket        = {alpha_prev, alpha};
-			bracket_fval   = {f_prev, f_new};
-			bracket_gTpval = {g_prev.dot(p), g_new.dot(p)};
+			bracket        = GCC_47_Fix{alpha_prev, alpha};
+			bracket_fval   = GCC_47_Fix{f_prev, f_new};
+			bracket_gTpval = GCC_47_Fix{g_prev.dot(p), g_new.dot(p)};
 			break;
 		}
 
@@ -115,9 +120,9 @@ double perform_Wolfe_linesearch(const Solver& solver,
 			alpha = maxStep;
 		}
 		else {
-			alpha = polynomial_interpolation({temp, alpha},
-			                                 {f_prev, f_new},
-			                                 {gtp_prev, gtp_new}, 
+			alpha = polynomial_interpolation(GCC_47_Fix{temp, alpha},
+			                                 GCC_47_Fix{f_prev, f_new},
+			                                 GCC_47_Fix{gtp_prev, gtp_new}, 
 			                                 minStep, maxStep);
 		}
 
@@ -220,6 +225,7 @@ double perform_Wolfe_linesearch(const Solver& solver,
 		if (solver.log_function) {
 			solver.log_function("Wolfe line search maximum iterations exceeded.");
 		}
+		return 0.0;
 	}
 
 	if (bracket_fval[0] < bracket_fval[1]) {
