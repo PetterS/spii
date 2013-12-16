@@ -90,9 +90,10 @@ double perform_Wolfe_linesearch(const Solver& solver,
 	while (iterations <= max_iterations) {
 
 		if (f_new > f + c1 * alpha * gtp || (iterations > 1 && f_new >= f_prev)) {
-			bracket        = {alpha_prev, alpha};
-			bracket_fval   = {f_prev, f_new};
-			bracket_gTpval = {g_prev.dot(p), g_new.dot(p)};
+			// Double braces for GCC 4.7 compatibility. Remove later.
+			bracket        = {{alpha_prev, alpha}};
+			bracket_fval   = {{f_prev, f_new}};
+			bracket_gTpval = {{ g_prev.dot(p), g_new.dot(p)}};
 			break;
 		}
 		else if (std::abs(gtp_new) <= -c2 * gtp) {
@@ -100,9 +101,10 @@ double perform_Wolfe_linesearch(const Solver& solver,
 			return alpha;
 		}
 		else if (gtp_new >= 0) {
-			bracket        = {alpha_prev, alpha};
-			bracket_fval   = {f_prev, f_new};
-			bracket_gTpval = {g_prev.dot(p), g_new.dot(p)};
+			// Double braces for GCC 4.7 compatibility. Remove later.
+			bracket        = {{alpha_prev, alpha}};
+			bracket_fval   = {{f_prev, f_new}};
+			bracket_gTpval = {{g_prev.dot(p), g_new.dot(p)}};
 			break;
 		}
 
@@ -115,9 +117,10 @@ double perform_Wolfe_linesearch(const Solver& solver,
 			alpha = maxStep;
 		}
 		else {
-			alpha = polynomial_interpolation({temp, alpha},
-			                                 {f_prev, f_new},
-			                                 {gtp_prev, gtp_new}, 
+			// Double braces for GCC 4.7 compatibility. Remove later.
+			alpha = polynomial_interpolation({{temp, alpha}},
+			                                 {{f_prev, f_new}},
+			                                 {{gtp_prev, gtp_new}},
 			                                 minStep, maxStep);
 		}
 
