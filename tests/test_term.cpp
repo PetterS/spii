@@ -1,4 +1,5 @@
 // Petter Strandmark 2012.
+#include <sstream>
 
 #define CATCH_CONFIG_MAIN
 #include <catch.hpp>
@@ -471,35 +472,33 @@ struct WriteFunctor1
 
 TEST_CASE("AutoDiffTerm/write_test1", "")
 {
-	auto tmp = "tmp";
+	std::string file;
 
-	std::ofstream fout(tmp);
+	std::stringstream fout;
 	Term* term1 = new AutoDiffTerm<WriteFunctor1, 1>;
 	fout << *term1;
 	delete term1;
-	fout.close();
+	file = fout.str();
 		
-	std::ifstream fin(tmp);
+	std::stringstream fin{ file };
 	std::string petter;
 	fin >> petter;
-	fin.close();
 	CHECK(petter == "Petter");
 }
 
 TEST_CASE("AutoDiffTerm/write_test1_1", "")
 {
-	auto tmp = "tmp";
+	std::string file;
 
-	std::ofstream fout(tmp);
+	std::stringstream fout;
 	Term* term1_1 = new AutoDiffTerm<WriteFunctor1, 1, 1>;
 	fout << *term1_1;
 	delete term1_1;
-	fout.close();
+	file = fout.str();
 		
-	std::ifstream fin(tmp);
+	std::stringstream fin{file};
 	std::string petter;
 	fin >> petter;
-	fin.close();
 	CHECK(petter == "Petter");
 }
 
@@ -529,22 +528,22 @@ struct ReadFunctor
 
 TEST_CASE("AutoDiffTerm/read_test", "")
 {
-	auto tmp = "tmp";
+	std::string file;
 
-	std::ofstream fout(tmp);
+	std::stringstream fout;
 	fout << 42;
-	fout.close();
+	file = fout.str();
 
 	int n = 0;
 	Term* term1 = new AutoDiffTerm<ReadFunctor, 1>(&n);
-	std::ifstream fin(tmp);
+	std::stringstream fin{file};
 	fin >> *term1;
 	CHECK(n == 42);
 	delete term1;
 	
 	int m = 0;
 	Term* term1_1 = new AutoDiffTerm<ReadFunctor, 1, 1>(&m);
-	std::ifstream fin2(tmp);
+	std::stringstream fin2{file};
 	fin2 >> *term1_1;
 	CHECK(m == 42);
 	delete term1_1;

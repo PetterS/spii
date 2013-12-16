@@ -1,5 +1,6 @@
 // Petter Strandmark 2013.
-#include <fstream>
+#include <string>
+#include <sstream>
 #include <random>
 
 #define CATCH_CONFIG_MAIN
@@ -72,7 +73,9 @@ struct NormTwo
 
 TEST_CASE("Serialize/write_read", "")
 {
-	auto tmp = "tmp";
+	REQUIRE(global_number_of_terms == 0);
+
+	string file;
 	double f_value = 0;
 
 	// First, create a function and write it to a
@@ -83,13 +86,13 @@ TEST_CASE("Serialize/write_read", "")
 		double x2[3] = {20.0, 30.0, 40.0};
 		f.add_variable(x1, 1);
 		f.add_variable(x2, 3);
-		f.add_term(std::make_shared<AutoDiffTerm<Norm<1>, 1>>(), x1);
-		f.add_term(std::make_shared<AutoDiffTerm<Norm<3>, 3>>(), x2);
-		f.add_term(std::make_shared<AutoDiffTerm<NormTwo<3,1>, 3, 1>>(), x2, x1);
+		f.add_term<AutoDiffTerm<Norm<1>, 1>>(x1);
+		f.add_term<AutoDiffTerm<Norm<3>, 3>>(x2);
+		f.add_term<AutoDiffTerm<NormTwo<3, 1>, 3, 1>>(x2, x1);
 
-		ofstream fout(tmp);
+		stringstream fout;
 		fout << Serialize(f);
-		fout.close();
+		file = fout.str();
 
 		f_value = f.evaluate();
 		CHECK(global_number_of_terms == 3);
@@ -107,9 +110,8 @@ TEST_CASE("Serialize/write_read", "")
 
 		Function f2;
 		std::vector<double> x;
-		ifstream fin(tmp);
+		stringstream fin{file};
 		fin >> Serialize(&f2, &x, factory);
-		fin.close();
 
 		CHECK(f_value == f2.evaluate());
 		CHECK(global_number_of_terms == 3);
@@ -131,7 +133,7 @@ struct Rosenbrock
 
 TEST_CASE("Serialize/minimization", "")
 {
-	const auto tmp = "tmp";
+	string file;
 	const int num_start_values = 10;
 
 	vector<pair<double, double>> start_values;
@@ -146,11 +148,11 @@ TEST_CASE("Serialize/minimization", "")
 		Function f;
 		double x[2] = {0};
 		f.add_variable(x, 2);
-		f.add_term(std::make_shared<AutoDiffTerm<Rosenbrock, 2>>(), x);
+		f.add_term<AutoDiffTerm<Rosenbrock, 2>>(x);
 
-		ofstream fout(tmp);
+		stringstream fout;
 		fout << Serialize(f);
-		fout.close();
+		file = fout.str();
 
 		NewtonSolver solver;
 		solver.log_function = [](const string&) { };
@@ -171,9 +173,8 @@ TEST_CASE("Serialize/minimization", "")
 
 		Function f2;
 		std::vector<double> x;
-		ifstream fin(tmp);
+		stringstream fin{file};
 		fin >> Serialize(&f2, &x, factory);
-		fin.close();
 
 		NewtonSolver solver;
 		solver.log_function = [](const string&) { };
@@ -221,7 +222,7 @@ struct NegLogLikelihood
 
 TEST_CASE("Serialize/FunctorData", "")
 {
-	const auto tmp = "tmp";
+	string file;
 
 	mt19937 prng(0);
 	normal_distribution<double> normal;
@@ -244,9 +245,9 @@ TEST_CASE("Serialize/FunctorData", "")
 			f.add_term(std::make_shared<AutoDiffTerm<NegLogLikelihood, 1, 1>>(sample), &mu, &sigma);
 		}
 
-		ofstream fout(tmp);
+		stringstream fout;
 		fout << Serialize(f);
-
+		file = fout.str();
 		
 		mu    = 0.0;
 		sigma = 1.0;
@@ -261,7 +262,7 @@ TEST_CASE("Serialize/FunctorData", "")
 		TermFactory factory;
 		factory.teach_term<AutoDiffTerm<NegLogLikelihood, 1, 1>>();
 
-		ifstream fin(tmp);
+		stringstream fin{file};
 		Function f;
 		vector<double> user_space;
 		fin >> Serialize(&f, &user_space, factory);
