@@ -58,8 +58,7 @@ int main()
 
 	for (int i = 0; i < N; ++i) {
 		for (int j = i + 1; j < N; ++j) {
-			potential.add_term(
-				std::make_shared<AutoDiffTerm<LennardJonesTerm, 3, 3>>(),
+			potential.add_term<AutoDiffTerm<LennardJonesTerm, 3, 3>>(
 				&points[i][0],
 				&points[j][0]);
 		}
