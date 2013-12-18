@@ -15,14 +15,26 @@ namespace spii
 {
 
 class Constraint
-	: public Function
+	: protected Function
 {
 public:
 	bool is_equality = false;
 	double lambda = 0;
-	double cached_value = 0;
 
-	bool is_feasible(double c_x, double tolerance) const
+	using Function::add_term;
+
+	double evaluate()
+	{
+		c_x = Function::evaluate();
+		return c_x;
+	}
+
+	double get_cached_value() const
+	{
+		return c_x;
+	}
+
+	bool is_feasible(double tolerance) const
 	{
 		if (is_equality) {
 			return std::abs(c_x) <= tolerance;
@@ -32,12 +44,12 @@ public:
 		}
 	}
 
-	double infeasibility(double c_x) const
+	double infeasibility() const
 	{
 		return c_x * lambda;
 	}
 
-	double violation(double c_x) const
+	double violation() const
 	{
 		if (is_equality) {
 			return std::abs(c_x);
@@ -47,7 +59,7 @@ public:
 		}
 	}
 	
-	void update_lambda(double c_x, double mu)
+	void update_lambda(double mu)
 	{
 		if (is_equality) {
 			lambda = lambda - mu * c_x;
@@ -61,6 +73,9 @@ public:
 			}
 		}
 	}
+
+private:
+	double c_x = 0;
 };
 
 // Phi wrapper function. 
@@ -258,8 +273,8 @@ const Function& ConstrainedFunction::objective() const
 bool ConstrainedFunction::is_feasible() const
 {
 	for (auto& itr: impl->constraints) {
-		auto c_x = itr.second.evaluate();
-		if (!itr.second.is_feasible(c_x, this->feasibility_tolerance)) {
+		itr.second.evaluate();
+		if (!itr.second.is_feasible(this->feasibility_tolerance)) {
 			return false;
 		}
 	}
@@ -295,11 +310,10 @@ void ConstrainedFunction::solve(const Solver& solver, SolverResults* results)
 		double infeasibility = - numeric_limits<double>::infinity();
 		double max_violation = 0;
 		for (auto& itr: impl->constraints) {
-			auto c_x = itr.second.evaluate();
-			itr.second.cached_value = c_x;
+			itr.second.evaluate();
 
-			infeasibility = max(infeasibility, itr.second.infeasibility(c_x));
-			max_violation = max(max_violation, itr.second.violation(c_x));
+			infeasibility = max(infeasibility, itr.second.infeasibility());
+			max_violation = max(max_violation, itr.second.violation());
 		}
 
 		if (log_function) {
@@ -330,11 +344,10 @@ void ConstrainedFunction::solve(const Solver& solver, SolverResults* results)
 			double max_lambda = 0;
 			double delta_lambda = 0;
 			for (auto& itr: impl->constraints) {
-				auto c_x = itr.second.cached_value;
-				auto& lambda = itr.second.lambda;
+				const auto& lambda = itr.second.lambda;
 
 				double prev = lambda;
-				itr.second.update_lambda(c_x, mu);
+				itr.second.update_lambda(mu);
 
 				max_change = std::max(max_change, std::abs(prev - lambda));
 				max_lambda = std::max(max_lambda, std::abs(prev));
@@ -391,7 +404,7 @@ void ConstrainedFunction::solve(const Solver& solver, SolverResults* results)
 			log_function("");
 			int num_printed = 0;
 			for (auto& itr: impl->constraints) {
-				auto c_x = itr.second.cached_value;
+				auto c_x = itr.second.get_cached_value();
 				auto& lambda = itr.second.lambda;
 				if (lambda != 0) {
 					stringstream sout_name, sout;
