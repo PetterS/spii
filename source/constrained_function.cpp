@@ -18,8 +18,49 @@ class Constraint
 	: public Function
 {
 public:
+	bool is_equality = false;
 	double lambda = 0;
 	double cached_value = 0;
+
+	bool is_feasible(double c_x, double tolerance) const
+	{
+		if (is_equality) {
+			return std::abs(c_x) <= tolerance;
+		}
+		else {
+			return c_x <= tolerance;
+		}
+	}
+
+	double infeasibility(double c_x) const
+	{
+		return c_x * lambda;
+	}
+
+	double violation(double c_x) const
+	{
+		if (is_equality) {
+			return std::abs(c_x);
+		}
+		else {
+			return max(0.0, c_x);
+		}
+	}
+	
+	void update_lambda(double c_x, double mu)
+	{
+		if (is_equality) {
+			lambda = lambda - mu * c_x;
+		}
+		else {
+			if (c_x + lambda / mu <= 0) {
+				lambda = 0;
+			}
+			else {
+				lambda = lambda + mu * c_x;
+			}
+		}
+	}
 };
 
 // Phi wrapper function. 
@@ -97,6 +138,62 @@ private:
 	double* const mu;
 };
 
+// Theta wrapper function. 
+//
+// As Phi, but for constraints c(x) = 0.
+//
+class Theta
+	: public Term
+{
+public:
+	Theta(std::shared_ptr<const Term> term_, double* sigma_, double* mu_)
+		: term(term_), sigma(sigma_), mu(mu_)
+	{
+	}
+
+	int number_of_variables() const override
+	{
+		return term->number_of_variables();
+	}
+
+	int variable_dimension(int var) const override
+	{
+		return term->variable_dimension(var);
+	}
+
+	double evaluate(double * const * const variables) const override
+	{
+		double t = term->evaluate(variables);
+		return - *sigma * t + (*mu / 2) * t*t; 
+	}
+
+	double evaluate(double * const * const variables,
+	                std::vector<Eigen::VectorXd>* gradient) const override
+	{
+		double t = term->evaluate(variables, gradient);
+		for (int i = 0; i < number_of_variables(); ++i) {
+			for (int j = 0; j < variable_dimension(i); ++j) {
+				(*gradient)[i][j] = - *sigma * (*gradient)[i][j] 
+					                + (*mu) * t * (*gradient)[i][j];
+			}
+		}
+		return - *sigma * t + (*mu / 2) * t*t; 
+	}
+
+	double evaluate(double * const * const variables,
+	                std::vector<Eigen::VectorXd>* gradient,
+	                std::vector< std::vector<Eigen::MatrixXd> >* hessian) const override
+	{
+		check(false, "Theta: hessian not supported.");
+		return 0;
+	}
+
+private:
+	const shared_ptr<const Term> term;
+	double* const sigma;
+	double* const mu;
+};
+
 class ConstrainedFunction::Implementation
 {
 public:
@@ -138,6 +235,21 @@ void ConstrainedFunction::add_constraint_term(const string& constraint_name,
 	impl->augmented_lagrangian.add_term(move(phi), arguments);
 }
 
+void ConstrainedFunction::add_equality_constraint_term(const string& constraint_name,
+                                                       shared_ptr<const Term> term,
+                                                       const vector<double*>& arguments)
+{
+	check(impl->constraints.find(constraint_name) == impl->constraints.end(),
+	      "add_equality_constraint_term: Term already added.");
+	auto& constraint = impl->constraints[constraint_name];
+
+	constraint.add_term(term, arguments);
+	constraint.is_equality = true;
+	
+	auto theta = make_shared<Theta>(term, &constraint.lambda, &impl->mu);
+	impl->augmented_lagrangian.add_term(move(theta), arguments);
+}
+
 const Function& ConstrainedFunction::objective() const
 {
 	return impl->objective;
@@ -147,10 +259,11 @@ bool ConstrainedFunction::is_feasible() const
 {
 	for (auto& itr: impl->constraints) {
 		auto c_x = itr.second.evaluate();
-		if (c_x > this->feasibility_tolerance) {
+		if (!itr.second.is_feasible(c_x, this->feasibility_tolerance)) {
 			return false;
 		}
 	}
+
 	return true;
 }
 
@@ -184,10 +297,9 @@ void ConstrainedFunction::solve(const Solver& solver, SolverResults* results)
 		for (auto& itr: impl->constraints) {
 			auto c_x = itr.second.evaluate();
 			itr.second.cached_value = c_x;
-			auto& lambda = itr.second.lambda;
 
-			infeasibility = max(infeasibility, c_x * lambda);
-			max_violation = max(max_violation, c_x);
+			infeasibility = max(infeasibility, itr.second.infeasibility(c_x));
+			max_violation = max(max_violation, itr.second.violation(c_x));
 		}
 
 		if (log_function) {
@@ -195,9 +307,9 @@ void ConstrainedFunction::solve(const Solver& solver, SolverResults* results)
 			std::sprintf(str,
 			             " ___________________________________________________________\n"
 			             "|   mu   |   nu   |   objective   |   infeas.  |  max viol. |\n"
-						 "+--------+--------+---------------+------------+------------+\n"
+			             "+--------+--------+---------------+------------+------------+\n"
 			             "|%7.1e |%7.1e | %+10.6e | %10.3e | %10.3e |\n"
-						 "|________|________|_______________|____________|____________|",
+			             "|________|________|_______________|____________|____________|",
 			             mu, nu, f, infeasibility, max_violation);
 			log_function(str);
 		}
@@ -222,12 +334,8 @@ void ConstrainedFunction::solve(const Solver& solver, SolverResults* results)
 				auto& lambda = itr.second.lambda;
 
 				double prev = lambda;
-				if (c_x + lambda / mu <= 0) {
-					lambda = 0;
-				}
-				else {
-					lambda = lambda + mu * c_x;
-				}
+				itr.second.update_lambda(c_x, mu);
+
 				max_change = std::max(max_change, std::abs(prev - lambda));
 				max_lambda = std::max(max_lambda, std::abs(prev));
 				delta_lambda += (prev - lambda) * (prev - lambda);
@@ -249,7 +357,7 @@ void ConstrainedFunction::solve(const Solver& solver, SolverResults* results)
 				stringstream sout;
 				sout << "Updating dual variables. "
 				     << "Max (relative) change: " << max_change << " ("
-					 << relative_change << ").";
+				     << relative_change << ").";
 				log_function(sout.str());
 				log_function(to_string("Delta lambda = ", delta_lambda));
 				log_function(to_string("Relative aug. lagr. change: ", dL_dd));

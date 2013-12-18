@@ -92,6 +92,30 @@ public:
 		add_constraint_term(constraint_name, std::make_shared<MyTerm>(), {args...});
 	}
 
+	//
+	// Adds a term as a constraint.
+	//
+	// This will add the constraint c(x) = 0.
+	//
+	void add_equality_constraint_term(const std::string& constraint_name,
+	                                  std::shared_ptr<const Term> term,
+	                                  const std::vector<double*>& arguments);
+
+	template<typename... PointerToDouble>
+	void add_equality_constraint_term(const std::string& constraint_name, 
+	                                  std::shared_ptr<const Term> term,
+	                                  PointerToDouble... args)
+	{
+		add_equality_constraint_term(constraint_name, term, {args...});
+	}
+
+	template<typename MyTerm, typename... PointerToDouble>
+	void add_equality_constraint_term(const std::string& constraint_name,
+	                                  PointerToDouble... args)
+	{
+		add_equality_constraint_term(constraint_name, std::make_shared<MyTerm>(), {args...});
+	}
+
 
 	// Minimized the constrained function. In the future, this method
 	// may be extraced to e.g. a ConstrainedSolver class.

@@ -112,3 +112,80 @@ TEST_CASE("no_readding_constraints")
 	function.add_constraint_term("circle", make_shared<AutoDiffTerm<ConstraintTerm, 2>>(), &x[0]);
 	CHECK_THROWS(function.add_constraint_term("circle", make_shared<AutoDiffTerm<ConstraintTerm, 2>>(), &x[0]));
 }
+
+//  x = 100
+class EqualTo100
+{
+public:
+	template<typename R>
+	R operator()(const R* const x) const
+	{
+		auto dx = x[0];
+		return  dx - 100;
+	}
+};
+
+TEST_CASE("feasible_equality")
+{
+	ConstrainedFunction function;
+	double x = 0;
+	function.add_equality_constraint_term("equal to 100", make_shared<AutoDiffTerm<EqualTo100, 1>>(), &x);
+	CHECK(!function.is_feasible());
+	x = 200;
+	CHECK(!function.is_feasible());
+	x = 100;
+	CHECK(function.is_feasible());
+}
+
+
+// a·x + b·y - c
+class Line
+{
+public:
+	Line(double a_, double b_, double c_)
+		: a{a_}, b{b_}, c{c_}
+	{ }
+
+	template<typename R>
+	R operator()(const R* const x) const
+	{
+		return  a*x[0] + b*x[1] - c;
+	}
+private:
+	double a, b, c;
+};
+
+TEST_CASE("Two_lines_intersect")
+{
+	vector<pair<double, double>> start_values =
+		{{3., 4.}, {10., 20.}, {0., 0.1}, {-4., -9.}};
+
+	for (auto start : start_values) {
+		ConstrainedFunction function;
+
+		// Infeasible start.
+		vector<double> x(3);
+		x[0] = start.first;
+		x[1] = start.second;
+		CAPTURE(x[0]);
+		CAPTURE(x[1]);
+
+		function.add_term<AutoDiffTerm<ObjectiveTerm, 2>>(&x[0]);
+		function.add_equality_constraint_term("Line1", make_shared<AutoDiffTerm<Line, 2>>(4, 1, 0), &x[0]);
+		function.add_equality_constraint_term("Line2", make_shared<AutoDiffTerm<Line, 2>>(-1, -5, 1), &x[0]);
+
+		LBFGSSolver solver;
+		stringstream sout;
+		solver.log_function = [&sout](const string& str)
+		                        { sout << str << endl; };
+		SolverResults results;
+
+		function.solve(solver, &results);
+		sout << results << endl;
+		INFO(sout.str());
+		CAPTURE(x[0]);
+		CAPTURE(x[1]);
+		CHECK(results.exit_condition == SolverResults::GRADIENT_TOLERANCE);
+		CHECK(function.is_feasible());
+	}
+}
