@@ -70,8 +70,6 @@ double perform_Wolfe_linesearch(const Solver& solver,
 	double f_new = function.evaluate(*scratch, &g_new);
 	double gtp_new  = g_new.dot(p);
 
-	double normp = std::max(p.maxCoeff(), -p.minCoeff());
-
 	//
 	auto c1 = solver.line_search_c;
 	auto c2 = solver.line_search_c2;
@@ -174,7 +172,6 @@ double perform_Wolfe_linesearch(const Solver& solver,
 		gtp_new  = g_new.dot(p);
 
 		int lo_pos, hi_pos;
-		int t_pos = 0;
 		double f_low;
 		if (bracket_fval[0] < bracket_fval[1]) {
 			f_low = bracket_fval[0];
@@ -195,7 +192,6 @@ double perform_Wolfe_linesearch(const Solver& solver,
 			bracket[hi_pos]        = alpha;
 			bracket_fval[hi_pos]   = f_new;
 			bracket_gTpval[hi_pos] = g_new.dot(p);
-			t_pos = hi_pos;
 		}
 		else {
 			if (std::abs(gtp_new) <= - c2*gtp) {
@@ -213,7 +209,6 @@ double perform_Wolfe_linesearch(const Solver& solver,
 			bracket[lo_pos]        = alpha;
 			bracket_fval[lo_pos]   = f_new;
 			bracket_gTpval[lo_pos] = g_new.dot(p);
-			t_pos = lo_pos;
 		}
 
 		iterations++;

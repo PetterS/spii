@@ -356,8 +356,7 @@ void ConstrainedFunction::solve(const Solver& solver, SolverResults* results)
 			delta_lambda = std::sqrt(delta_lambda);
 
 			auto lagrangian_after = impl->augmented_lagrangian.evaluate();
-			auto lagrangian_relative_change =
-				std::abs(lagrangian_after - lagrangian_before) / (std::abs(lagrangian_before) + 1e-8);
+
 			double dL_dd = 0.0;
 			if (delta_lambda > 0) {
 				dL_dd = (lagrangian_after - lagrangian_before) / delta_lambda;
