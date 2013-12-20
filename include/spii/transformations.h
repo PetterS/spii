@@ -1,6 +1,6 @@
 // Petter Strandmark 2012.
-#ifndef SPII_CONSTRAINTS_H
-#define SPII_CONSTRAINTS_H
+#ifndef SPII_TRANSFORMATIONS_H
+#define SPII_TRANSFORMATIONS_H
 
 #include <cmath>
 #include <stdexcept>

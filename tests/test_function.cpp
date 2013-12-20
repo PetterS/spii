@@ -5,9 +5,9 @@
 #include <spii/google_test_compatibility.h>
 
 #include <spii/auto_diff_term.h>
-#include <spii/constraints.h>
 #include <spii/function.h>
 #include <spii/interval_term.h>
+#include <spii/transformations.h>
 
 using namespace spii;
 

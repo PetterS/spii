@@ -9,8 +9,8 @@
 #include <spii/google_test_compatibility.h>
 
 #include <spii/auto_diff_term.h>
-#include <spii/constraints.h>
 #include <spii/solver.h>
+#include <spii/transformations.h>
 
 using namespace spii;
 

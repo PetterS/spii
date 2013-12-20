@@ -5,9 +5,9 @@
 #include <random>
 
 #include <spii/auto_diff_term.h>
-#include <spii/constraints.h>
 #include <spii/interval_term.h>
 #include <spii/solver.h>
+#include <spii/transformations.h>
 
 using namespace spii;
 
