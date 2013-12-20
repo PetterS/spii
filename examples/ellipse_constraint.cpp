@@ -1,16 +1,20 @@
-// Petter Strandmark 2012.
+// Petter Strandmark 2013.
 //
-// This example illustrates how a change of variables
-// can be used to compute the closest point lying on
+// This example illustrates how a constraint can
+// be used to compute the closest point lying on
 // an ellipse to a given point.
+//
+// Compare to the other ellipse example, which
+// uses an explicit parametrization and is more
+// efficient.
 
 #include <iostream>
 #include <stdexcept>
 using namespace std;
 
 #include <spii/auto_diff_term.h>
+#include <spii/constrained_function.h>
 #include <spii/solver.h>
-
 using namespace spii;
 
 // Simple term equal to the squared distance
@@ -35,7 +39,7 @@ private:
 	double x0, y0;
 };
 
-// Change of variable forcing (x, y) to lie on an
+// Constraint forcing (x, y) to lie on an
 // ellipse parametrized by 5 variables.
 class Ellipse
 {
@@ -43,46 +47,30 @@ public:
 	Ellipse(double x0, double y0, double a,
 	        double b, double phi)
 	{
-		this->x0 = x0;
-		this->y0 = y0;
-		this->a = a;
-		this->b = b;
-		this->phi = phi;
+		// Parametric → Foci/String
+		// http://www.cs.cornell.edu/cv/OtherPdf/Ellipse.pdf
+		check(a*a >= b*b, "Ellipse requires that a^2 >= b^2.");
+
+		double c = sqrt(a*a - b*b);
+		x1 = x0 - cos(phi)*c;
+		y1 = y0 - sin(phi)*c;
+		x2 = x0 + cos(phi)*c;
+		y2 = y0 + sin(phi)*c;
+		s = 2*a;
 	}
 
-	// Compute (x, y) given the single parameter t.
 	template<typename R>
-	void t_to_x(R* xy, const R* t) const
+	R operator()(R* xy) const
 	{
-		xy[0] = x0 + a * cos(*t)*cos(phi) - b * sin(*t)*sin(phi);
-		xy[1] = y0 + a * cos(*t)*sin(phi) + b * sin(*t)*cos(phi);
-	}
-
-	// This function is supposed to compute t given
-	// x and y. The only time the solver actually uses 
-	// this function is when computing the starting
-	// point t0 given x and y. If this functionality
-	// is not required, the implementation can be
-	// omitted.
-	template<typename R>
-	void x_to_t(R* t, const R* x) const
-	{
-		// This will be the starting value of t.
-		t[0] = 0;
-	}
-
-	int x_dimension() const
-	{
-		return 2;
-	}
-
-	int t_dimension() const
-	{
-		return 1;
+		const R& x = xy[0];
+		const R& y = xy[1];
+		return sqrt((x - x1)*(x - x1) + (y - y1)*(y - y1)) + sqrt((x - x2)*(x - x2) + (y - y2)*(y - y2)) - s;
 	}
 
 private:
-	double x0, y0, a, b, phi;
+	double x1, y1;
+	double x2, y2;
+	double s;
 };
 
 
@@ -95,23 +83,24 @@ int main_function()
 	double b = 0.5;
 	double phi = 1.0;
 
-	Function f;
-
-	// Add (x, y) as a variable, constrained to lie on the ellipse.
+	ConstrainedFunction f;
 	vector<double> xy(2);
-	f.add_variable_with_change<Ellipse>(&xy[0], 2, x0, y0, a, b, phi);
 
 	// Add a term measuring the distance to (6, 6).
 	f.add_term(make_shared<AutoDiffTerm<Distance, 2>>(6.0, 6.0),
 	           xy.data());
 
+	// Constrain xy to lie on an ellipse.
+	auto ellipse = make_shared<AutoDiffTerm<Ellipse, 2>>(x0, y0, a, b, phi);
+	f.add_equality_constraint_term("Ellipse", ellipse, xy.data());
+
 	LBFGSSolver solver;
 	SolverResults results;
-	solver.solve(f, &results);
+	f.solve(solver, &results);
 
 	cout << results << endl;
 	cout << "Final point: (" << xy[0] << ", " << xy[1] << ")\n";
-	cout << "Evaluate: " << f.evaluate() << endl;
+	cout << "Evaluate: " << f.objective().evaluate() << endl;
 	return 0;
 }
 
