@@ -28,6 +28,7 @@ Everything needed to compile the library, examples and tests using CMake should 
 All tests pass with the following compilers:
 * Visual Studio 2013
 * GCC 4.8 (Cygwin)
+* GCC 4.7 (Ubuntu)
 * Clang 3.3 (Ubuntu)
 Earlier compilers will probably not work.
 
