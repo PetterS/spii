@@ -46,6 +46,25 @@ The solver comes with extensive benchmarks and tests.
 
 The Newton solver and the L-BFGS solver pass all of these tests. The NIST collection was very challenging and required block-diagonal robust factorization and handling of numerically hard problem instances. Note that non-linear least-squares problems have a special structure and are best solved with custom code, for example Ceres Solver.
 
+Generic Lambdas
+---------------
+The interface will in the future be based on generic lambdas (when more compilers support it).
+
+``` C++
+auto lambda =
+	[](auto x, auto y)
+	{
+		auto d0 =  y[0] - x[0]*x[0];
+		auto d1 =  1 - x[0];
+		return 100 * d0*d0 + d1*d1;
+	};
+
+auto term = make_term<1, 1>(lambda);
+double x=0, y=0;
+function.add_term(term, &x, &y);
+```
+If you have the November 2013 CTP installed for Visual Studio 2013, this new interface is unit tested in `test_generic_lambdas.cpp`.
+
 References
 ----------
 1. Nocedal and Wright, *Numerical Optimization*, Springer, 2006.
