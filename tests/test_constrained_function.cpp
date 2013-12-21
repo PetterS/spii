@@ -237,3 +237,49 @@ TEST_CASE("Always_feasible")
 	CHECK(results.exit_condition == SolverResults::GRADIENT_TOLERANCE);
 	CHECK(function.is_feasible());
 }
+
+//  x·x + y·y ≤ -1
+class NormLessThanMinus1
+{
+public:
+	template<typename R>
+	R operator()(const R* const x) const
+	{
+		auto dx = x[0];
+		auto dy = x[1];
+		return  dx*dx + dy*dy + 1;
+	}
+};
+
+TEST_CASE("Infeasible_problem")
+{
+	ConstrainedFunction function;
+
+	function.max_number_of_iterations = 20;
+
+	stringstream log_stream;
+	
+	LBFGSSolver solver;
+	solver.log_function =
+		[&log_stream](const string& str)
+		{
+			log_stream << str << endl;
+		};
+
+	vector<double> x = {0, 0};
+
+	function.add_term(make_shared<AutoDiffTerm<Rosenbrock, 2>>(), x.data());
+	function.add_constraint_term("Negative norm", make_shared<AutoDiffTerm<NormLessThanMinus1, 2>>(), x.data());
+	REQUIRE(!function.is_feasible());
+	
+	SolverResults results;
+	function.solve(solver, &results);
+	function.objective().print_timing_information(log_stream);
+	log_stream << results << endl;
+
+	INFO(log_stream.str());
+	CAPTURE(x[0]);
+	CAPTURE(x[1]);
+	CHECK(results.exit_condition == SolverResults::NO_CONVERGENCE);
+	CHECK(!function.is_feasible());
+}
