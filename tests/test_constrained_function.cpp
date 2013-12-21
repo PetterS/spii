@@ -189,3 +189,51 @@ TEST_CASE("Two_lines_intersect")
 		CHECK(function.is_feasible());
 	}
 }
+
+
+struct Rosenbrock
+{
+	template<typename R>
+	R operator()(const R* const x) const
+	{
+		R d0 =  x[1] - x[0]*x[0];
+		R d1 =  1 - x[0];
+		return 100 * d0*d0 + d1*d1;
+	}
+};
+
+TEST_CASE("Always_feasible")
+{
+	ConstrainedFunction function;
+
+	// Always feasible and should converge after one
+	// minimization.
+	function.max_number_of_iterations = 1;
+
+	stringstream log_stream;
+	
+	LBFGSSolver solver;
+	solver.log_function =
+		[&log_stream](const string& str)
+		{
+			log_stream << str << endl;
+		};
+
+	vector<double> x = {0, 0};
+
+	function.add_term(make_shared<AutoDiffTerm<Rosenbrock, 2>>(), x.data());
+	function.add_constraint_term("x[0] less than 100", make_shared<AutoDiffTerm<LessThan100, 2>>(), &x[0]);
+	REQUIRE(function.is_feasible());
+	
+	SolverResults results;
+	function.solve(solver, &results);
+	function.objective().print_timing_information(log_stream);
+	log_stream << results << endl;
+
+	INFO(log_stream.str());
+	CAPTURE(x[0]);
+	CAPTURE(x[1]);
+	CHECK(abs(function.objective().evaluate()) < 1e-8);
+	CHECK(results.exit_condition == SolverResults::GRADIENT_TOLERANCE);
+	CHECK(function.is_feasible());
+}
