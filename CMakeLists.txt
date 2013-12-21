@@ -38,6 +38,8 @@ IF (${OPENMP})
   ELSE(${OPENMP_FOUND})
     MESSAGE("-- Can't find OpenMP. Continuing without it.")
   ENDIF(${OPENMP_FOUND})
+ELSE (${OPENMP})
+  MESSAGE("-- OpenMP is disabled. Continuing without it.")
 ENDIF (${OPENMP})
 
 
@@ -87,6 +89,13 @@ IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR CMAKE_COMPILER_IS_GNUCXX)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-function -fpic")
   # -Wunused-function triggers incorrect warnings for variadic template
   # recursion base case with Clang 3.2.
+
+  IF (CMAKE_BUILD_TYPE STREQUAL "Debug")
+  	MESSAGE("-- Debug mode enabled for Gcc/Clang; adding support for Gcov.")
+  	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fprofile-arcs -ftest-coverage")
+  	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-arcs -ftest-coverage")
+  ENDIF (CMAKE_BUILD_TYPE STREQUAL "Debug")
+
 ENDIF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR CMAKE_COMPILER_IS_GNUCXX)
 
 #
