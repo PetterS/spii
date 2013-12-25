@@ -14,6 +14,8 @@ ENDMACRO (SPII_TEST)
 FILE(GLOB TEST_FILES test_*.cpp)
 FILE(GLOB MESCHACH_TEST test_meschach*.cpp)
 LIST(REMOVE_ITEM TEST_FILES ${MESCHACH_TEST})
+FILE(GLOB STRING_TEST test_string*.cpp)
+LIST(REMOVE_ITEM TEST_FILES ${STRING_TEST})
 FOREACH (TEST_FILE ${TEST_FILES})
 	GET_FILENAME_COMPONENT(TEST_NAME ${TEST_FILE} NAME_WE)
 	MESSAGE("-- Adding test: " ${TEST_NAME})
@@ -25,6 +27,11 @@ ADD_EXECUTABLE(test_meschach test_meschach.cpp)
 	TARGET_LINK_LIBRARIES(test_meschach meschach)
 	ADD_TEST(NAME meschach
 	       COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/test_meschach)
+
+# String test does not link to spii.
+ADD_EXECUTABLE(test_string test_string.cpp)
+	ADD_TEST(NAME string
+	       COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/test_string)
 
 #
 # Valgrind (memcheck) testing.

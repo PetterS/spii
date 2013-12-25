@@ -6,6 +6,8 @@
 #include <stdexcept>
 #include <string>
 
+#include <spii/string_utils.h>
+
 #ifdef _WIN32
 #	ifdef spii_EXPORTS
 #		define SPII_API __declspec(dllexport)
@@ -23,46 +25,6 @@ namespace spii
 {
 
 double SPII_API wall_time();
-
-
-// to_string converts all its arguments to a string and
-// concatenates.
-//
-// Anonymous namespace is needed because the base case for the
-// template recursion is a normal function.
-namespace {
-
-	void add_to_stream(std::ostream*)
-	{  }
-
-	template<typename T, typename... Args>
-	void add_to_stream(std::ostream* stream, T&& t, Args&&... args)
-	{
-		(*stream) << std::forward<T>(t);
-		add_to_stream(stream, std::forward<Args>(args)...);
-	}
-
-	std::string to_string()
-	{ 
-		return {};
-	}
-
-	// Overload for string literals.
-	template<size_t n>
-	std::string to_string(const char(&c_str)[n])
-	{
-		return{ c_str };
-	}
-
-	template<typename... Args>
-	std::string to_string(Args&&... args)
-	{
-		std::stringstream stream;
-		add_to_stream(&stream, std::forward<Args>(args)...); 
-		return stream.str();
-	}
-}
-
 
 //
 // Enables expressions like:
