@@ -43,28 +43,51 @@ public:
 SPII_API std::ostream& operator << (std::ostream& out, const Term& term);
 SPII_API std::istream& operator >> (std::istream& in, Term& term);
 
-template<int D0,int D1 = 0, int D2 = 0, int D3 = 0, int D4 = 0>
+//
+// IntElements is a helper class that extracts the nth
+// element from an integer variable template pack.
+//
+template<int D0, int... DN>
+struct IntElements
+{
+	static int get_position(int pos) 
+	{
+		if (pos == 0) {
+			return D0;
+		}
+		else {
+			return IntElements<DN...>::get_position(pos - 1);
+		}
+	}
+};
+template<int D0>
+struct IntElements<D0>
+{
+	static int get_position(int pos)
+	{
+		if (pos == 0) {
+			return D0;
+		}
+		else {
+			return -1;
+		}
+	}
+};
+
+
+template<int... D>
 class SizedTerm :
 	public Term
 {
 public:
 	virtual int number_of_variables() const override
 	{
-		if (D1 == 0) return 1;
-		if (D2 == 0) return 2;
-		if (D3 == 0) return 3;
-		if (D4 == 0) return 4;
-		return 5;
+		return sizeof...(D);
 	}
 
 	virtual int variable_dimension(int var) const override
 	{
-		if (var == 0) return D0;
-		if (var == 1) return D1;
-		if (var == 2) return D2;
-		if (var == 3) return D3;
-		if (var == 4) return D4;
-		return -1;
+		return IntElements<D...>::get_position(var);
 	}
 };
 
