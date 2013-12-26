@@ -1,4 +1,8 @@
 // Petter Strandmark 2013.
+//
+// The code in this file will be incorporated in the main API
+// when more compilers support C++14 generic lambdas.
+//
 
 #include <cmath>
 #include <limits>
