@@ -7,6 +7,12 @@
 #include <random>
 #include <stdexcept>
 
+// GNU 4.8.1 define _X on Cygwin.
+// This breaks Eigen.
+// http://eigen.tuxfamily.org/bz/process_bug.cgi
+#ifdef _X
+#undef _X
+#endif
 #include <Eigen/Dense>
 #include <Eigen/Eigenvalues>
 #include <Eigen/Sparse>

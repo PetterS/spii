@@ -1,4 +1,3 @@
-#include <Eigen/Sparse>
 
 #include <functional>
 #include <iostream>
