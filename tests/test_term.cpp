@@ -548,3 +548,42 @@ TEST_CASE("AutoDiffTerm/read_test", "")
 	CHECK(m == 42);
 	delete term1_1;
 }
+
+
+template<int... D>
+class EmptySizedTerm
+	: public SizedTerm<D...>
+{
+public:
+	virtual double evaluate(double * const * const variables) const override
+	{
+		return 0;
+	}
+	virtual double evaluate(double * const * const variables,
+	                        std::vector<Eigen::VectorXd>* gradient) const override
+	{
+		return 0;
+	}
+	virtual double evaluate(double * const * const variables,
+	                        std::vector<Eigen::VectorXd>* gradient,
+	                        std::vector< std::vector<Eigen::MatrixXd> >* hessian)
+	                        const override
+	{
+		return 0;
+	}
+};
+
+TEST_CASE("SizedTerm::number_of_variables")
+{
+	CHECK((EmptySizedTerm<1>{}.number_of_variables()) == 1);
+	CHECK((EmptySizedTerm<5>{}.number_of_variables()) == 1);
+	CHECK((EmptySizedTerm<1, 1>{}.number_of_variables()) == 2);
+	CHECK((EmptySizedTerm<5, 5>{}.number_of_variables()) == 2);
+	CHECK((EmptySizedTerm<1, 2, 3, 4, 5, 6, 7>{}.number_of_variables()) == 7);
+}
+
+TEST_CASE("AutoDiffTerm::number_of_variables")
+{
+	CHECK((AutoDiffTerm<Func, 1>{}.number_of_variables()) == 1);
+	CHECK((AutoDiffTerm<MyFunctor4, 1, 1, 1, 1>{}.number_of_variables()) == 4);
+}

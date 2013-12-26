@@ -50,6 +50,8 @@ SPII_API std::istream& operator >> (std::istream& in, Term& term);
 template<int D0, int... DN>
 struct IntElements
 {
+	static_assert(D0 >= 1, "Dimensions must be positive.");
+
 	static int get_position(int pos) 
 	{
 		if (pos == 0) {
@@ -63,6 +65,8 @@ struct IntElements
 template<int D0>
 struct IntElements<D0>
 {
+	static_assert(D0 >= 1, "Dimensions must be positive.");
+
 	static int get_position(int pos)
 	{
 		if (pos == 0) {
@@ -73,7 +77,6 @@ struct IntElements<D0>
 		}
 	}
 };
-
 
 template<int... D>
 class SizedTerm :
