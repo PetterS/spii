@@ -19,9 +19,9 @@ namespace spii {
 //
 // where arg1, arg2, etc. are arguments to the constructor of Functor.
 //
-template<typename Functor, int D0, int D1 = 0, int D2 = 0, int D3 = 0, int D4 = 0>
+template<typename Functor, int... D>
 class AutoDiffTerm :
-	public SizedTerm<D0, D1, D2, D3, D4>
+	public SizedTerm<D...>
 {
 
 };
@@ -128,8 +128,8 @@ T differentiate_functor(
 // 1-variable specialization
 //
 template<typename Functor, int D0>
-class AutoDiffTerm<Functor, D0, 0, 0, 0, 0> :
-	public SizedTerm<D0, 0, 0, 0, 0>
+class AutoDiffTerm<Functor, D0> :
+	public SizedTerm<D0>
 {
 public:
 
@@ -256,8 +256,8 @@ private:
 // 2-variable specialization
 //
 template<typename Functor, int D0, int D1>
-class AutoDiffTerm<Functor, D0, D1, 0, 0, 0> :
-	public SizedTerm<D0, D1, 0, 0, 0>
+class AutoDiffTerm<Functor, D0, D1> :
+	public SizedTerm<D0, D1>
 {
 public:
 
@@ -455,8 +455,8 @@ private:
 // 3-variable specialization
 //
 template<typename Functor, int D0, int D1, int D2>
-class AutoDiffTerm<Functor, D0, D1, D2, 0, 0> :
-	public SizedTerm<D0, D1, D2, 0, 0>
+class AutoDiffTerm<Functor, D0, D1, D2> :
+	public SizedTerm<D0, D1, D2>
 {
 public:
 
