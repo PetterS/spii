@@ -19,6 +19,9 @@ namespace spii {
 //
 // where arg1, arg2, etc. are arguments to the constructor of Functor.
 //
+// Note: The size arguments D... are supposed to be reasonably small,
+//       as the memory allocated on the stack by this class is
+//       O(max(D...)^2).
 template<typename Functor, int... D>
 class AutoDiffTerm :
 	public SizedTerm<D...>
