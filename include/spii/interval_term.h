@@ -21,27 +21,11 @@ class IntervalTerm<Functor, D0> :
 	public AutoDiffTerm<Functor, D0>
 {
 public:
-	// When compilers (MSVC) support variadic templates, this code will
-	// be shorter.
-	IntervalTerm()
-	{ 
-	}
-	template<typename T1>
-	IntervalTerm(T1&& t1)
-		: AutoDiffTerm<Functor, D0>(std::forward<T1>(t1))
-	{ 
-	}
-	template<typename T1, typename T2>
-	IntervalTerm(T1&& t1, T2&& t2)
-		: AutoDiffTerm<Functor, D0>(std::forward<T1>(t1), std::forward<T2>(t2))
-	{
-	}
-	template<typename T1, typename T2, typename T3>
-	IntervalTerm(T1&& t1, T2&& t2, T3&& t3)
-		: AutoDiffTerm<Functor, D0>(std::forward<T1>(t1), std::forward<T2>(t2), std::forward<T3>(t3))
-	{
-	}
-	// Etc. if needed.
+	
+	template<typename... Args>
+	IntervalTerm(Args&&... args)
+		: AutoDiffTerm<Functor, D0>(std::forward<Args>(args)...)
+	{ }
 
 	virtual Interval<double> evaluate_interval(const Interval<double> * const * const variables) const
 	{
@@ -57,27 +41,10 @@ class IntervalTerm<Functor, D0, D1> :
 	public AutoDiffTerm<Functor, D0, D1>
 {
 public:
-	// When compilers (MSVC) support variadic templates, this code will
-	// be shorter.
-	IntervalTerm()
-	{ 
-	}
-	template<typename T1>
-	IntervalTerm(T1&& t1)
-		: AutoDiffTerm<Functor, D0, D1>(std::forward<T1>(t1))
-	{ 
-	}
-	template<typename T1, typename T2>
-	IntervalTerm(T1&& t1, T2&& t2)
-		: AutoDiffTerm<Functor, D0, D1>(std::forward<T1>(t1), std::forward<T2>(t2))
-	{
-	}
-	template<typename T1, typename T2, typename T3>
-	IntervalTerm(T1&& t1, T2&& t2, T3&& t3)
-		: AutoDiffTerm<Functor, D0, D1>(std::forward<T1>(t1), std::forward<T2>(t2), std::forward<T3>(t3))
-	{
-	}
-	// Etc. if needed.
+	template<typename... Args>
+	IntervalTerm(Args&&... args)
+		: AutoDiffTerm<Functor, D0, D1>(std::forward<Args>(args)...)
+	{ }
 
 	virtual Interval<double> evaluate_interval(const Interval<double> * const * const variables) const
 	{
