@@ -15,7 +15,7 @@ namespace spii {
 // Term which allows for automatic computation of derivatives. It is
 // used in the following way:
 //
-//   auto term = make_shared(AutoDiffTerm<Functor, 1>>(arg1, arg2, ...)
+//   auto term = make_shared<AutoDiffTerm<Functor, 1>>(arg1, arg2, ...)
 //
 // where arg1, arg2, etc. are arguments to the constructor of Functor.
 //
@@ -23,12 +23,7 @@ namespace spii {
 //       as the memory allocated on the stack by this class is
 //       O(max(D...)^2).
 template<typename Functor, int... D>
-class AutoDiffTerm :
-	public SizedTerm<D...>
-{
-
-};
-
+class AutoDiffTerm;
 
 
 //
@@ -707,7 +702,7 @@ public:
 			vars2[i].diff(i + offset2);
 		}
 
-		Dual vars3[D2];
+		Dual vars3[D3];
 		int offset3 = D0 + D1 + D2;
 		for (int i = 0; i < D3; ++i) {
 			vars3[i] = variables[3][i];
@@ -873,6 +868,195 @@ public:
 		}
 
 		return f.x();
+	}
+
+protected:
+	Functor functor;
+};
+
+
+//
+// General (N variable) version.
+//
+
+// Takes a double** variables and calls
+//
+//   functor(variables[0], variables[1], ..., variables[N])
+//
+template <typename Functor, int... D>
+struct DoubleFunctorCaller;
+
+template <typename Functor, int D0, int... DN>
+struct DoubleFunctorCaller<Functor, D0, DN...>
+{
+	template <typename... T>
+	double call(const Functor& functor,
+	            double * const * const variables,
+				T... previous_arguments)
+	{
+		DoubleFunctorCaller<Functor, DN...> next_caller;
+		return next_caller.call(functor, variables + 1, previous_arguments..., variables[0]);
+	}
+};
+
+template <typename Functor>
+struct DoubleFunctorCaller<Functor>
+{
+	template <typename... T>
+	double call(const Functor& functor,
+	            double * const * const variables,
+	            T... arguments)
+	{
+		return functor(arguments...);
+	}
+};
+
+
+template<int... D>
+struct IntSum;
+
+template<int D0, int... DN>
+struct IntSum<D0, DN...>
+{
+	static const int value = D0 + IntSum<DN...>::value;
+};
+
+template<>
+struct IntSum<>
+{
+	static const int value = 0;
+};
+
+static_assert(IntSum<5>::value == 5, "Sum test failed.");
+static_assert(IntSum<5, 2>::value == 5 + 2, "Sum test failed.");
+static_assert(IntSum<5, 2, 3>::value == 5 + 2 + 3, "Sum test failed.");
+static_assert(IntSum<5, 2, 3, 5>::value == 5 + 2 + 3 + 5, "Sum test failed.");
+
+// Calls functor with dual numbers.
+//
+template <typename Functor, typename R, int... D>
+struct DualFunctorCaller;
+
+template <typename Functor, typename R, int D0, int... DN>
+struct DualFunctorCaller<Functor, R, D0, DN...>
+{
+	R call(const Functor& functor,
+	       double * const * const variables)
+	{
+		return call_internal(functor, variables, 0);
+	}
+
+	template <typename... T>
+	R call_internal(const Functor& functor,
+	                double * const * const variables,
+		            int offset,
+	                T&... previous_arguments)
+	{
+		R x[D0];
+		for (int i = 0; i < D0; ++i) {
+			x[i] = (*variables)[i];
+			x[i].diff(i + offset);
+		}
+
+		DualFunctorCaller<Functor, R, DN...> next_caller;
+		return next_caller.call_internal(functor, variables + 1, offset + D0, previous_arguments..., x);
+	}
+};
+
+template <typename Functor, typename R>
+struct DualFunctorCaller<Functor, R>
+{
+	template <typename... T>
+	R call_internal(const Functor& functor,
+	                double * const * const variables,
+		            int offset,
+	                T&... arguments)
+	{
+		return functor(arguments...);
+	}
+};
+
+//
+// Extracts gradient from a dual number.
+//
+template <typename R, int... D>
+struct DualGradientExtractor;
+
+template <typename R, int D0, int... DN>
+struct DualGradientExtractor<R, D0, DN...>
+{
+	void extract(R& dual,
+	             Eigen::VectorXd* gradient,
+				 int offset = 0)
+	{
+		for (int i = 0; i < D0; ++i) {
+			(*gradient)[i] = dual.d(i + offset);
+		}
+
+		DualGradientExtractor<R, DN...> next_extractor;
+		return next_extractor.extract(dual, gradient + 1, offset + D0);
+	}
+};
+
+template <typename R>
+struct DualGradientExtractor<R>
+{
+	void extract(R& dual,
+	             Eigen::VectorXd* gradient,
+	             int offset)
+	{
+		// We are done.
+	}
+};
+
+
+template<typename Functor, int... D>
+class AutoDiffTerm
+	: public SizedTerm<D...>
+{
+public:
+	template<typename... Args>
+	AutoDiffTerm(Args&&... args)
+		: functor(std::forward<Args>(args)...)
+	{  }
+
+	virtual void read(std::istream& in) override
+	{
+		call_read_if_exists(in, this->functor);
+	}
+
+	virtual void write(std::ostream& out) const override
+	{
+		call_write_if_exists(out, this->functor);
+	}
+
+	virtual double evaluate(double * const * const variables) const override
+	{
+		DoubleFunctorCaller<Functor, D...> caller;
+		return caller.call(this->functor, variables);
+	}
+
+
+	virtual double evaluate(double * const * const variables,
+	                        std::vector<Eigen::VectorXd>* gradient) const override
+	{
+		typedef fadbad::F<double, IntSum<D...>::value> Dual;
+		DualFunctorCaller<Functor, Dual, D...> caller;
+		auto f = caller.call(this->functor, variables);
+
+		DualGradientExtractor<Dual, D...> extractor;
+		extractor.extract(f, &((*gradient)[0]));
+
+		return f.x();
+	}
+
+
+	virtual double evaluate(double * const * const variables,
+	                        std::vector<Eigen::VectorXd>* gradient,
+	                        std::vector< std::vector<Eigen::MatrixXd> >* hessian) const override
+	{
+		check(false, to_string(typeid(*this).name(), ": hessian not implemented."));
+		return 0;
 	}
 
 protected:

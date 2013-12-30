@@ -183,7 +183,7 @@ TEST_CASE("AutoDiffTerm/MyFunctor1", "")
 	hessian[0].resize(1);
 	hessian[0][0].resize(2,2);
 
-	double value  = term.evaluate(&variables[0], &gradient, &hessian);
+	double value  = term.evaluate(&variables[0], &gradient);
 	double value2 = term.evaluate(&variables[0]);
 
 	// The two values must agree.
@@ -194,6 +194,16 @@ TEST_CASE("AutoDiffTerm/MyFunctor1", "")
 
 	// Test gradient
 	CHECK(Approx(gradient[0](0)) ==  cos(x[0]) + 1.4*x[1]);
+	CHECK(Approx(gradient[0](1)) == -sin(x[1]) + 1.4*x[0]);
+
+	for (auto& g : gradient) {
+		g.setZero();
+	}
+	double value3 = term.evaluate(&variables[0], &gradient, &hessian);
+	CHECK(Approx(value3) == value2);
+
+	// Test gradient
+	CHECK(Approx(gradient[0](0)) == cos(x[0]) + 1.4*x[1]);
 	CHECK(Approx(gradient[0](1)) == -sin(x[1]) + 1.4*x[0]);
 
 	// Test Hessian
@@ -235,7 +245,7 @@ TEST_CASE("AutoDiffTerm/MyFunctor2", "")
 	hessian[1][0].resize(1,1);
 	hessian[1][1].resize(1,1);
 
-	double value  = term.evaluate(&variables[0], &gradient, &hessian);
+	double value  = term.evaluate(&variables[0], &gradient);
 	double value2 = term.evaluate(&variables[0]);
 
 	// The two values must agree.
@@ -246,7 +256,17 @@ TEST_CASE("AutoDiffTerm/MyFunctor2", "")
 
 	// Test gradient
 	CHECK(Approx(gradient[0](0)) ==  cos(x) + 1.4*y);
-	CHECK(Approx(gradient[1](0)) == -sin(y) + 1.4*x); 
+	CHECK(Approx(gradient[1](0)) == -sin(y) + 1.4*x);
+
+	for (auto& g : gradient) {
+		g.setZero();
+	}
+	double value3 = term.evaluate(&variables[0], &gradient, &hessian);
+	CHECK(Approx(value3) == value2);
+
+	// Test gradient
+	CHECK(Approx(gradient[0](0)) == cos(x) + 1.4*y);
+	CHECK(Approx(gradient[1](0)) == -sin(y) + 1.4*x);
 
 	// Test Hessian
 	CHECK(Approx(hessian[0][0](0,0)) == -sin(x));
@@ -300,7 +320,7 @@ TEST_CASE("AutoDiffTerm/MyFunctor3")
 	hessian[2][1].resize(3,2);
 	hessian[2][2].resize(3,3);
 
-	double value  = term.evaluate(&variables[0], &gradient, &hessian);
+	double value  = term.evaluate(&variables[0], &gradient);
 	double value2 = term.evaluate(&variables[0]);
 
 	// The two values must agree.
@@ -319,6 +339,20 @@ TEST_CASE("AutoDiffTerm/MyFunctor3")
 	CHECK(Approx(gradient[2](0)) ==  2.0 * 2.0 * z[0]); 
 	CHECK(Approx(gradient[2](1)) ==  2.0 * 3.0 * z[1]);
 	CHECK(Approx(gradient[2](2)) ==  2.0 * 4.0 * z[2]);
+
+	for (auto& g : gradient) {
+		g.setZero();
+	}
+	double value3 = term.evaluate(&variables[0], &gradient, &hessian);
+	CHECK(Approx(value3) == value2);
+
+	// Test gradient
+	CHECK(Approx(gradient[0](0)) == 2.0);
+	CHECK(Approx(gradient[1](0)) == 2.0);
+	CHECK(Approx(gradient[1](1)) == 3.0);
+	CHECK(Approx(gradient[2](0)) == 2.0 * 2.0 * z[0]);
+	CHECK(Approx(gradient[2](1)) == 2.0 * 3.0 * z[1]);
+	CHECK(Approx(gradient[2](2)) == 2.0 * 4.0 * z[2]);
 
 	// Test Hessian
 	CHECK(Approx(hessian[0][0](0,0)) == 0.0);
@@ -395,7 +429,7 @@ TEST_CASE("AutoDiffTerm/MyFunctor4")
 
 	hessian[3][3].resize(4,4);
 
-	double value  = term.evaluate(&variables[0], &gradient, &hessian);
+	double value  = term.evaluate(&variables[0], &gradient);
 	double value2 = term.evaluate(&variables[0]);
 
 	// The two values must agree.
@@ -415,6 +449,27 @@ TEST_CASE("AutoDiffTerm/MyFunctor4")
 	CHECK(Approx(gradient[3](1)) ==  3.0 * z[1]);
 	CHECK(Approx(gradient[3](2)) ==  4.0 * z[2]);
 	CHECK(Approx(gradient[3](3)) ==  2.0 * 5.0 * w[3]);
+
+	for (auto& g : gradient) {
+		g.setZero();
+	}
+	double value3 = term.evaluate(&variables[0], &gradient, &hessian);
+	CHECK(Approx(value3) == value2);
+
+	// Test gradient
+	CHECK(Approx(gradient[0](0)) == 2.0 * 2.0 * x[0]);
+
+	CHECK(Approx(gradient[1](0)) == 2.0 * 2.0 * y[0]);
+	CHECK(Approx(gradient[1](1)) == 2.0 * 3.0 * y[1]);
+
+	CHECK(Approx(gradient[2](0)) == 2.0 * 2.0 * z[0] + 2.0 * w[0]);
+	CHECK(Approx(gradient[2](1)) == 2.0 * 3.0 * z[1] + 3.0 * w[1]);
+	CHECK(Approx(gradient[2](2)) == 2.0 * 4.0 * z[2] + 4.0 * w[2]);
+
+	CHECK(Approx(gradient[3](0)) == 2.0 * z[0]);
+	CHECK(Approx(gradient[3](1)) == 3.0 * z[1]);
+	CHECK(Approx(gradient[3](2)) == 4.0 * z[2]);
+	CHECK(Approx(gradient[3](3)) == 2.0 * 5.0 * w[3]);
 
 	// Test Hessian
 	CHECK(Approx(hessian[0][0](0,0)) == 2.0 * 2.0);
@@ -586,4 +641,82 @@ TEST_CASE("AutoDiffTerm::number_of_variables")
 {
 	CHECK((AutoDiffTerm<Func, 1>{}.number_of_variables()) == 1);
 	CHECK((AutoDiffTerm<MyFunctor4, 1, 1, 1, 1>{}.number_of_variables()) == 4);
+}
+
+
+class MyFunctor_1_1_1_2_2_4_4
+{
+public:
+	template<typename R>
+	R operator()(
+		const R* const x1,
+		const R* const x2,
+		const R* const x3,
+		const R* const x4,
+		const R* const x5,
+		const R* const x6,
+		const R* const x7) const
+	{
+		return
+			3 * x1[0] +
+			5 * x2[0] +
+			9 * x3[0] +
+			3 * x4[0] + 4 * x4[1] +
+			1 * x5[0] + 6 * x5[1] +
+			4 * x6[0] + 3 * x6[1] + 2 * x6[2] + 2 * x6[3] +
+			2 * x7[0] + 1 * x7[1] + 8 * x7[2] + 9 * x7[3];
+	}
+};
+
+// Tests the variadic template version of AutoDiffTerm.
+TEST_CASE("AutoDiffTerm/MyFunctor_1_1_1_2_2_4_4", "")
+{
+	AutoDiffTerm<MyFunctor_1_1_1_2_2_4_4, 1, 1, 1, 2, 2, 4, 4> term;
+
+	double x1[1] = {5.3};
+	double x2[1] = {1.7};
+	double x3[1] = {0.8};
+	double x4[2] = {2.9, 3.9};
+	double x5[2] = {1.0, 2.0};
+	double x6[4] = {1.3, 7.2, 4.5, 8.8};
+	double x7[4] = {9.8, 2.3, 5.6, 1.1};
+	std::vector<double*> variables =
+		{x1, x2, x3, x4, x5, x6, x7};
+
+	double value = term.evaluate(&variables[0]);
+	MyFunctor_1_1_1_2_2_4_4 f;
+	CHECK(value == f(x1, x2, x3, x4, x5, x6, x7));
+
+	std::vector<Eigen::VectorXd> gradient(7);
+	gradient[0].resize(1);
+	gradient[1].resize(1);
+	gradient[2].resize(1);
+	gradient[3].resize(2);
+	gradient[4].resize(2);
+	gradient[5].resize(4);
+	gradient[6].resize(4);
+	auto value2 = term.evaluate(variables.data(), &gradient);
+	CHECK(value2 == f(x1, x2, x3, x4, x5, x6, x7));
+	CHECK(gradient[0][0] == 3);
+	CHECK(gradient[1][0] == 5);
+	CHECK(gradient[2][0] == 9);
+
+	CHECK(gradient[3][0] == 3);
+	CHECK(gradient[3][1] == 4);
+
+	CHECK(gradient[4][0] == 1);
+	CHECK(gradient[4][1] == 6);
+
+	CHECK(gradient[5][0] == 4);
+	CHECK(gradient[5][1] == 3);
+	CHECK(gradient[5][2] == 2);
+	CHECK(gradient[5][3] == 2);
+
+	CHECK(gradient[6][0] == 2);
+	CHECK(gradient[6][1] == 1);
+	CHECK(gradient[6][2] == 8);
+	CHECK(gradient[6][3] == 9);
+
+	std::vector< std::vector<Eigen::MatrixXd>> empty_hessians;
+	CHECK_THROWS(term.evaluate(variables.data(), &gradient, &empty_hessians));
 }
