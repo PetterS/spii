@@ -318,7 +318,7 @@ std::pair<typename Map::const_iterator,
 	if (output.first->first >= t) {
 		output.first = map.end();
 	}
-	if (output.second->first <= t) {
+	if (output.second != map.end() && output.second->first <= t) {
 		output.second = map.end();
 	}
 	return output;
