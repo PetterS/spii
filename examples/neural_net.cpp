@@ -152,7 +152,6 @@ int main_function()
 	for (const auto& example : test) {
 		input[0] = example[0];
 		input[1] = example[1];
-		input[2] = 1.0;
 		output = neural_network_classify<double, n_input, n_hidden, n_output>(input, W1.data(), W2.data());
 		cout << "(" << input[0] << ", " << input[1] << ") --> " << output[0] << endl;
 	}
