@@ -21,6 +21,7 @@
 #ifdef USE_GENERIC_LAMBDAS
 
 #include <spii/auto_diff_term.h>
+#include <spii/dynamic_auto_diff_term.h>
 #include <spii/solver.h>
 #include <spii/transformations.h>
 using namespace spii;
@@ -51,11 +52,11 @@ using namespace spii;
 //
 //	auto term_b = make_term<1, 1>(lambda);
 // 
-template<int... arg_sizes, typename GenericLambda>
-std::shared_ptr<Term> make_term(const GenericLambda& lambda)
+template<int... arg_sizes, typename GenericLambda, typename... Ints>
+std::shared_ptr<Term> make_term(const GenericLambda& lambda, Ints... dimensions)
 {
 	typedef spii::AutoDiffTerm<GenericLambda, arg_sizes...> TermType;
-	return std::make_shared<TermType>(lambda);
+	return std::make_shared<TermType>(dimensions..., lambda);
 }
 
 TEST_CASE("make_term_2")
@@ -116,6 +117,40 @@ TEST_CASE("make_term_1_1")
 		{
 			sout << str << std::endl;
 		};
+
+	SolverResults results;
+	solver.solve(function, &results);
+	INFO(sout.str());
+	CHECK(std::abs(x - 1.0) < 1e-8);
+	CHECK(std::abs(y - 1.0) < 1e-8);
+	CHECK(results.exit_success());
+}
+
+TEST_CASE("make_dynamic_term_1_1")
+{
+	Function function;
+	double x;
+	double y;
+
+	auto lambda =
+		[](auto x, auto y)
+	{
+		auto d0 = y[0] - x[0] * x[0];
+		auto d1 = 1 - x[0];
+		return 100 * d0*d0 + d1*d1;
+	};
+
+	auto term = make_term<Dynamic, Dynamic>(lambda, 1, 1);
+
+	function.add_term(term, &x, &y);
+
+	NewtonSolver solver;
+	std::stringstream sout;
+	solver.log_function =
+		[&sout](auto str)
+	{
+		sout << str << std::endl;
+	};
 
 	SolverResults results;
 	solver.solve(function, &results);
