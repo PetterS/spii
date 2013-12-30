@@ -1,3 +1,4 @@
+// Petter Strandmark 2013.
 #ifndef SPII_DYNAMIC_AUTO_DIFF_TERM_H
 #define SPII_DYNAMIC_AUTO_DIFF_TERM_H
 //

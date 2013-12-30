@@ -1,3 +1,4 @@
+// Petter Strandmark 2012–2013.
 #ifndef SPII_AUTO_DIFF_TERM_H
 #define SPII_AUTO_DIFF_TERM_H
 
@@ -21,7 +22,7 @@ namespace spii {
 //
 // Note: The size arguments D... are supposed to be reasonably small,
 //       as the memory allocated on the stack by this class is
-//       O(max(D...)^2).
+//       O(sum(D...)^2).
 template<typename Functor, int... D>
 class AutoDiffTerm;
 
