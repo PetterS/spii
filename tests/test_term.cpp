@@ -168,6 +168,11 @@ public:
 	}
 };
 
+TEST_CASE("AutoDiffTerm/make_differentiable")
+{
+	auto term1 = make_differentiable<1>(MyFunctor1{});
+}
+
 TEST_CASE("AutoDiffTerm/MyFunctor1", "")
 {
 	AutoDiffTerm<MyFunctor1, 2> term;

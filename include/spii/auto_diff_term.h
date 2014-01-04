@@ -2,8 +2,10 @@
 #ifndef SPII_AUTO_DIFF_TERM_H
 #define SPII_AUTO_DIFF_TERM_H
 
+#include <memory>
 #include <type_traits>
 #include <typeinfo>
+#include <utility>
 
 #include <spii-thirdparty/badiff.h>
 #include <spii-thirdparty/fadiff.h>
@@ -25,6 +27,56 @@ namespace spii {
 //       O(sum(D...)^2).
 template<typename Functor, int... D>
 class AutoDiffTerm;
+
+// Creates a differentiable term from a generic lambda or functor
+// and argument sizes.
+//
+// Examples 
+// --------
+//
+// class Functor1
+// {
+//  	template<typename R>
+//		R operator()(const T* x)
+//		{
+//			return x[0]*x[0]
+//		}
+//  };
+//
+//  auto term_1 = make_differentiable<1>(Functor{});
+//
+//
+//	auto lambda_a =
+//		[](auto x)              // C++14 generic lambda
+//		{
+//			auto d0 =  x[1] - x[0]*x[0];
+//			auto d1 =  1 - x[0];
+//			return 100 * d0*d0 + d1*d1;
+//		};
+//
+//	auto term_a = make_differentiable<2>(lambda_a);
+//
+//
+//	auto lambda_b =
+//		[](auto x, auto y)      // C++14 generic lambda
+//		{
+//			auto d0 =  y[0] - x[0]*x[0];
+//			auto d1 =  1 - x[0];
+//			return 100 * d0*d0 + d1*d1;
+//		};
+//
+//	auto term_b = make_differentiable<1, 1>(lambda);
+// 
+// 
+// The dimension arguments are only used if Dynamic is specified
+// as arg_sizes.
+template<int... arg_sizes, typename Functor, typename... Ints>
+std::shared_ptr<Term> make_differentiable(Functor&& lambda, Ints... dimensions)
+{
+	typedef typename std::remove_reference<Functor>::type FunctorClass;
+	typedef AutoDiffTerm<FunctorClass, arg_sizes...> TermType;
+	return std::make_shared<TermType>(dimensions..., std::forward<Functor>(lambda));
+}
 
 
 //

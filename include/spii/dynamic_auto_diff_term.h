@@ -16,6 +16,24 @@
 // than the equivalent static ones.
 //
 
+// The make_differentiable function also supports dynamic
+// differentiation.
+//
+// Examples 
+// --------
+//
+// class Functor1_2
+// {
+//  	template<typename R>
+//		R operator()(const T* x, const T* y)
+//		{
+//			return x[0]*x[0] + y[0] + y[1];
+//		}
+//  };
+//
+//  auto term_1_2 = make_differentiable<Dynamic, Dynamic>(Functor{}, 1, 2);
+//
+
 #include <type_traits>
 #include <typeinfo>
 
