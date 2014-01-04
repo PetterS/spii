@@ -49,7 +49,7 @@ The Newton solver and the L-BFGS solver pass all of these tests. The NIST collec
 
 Generic Lambdas
 ---------------
-The interface will in the future be based on generic lambdas (when more compilers support it).
+The interface supports generic lambdas:
 
 ``` C++
 auto lambda =
@@ -67,7 +67,7 @@ auto lambda =
 //
 // No need to derive or compute derivatives
 // manually!
-auto term = make_term<1, 1>(lambda);
+auto term = make_differentiable<1, 1>(lambda);
 
 double x=0, y=0;
 function.add_term(term, &x, &y);
