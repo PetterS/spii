@@ -725,3 +725,88 @@ TEST_CASE("AutoDiffTerm/MyFunctor_1_1_1_2_2_4_4", "")
 	std::vector< std::vector<Eigen::MatrixXd>> empty_hessians;
 	CHECK_THROWS(term.evaluate(variables.data(), &gradient, &empty_hessians));
 }
+
+struct DetectCopyFunctor
+{
+	static int num_constructions;
+	static int num_copies;
+	static int num_moves;
+	
+	double data = 0;
+
+	DetectCopyFunctor(double data_)
+		: data{data_}
+	{
+		num_constructions++;
+	}
+
+	DetectCopyFunctor(const DetectCopyFunctor& rhs)
+	{
+		num_copies++;
+		this->data = rhs.data;
+	}
+
+	DetectCopyFunctor(DetectCopyFunctor&& rhs)
+	{
+		num_moves++;
+		this->data = rhs.data;
+	}
+
+	template<typename R>
+	R operator()(const R* x) const
+	{
+		return R{data};
+	}
+};
+
+int DetectCopyFunctor::num_constructions = 0;
+int DetectCopyFunctor::num_copies = 0;
+int DetectCopyFunctor::num_moves = 0;
+
+// This test makes sure that the std::forward machinery inside
+// make_differentiable and AutoDiffTerm is working correctly.
+TEST_CASE("AutoDiffTerm/CopiesMade")
+{
+	REQUIRE(DetectCopyFunctor::num_constructions == 0);
+	REQUIRE(DetectCopyFunctor::num_copies == 0);
+	REQUIRE(DetectCopyFunctor::num_moves == 0);
+
+	DetectCopyFunctor functor{123};	
+	CHECK(DetectCopyFunctor::num_constructions == 1);
+	CHECK(DetectCopyFunctor::num_copies == 0);
+	CHECK(DetectCopyFunctor::num_moves == 0);
+
+	auto term1 = AutoDiffTerm<DetectCopyFunctor, 1>{123456};
+	CHECK(DetectCopyFunctor::num_constructions == 2);
+	CHECK(DetectCopyFunctor::num_copies == 0);
+	CHECK(DetectCopyFunctor::num_moves == 0);
+
+	auto term2 = AutoDiffTerm<DetectCopyFunctor, 1>{functor};
+	CHECK(DetectCopyFunctor::num_constructions == 2);
+	CHECK(DetectCopyFunctor::num_copies == 1);
+	CHECK(DetectCopyFunctor::num_moves == 0);
+
+	auto term3 = make_differentiable<1>(functor);
+	CHECK(DetectCopyFunctor::num_constructions == 2);
+	CHECK(DetectCopyFunctor::num_copies == 2);
+	CHECK(DetectCopyFunctor::num_moves == 0);
+
+	// Make sure that make_differentiable actually has
+	// made a copy of the functor. This can be achieved
+	// with std::remove_reference.
+	double x[1] = {0};
+	std::vector<double*> vars = {x};
+	CHECK(term3->evaluate(vars.data()) == 123);
+	functor.data = 0;
+	CHECK(term3->evaluate(vars.data()) == 123);
+
+	auto term4 = AutoDiffTerm<DetectCopyFunctor, 1>{DetectCopyFunctor{123}};
+	CHECK(DetectCopyFunctor::num_constructions == 3);
+	CHECK(DetectCopyFunctor::num_copies == 2);
+	CHECK(DetectCopyFunctor::num_moves == 1);
+
+	auto term5 = make_differentiable<1>(DetectCopyFunctor{456});
+	CHECK(DetectCopyFunctor::num_constructions == 4);
+	CHECK(DetectCopyFunctor::num_copies == 2);
+	CHECK(DetectCopyFunctor::num_moves == 2);
+}
