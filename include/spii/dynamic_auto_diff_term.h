@@ -181,7 +181,7 @@ public:
 
 	template<typename... Args>
 	AutoDiffTerm(int d0_, int d1_, Args&&... args)
-		: d0{d0_}, d1{d1_}, functor{std::forward<Args>(args)...}
+		: d0{d0_}, d1{d1_}, functor(std::forward<Args>(args)...)
 	{ }
 
 	virtual int number_of_variables() const override
@@ -314,7 +314,7 @@ public:
 
 	template<typename... Args>
 	AutoDiffTerm(int d0_, int d1_, int d2_, Args&&... args)
-		: d0{d0_}, d1{d1_}, d2{d2_}, functor{std::forward<Args>(args)...}
+		: d0{d0_}, d1{d1_}, d2{d2_}, functor(std::forward<Args>(args)...)
 	{ }
 
 	virtual int number_of_variables() const override
@@ -487,7 +487,7 @@ protected:
 
 
 //
-// 3-variable specialization
+// 4-variable specialization
 //
 template<typename Functor>
 class AutoDiffTerm<Functor, Dynamic, Dynamic, Dynamic, Dynamic>
@@ -497,7 +497,7 @@ public:
 
 	template<typename... Args>
 	AutoDiffTerm(int d0_, int d1_, int d2_, int d3_, Args&&... args)
-		: d0{d0_}, d1{d1_}, d2{d2_}, d3{d3_}, functor{std::forward<Args>(args)...}
+		: d0{d0_}, d1{d1_}, d2{d2_}, d3{d3_}, functor(std::forward<Args>(args)...)
 	{ }
 
 	virtual int number_of_variables() const override
