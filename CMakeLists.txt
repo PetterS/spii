@@ -77,7 +77,8 @@ IF (NOT CMAKE_BUILD_TYPE)
 ENDIF (NOT CMAKE_BUILD_TYPE)
 
 # C++11 support.
-include(EnableCPP11.cmake)
+include(cmake/EnableCPP11.cmake)
+include(cmake/CheckGenericLambdas.cmake)
 
 #
 # Clang and GCC settings
