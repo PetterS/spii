@@ -776,12 +776,12 @@ TEST_CASE("AutoDiffTerm/CopiesMade")
 	CHECK(DetectCopyFunctor::num_copies == 0);
 	CHECK(DetectCopyFunctor::num_moves == 0);
 
-	auto term1 = AutoDiffTerm<DetectCopyFunctor, 1>{123456};
+	AutoDiffTerm<DetectCopyFunctor, 1> term1(123456);
 	CHECK(DetectCopyFunctor::num_constructions == 2);
 	CHECK(DetectCopyFunctor::num_copies == 0);
 	CHECK(DetectCopyFunctor::num_moves == 0);
 
-	auto term2 = AutoDiffTerm<DetectCopyFunctor, 1>{functor};
+	AutoDiffTerm<DetectCopyFunctor, 1> term2(functor);
 	CHECK(DetectCopyFunctor::num_constructions == 2);
 	CHECK(DetectCopyFunctor::num_copies == 1);
 	CHECK(DetectCopyFunctor::num_moves == 0);
@@ -800,7 +800,7 @@ TEST_CASE("AutoDiffTerm/CopiesMade")
 	functor.data = 0;
 	CHECK(term3->evaluate(vars.data()) == 123);
 
-	auto term4 = AutoDiffTerm<DetectCopyFunctor, 1>{DetectCopyFunctor{123}};
+	AutoDiffTerm<DetectCopyFunctor, 1> term4{DetectCopyFunctor{123}};
 	CHECK(DetectCopyFunctor::num_constructions == 3);
 	CHECK(DetectCopyFunctor::num_copies == 2);
 	CHECK(DetectCopyFunctor::num_moves == 1);
