@@ -14,6 +14,15 @@
 	#endif
 #endif
 
+// Clang uses __has_feature.
+#ifndef __has_feature
+	#define __has_feature(x) 0
+#endif
+
+//#if __has_feature(cxx_generic_lambda)
+	#define USE_GENERIC_LAMBDAS
+//#endif
+
 #define CATCH_CONFIG_MAIN
 #include <catch.hpp>
 
