@@ -19,9 +19,9 @@
 	#define __has_feature(x) 0
 #endif
 
-//#if __has_feature(cxx_generic_lambda)
+#if __has_feature(cxx_generic_lambda)
 	#define USE_GENERIC_LAMBDAS
-//#endif
+#endif
 
 #define CATCH_CONFIG_MAIN
 #include <catch.hpp>
