@@ -3,9 +3,11 @@
 #define SPII_STRING_UTILS_H
 
 #include <ostream>
+#include <set>
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <typeinfo>
 #include <vector>
 
 namespace spii
@@ -47,8 +49,75 @@ namespace {
 		add_to_stream(&stream, std::forward<Args>(args)...);
 		return stream.str();
 	}
+
+	template<typename T1, typename T2>
+	std::string to_string(std::pair<T1, T2> p)
+	{
+		// Recursively call to_string to handle pairs of pairs,
+		// pairs of vectors etc.
+		return to_string("(", to_string(p.first), ", ", to_string(p.second), ")");
+	}
+
+	template<typename T, typename Alloc>
+	std::string to_string(const std::vector<T, Alloc> v)
+	{
+		std::ostringstream stream;
+		stream << "[";
+		bool first = true;
+		for (const auto& value: v) {
+			if (!first) {
+				stream << ", ";
+			}
+			stream << to_string(value);
+			first = false;
+		}
+		stream << "]";
+		return stream.str();
+	}
+
+	template<typename T, typename Comp, typename Alloc>
+	std::string to_string(const std::set<T, Comp, Alloc> s)
+	{
+		std::ostringstream stream;
+		stream << "{";
+		bool first = true;
+		for (const auto& value : s) {
+			if (!first) {
+				stream << ", ";
+			}
+			stream << to_string(value);
+			first = false;
+		}
+		stream << "}";
+		return stream.str();
+	}
 }
 
+template<typename T>
+T from_string(const std::string& input_string)
+{
+	std::istringstream input_stream(input_string);
+	T t;
+	input_stream >> t;
+	if (!input_stream) {
+		std::ostringstream error;
+		error << "Could not parse " << typeid(T).name() << " from \"" << input_string << "\".";
+		throw std::runtime_error(error.str());
+	}
+	return t;
+}
+
+template<typename T>
+T from_string(const std::string& input_string, T default_value)
+{
+	std::istringstream input_stream(input_string);
+	T t;
+	input_stream >> t;
+	if (!input_stream) {
+		t = default_value;
+	}
+	return t;
+}
 
 namespace
 {
