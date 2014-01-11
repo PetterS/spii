@@ -30,16 +30,6 @@ struct AddedVariable
 	mutable std::vector<double>  temp_space; // Used internally during evaluation.
 };
 
-struct AddedTerm
-{
-	// The Term provided by the users.
-	std::shared_ptr<const Term> term;
-	// The variables for which the Term should be evaluated.
-	std::vector<size_t> added_variables_indices;
-	// Temporary storage for a point.
-	mutable std::vector<double*> temp_variables;
-};
-
 struct IntPairHash
 {
 	size_t operator()(const std::pair<int, int>& p) const
@@ -474,6 +464,11 @@ void Function::add_term(std::shared_ptr<const Term> term, const std::vector<doub
 size_t Function::get_number_of_terms() const
 {
 	return impl->terms.size();
+}
+
+const BeginEndProvider<AddedTerm> Function::terms() const
+{
+	return {impl->terms};
 }
 
 void Function::set_number_of_threads(int num)

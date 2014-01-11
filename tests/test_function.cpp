@@ -916,3 +916,26 @@ TEST_CASE("variables_overlap_3")
 	f.add_variable(&x[1], 1);
 	EXPECT_THROW(f.add_variable(&x[2], 2), std::exception);
 }
+
+TEST_CASE("begin_end_terms")
+{
+	Function f;
+	double xx[2];
+	double x[1];
+	double y[1];
+	f.add_variable(xx, 2);
+	f.add_variable(x, 1);
+	f.add_variable(y, 1);
+
+	auto term1 = make_differentiable<2>(Term1{});
+	auto term2 = make_differentiable<1, 1>(Term2{});
+	f.add_term(term1, xx);
+	f.add_term(term2, x, y);
+	
+	int n_iterations = 0;
+	for (const auto& added_term: f.terms()) {
+		n_iterations++;
+		CHECK((added_term.term == term1 || added_term.term == term2));
+	}
+	CHECK(n_iterations == 2);
+}

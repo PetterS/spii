@@ -43,6 +43,32 @@ namespace spii {
 //  solvers and terms will see identical values.
 //
 
+struct AddedTerm
+{
+	// The Term provided by the users.
+	std::shared_ptr<const Term> term;
+	// The variables for which the Term should be evaluated.
+	std::vector<size_t> added_variables_indices;
+	// Temporary storage for a point.
+	mutable std::vector<double*> temp_variables;
+};
+
+template<typename T>
+class BeginEndProvider
+{
+public:
+	BeginEndProvider(const T* begin_, const T* end_)
+		: begin_pointer{begin_}, end_pointer{end_} { }
+	BeginEndProvider(const std::vector<T>& vec)
+		: begin_pointer{vec.data()}, end_pointer{&(vec.back()) + 1} { }
+
+	const T* begin() const { return begin_pointer; }
+	const T* end() const { return end_pointer; }
+private:
+	const T* begin_pointer;
+	const T* end_pointer;
+};
+
 class SPII_API Function
 {
 friend class Solver;
@@ -87,6 +113,16 @@ public:
 
 	// Returns the current number of terms contained in the function.
 	size_t get_number_of_terms() const;
+
+	// Provides a way of iterating over the terms in the function.
+	//
+	//		for (auto term: function.terms()) {
+	//			// ...
+	//		}
+	//
+	// The iteratons will be valid until the next call of a non-const
+	// member function.
+	const BeginEndProvider<AddedTerm> terms() const;
 
 	// Adds a variable to the function. This function is called by add_term
 	// if the variable needs to be added.
