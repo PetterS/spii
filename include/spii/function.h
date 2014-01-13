@@ -4,10 +4,7 @@
 // This header defines the Function class which is used
 // to store an objective function to be optimized.
 //
-// The Function class is NOT thread-safe. Multiple threads
-// may not evaluate the same Function object concurrently.
-//
-// The evaluation itself is parallelized across multiple
+// The evaluation is parallelized across multiple
 // threads.
 //
 
@@ -208,16 +205,6 @@ public:
 
 	// Create a sparse matrix with the correct sparsity pattern.
 	void create_sparse_hessian(Eigen::SparseMatrix<double>* H) const;
-
-	// Used to record the time of some operations. Each time an operation
-	// is performed, the time taken is added to the appropiate variable.
-	mutable int evaluations_without_gradient    = 0;
-	mutable int evaluations_with_gradient       = 0;
-	mutable double allocation_time              = 0.0;
-	mutable double evaluate_time                = 0.0;
-	mutable double evaluate_with_hessian_time   = 0.0;
-	mutable double write_gradient_hessian_time  = 0.0;
-	mutable double copy_time                    = 0.0;
 
 	// Prints the recorded timing information.
 	void print_timing_information(std::ostream& out) const;

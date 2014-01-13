@@ -1,6 +1,7 @@
 // Petter Strandmark 2012–2013.
 
 #include <algorithm>
+#include <atomic>
 #include <exception>
 #include <iomanip>
 #include <iostream>
@@ -16,6 +17,15 @@
 #include <spii/spii.h>
 
 namespace spii {
+
+void atomic_increment_double(std::atomic<double>& variable, double increment)
+{
+	double old_value = variable.load();
+	double new_value;
+	do {
+		new_value = old_value + increment;
+	} while (!variable.compare_exchange_weak(old_value, new_value));
+}
 
 // These two structs are used by Function to store added
 // variables and terms.
@@ -45,6 +55,7 @@ class Function::Implementation
 {
 public:
 	Implementation(Function* function_interface);
+	Function* interface;
 
 	// Implemenations of functions in the public interface.
 	double evaluate(const Eigen::VectorXd& x,
@@ -100,9 +111,12 @@ public:
 	// Number of threads used for evaluation.
 	int number_of_threads;
 
+	mutable std::atomic_flag local_storage_protector;
+
 	// Allocates temporary storage for gradient evaluations.
 	// Should be called automatically at first evaluate()
 	void allocate_local_storage() const;
+	void allocate_local_storage_unsynchronized() const;
 
 	// If finalize has been called.
 	mutable bool local_storage_allocated;
@@ -124,7 +138,15 @@ public:
 	// was created.
 	mutable size_t number_of_hessian_elements;
 
-	Function* interface;
+	// Used to record the time of some operations. Each time an operation
+	// is performed, the time taken is added to the appropiate variable.
+	mutable std::atomic<int> evaluations_without_gradient = 0;
+	mutable std::atomic<int> evaluations_with_gradient = 0;
+	mutable std::atomic<double> allocation_time = 0.0;
+	mutable std::atomic<double> evaluate_time = 0.0;
+	mutable std::atomic<double> evaluate_with_hessian_time = 0.0;
+	mutable std::atomic<double> write_gradient_hessian_time = 0.0;
+	mutable std::atomic<double> copy_time = 0.0;
 };
 
 Function::Function() 
@@ -158,6 +180,7 @@ void Function::Implementation::clear()
 	number_of_scalars = 0;
 	number_of_constants = 0;
 
+	local_storage_protector.clear();
 	thread_gradient_scratch.clear();
 	thread_gradient_storage.clear();
 	local_storage_allocated = false;
@@ -483,15 +506,41 @@ void Function::set_number_of_threads(int num)
 	#endif
 }
 
+class AutoClear
+{
+public:
+	AutoClear(std::atomic_flag& flag_)
+		: flag(flag_) { }
+
+	~AutoClear()
+	{
+		flag.clear();
+	}
+
+private:
+	std::atomic_flag& flag;
+};
+
 void Function::Implementation::allocate_local_storage() const
 {
+	while (local_storage_protector.test_and_set());
+	AutoClear clear_flag_on_exit(local_storage_protector);
+	allocate_local_storage_unsynchronized();
+}
+
+void Function::Implementation::allocate_local_storage_unsynchronized() const
+{
+	if (local_storage_allocated) {
+		return;
+	}
+
 	auto start_time = wall_time();
 
 	size_t max_arity = 1;
 	int max_variable_dimension = 1;
 	for (const auto& itr: variables) {
 		max_variable_dimension = std::max(max_variable_dimension,
-		                                  itr.user_dimension);
+											itr.user_dimension);
 	}
 	for (const auto& term: terms) {
 		max_arity = std::max(max_arity, term.added_variables_indices.size());
@@ -529,7 +578,7 @@ void Function::Implementation::allocate_local_storage() const
 				hessian[var0].resize(max_arity);
 				for (int var1 = 0; var1 < max_arity; ++var1) {
 					hessian[var0][var1].resize(max_variable_dimension,
-					                           max_variable_dimension);
+												max_variable_dimension);
 				}
 			}
 		}
@@ -537,27 +586,25 @@ void Function::Implementation::allocate_local_storage() const
 
 	this->local_storage_allocated = true;
 
-	interface->allocation_time += wall_time() - start_time;
+	atomic_increment_double(this->allocation_time, wall_time() - start_time);
 }
 
 void Function::print_timing_information(std::ostream& out) const
 {
 	out << "----------------------------------------------------\n";
-	out << "Function evaluations without gradient : " << evaluations_without_gradient << '\n';
-	out << "Function evaluations with gradient    : " << evaluations_with_gradient << '\n';
-	out << "Function memory allocation time   : " << allocation_time << '\n';
-	out << "Function evaluate time            : " << evaluate_time << '\n';
-	out << "Function evaluate time (with g/H) : " << evaluate_with_hessian_time << '\n';
-	out << "Function write g/H time           : " << write_gradient_hessian_time << '\n';
-	out << "Function copy data time           : " << copy_time << '\n';
+	out << "Function evaluations without gradient : " << impl->evaluations_without_gradient << '\n';
+	out << "Function evaluations with gradient    : " << impl->evaluations_with_gradient << '\n';
+	out << "Function memory allocation time   : " << impl->allocation_time << '\n';
+	out << "Function evaluate time            : " << impl->evaluate_time << '\n';
+	out << "Function evaluate time (with g/H) : " << impl->evaluate_with_hessian_time << '\n';
+	out << "Function write g/H time           : " << impl->write_gradient_hessian_time << '\n';
+	out << "Function copy data time           : " << impl->copy_time << '\n';
 	out << "----------------------------------------------------\n";
 }
 
 double Function::Implementation::evaluate_from_local_storage() const
 {
-	spii_assert(this->local_storage_allocated);
-
-	interface->evaluations_without_gradient++;
+	this->evaluations_without_gradient++;
 	double start_time = wall_time();
 
 	double value = this->constant;
@@ -604,15 +651,13 @@ double Function::Implementation::evaluate_from_local_storage() const
 		}
 	#endif
 
-	interface->evaluate_time += wall_time() - start_time;
+	atomic_increment_double(this->evaluate_time, wall_time() - start_time);
 	return value;
 }
 
 double Function::evaluate(const Eigen::VectorXd& x) const
 {
-	if (! impl->local_storage_allocated) {
-		impl->allocate_local_storage();
-	}
+	impl->allocate_local_storage();
 
 	// Copy values from the global vector x to the temporary storage
 	// used for evaluating the term.
@@ -623,9 +668,7 @@ double Function::evaluate(const Eigen::VectorXd& x) const
 
 double Function::evaluate() const
 {
-	if (! impl->local_storage_allocated) {
-		impl->allocate_local_storage();
-	}
+	impl->allocate_local_storage();
 
 	// Copy the user state to the local storage
 	// for evaluation.
@@ -695,7 +738,7 @@ void Function::create_sparse_hessian(Eigen::SparseMatrix<double>* H) const
 	H->setFromTriplets(hessian_indices.begin(), hessian_indices.end());
 	H->makeCompressed();
 
-	this->allocation_time += wall_time() - start_time;
+	atomic_increment_double(impl->allocation_time, wall_time() - start_time);
 }
 
 void Function::Implementation::copy_global_to_local(const Eigen::VectorXd& x) const
@@ -730,7 +773,7 @@ void Function::Implementation::copy_global_to_local(const Eigen::VectorXd& x) co
 		}
 	}
 
-	interface->copy_time += wall_time() - start_time;
+	atomic_increment_double(this->copy_time, wall_time() - start_time);
 }
 
 void Function::copy_user_to_global(Eigen::VectorXd* x) const
@@ -760,7 +803,7 @@ void Function::Implementation::copy_user_to_global(Eigen::VectorXd* x) const
 		}
 	}
 
-	interface->copy_time += wall_time() - start_time;
+	atomic_increment_double(this->copy_time, wall_time() - start_time);
 }
 
 void Function::copy_global_to_user(const Eigen::VectorXd& x) const
@@ -789,7 +832,7 @@ void Function::Implementation::copy_global_to_user(const Eigen::VectorXd& x) con
 		}
 	}
 
-	interface->copy_time += wall_time() - start_time;
+	atomic_increment_double(this->copy_time, wall_time() - start_time);
 }
 
 void Function::Implementation::copy_user_to_local() const
@@ -806,7 +849,7 @@ void Function::Implementation::copy_user_to_local() const
 		}
 	}
 
-	interface->copy_time += wall_time() - start_time;
+	atomic_increment_double(this->copy_time, wall_time() - start_time);
 }
 
 double Function::evaluate(const Eigen::VectorXd& x,
@@ -827,15 +870,13 @@ double Function::Implementation::evaluate(const Eigen::VectorXd& x,
                                           Eigen::VectorXd* gradient,
 						                  Eigen::MatrixXd* hessian) const
 {
-	interface->evaluations_with_gradient++;
+	this->evaluations_with_gradient++;
 
 	if (hessian && ! interface->hessian_is_enabled) {
 		throw std::runtime_error("Function::evaluate: Hessian computation is not enabled.");
 	}
 
-	if (! this->local_storage_allocated) {
-		this->allocate_local_storage();
-	}
+	this->allocate_local_storage();
 
 	double start_time = wall_time();
 	if (hessian) {
@@ -850,7 +891,7 @@ double Function::Implementation::evaluate(const Eigen::VectorXd& x,
 			thread_dense_hessian_storage[t].setZero();
 		}
 	}
-	interface->allocation_time += wall_time() - start_time;
+	atomic_increment_double(this->allocation_time, wall_time() - start_time);
 
 	// Copy values from the global vector x to the temporary storage
 	// used for evaluating the term.
@@ -979,7 +1020,7 @@ double Function::Implementation::evaluate(const Eigen::VectorXd& x,
 		}
 	#endif
 
-	interface->evaluate_with_hessian_time += wall_time() - start_time;
+	atomic_increment_double(this->evaluate_with_hessian_time, wall_time() - start_time);
 	start_time = wall_time();
 
 	// Create the global gradient.
@@ -1002,7 +1043,7 @@ double Function::Implementation::evaluate(const Eigen::VectorXd& x,
 		}
 	}
 
-	interface->write_gradient_hessian_time += wall_time() - start_time;
+	atomic_increment_double(this->write_gradient_hessian_time, wall_time() - start_time);
 	return value;
 }
 
@@ -1017,7 +1058,7 @@ double Function::Implementation::evaluate(const Eigen::VectorXd& x,
                                           Eigen::VectorXd* gradient,
 						                  Eigen::SparseMatrix<double>* hessian) const
 {
-	interface->evaluations_with_gradient++;
+	this->evaluations_with_gradient++;
 
 	if (! hessian) {
 		throw std::runtime_error("Function::evaluate: hessian can not be null.");
@@ -1027,9 +1068,7 @@ double Function::Implementation::evaluate(const Eigen::VectorXd& x,
 		throw std::runtime_error("Function::evaluate: Hessian computation is not enabled.");
 	}
 
-	if (! this->local_storage_allocated) {
-		this->allocate_local_storage();
-	}
+	this->allocate_local_storage();
 
 	double start_time = wall_time();
 	#ifdef USE_OPENMP
@@ -1044,7 +1083,7 @@ double Function::Implementation::evaluate(const Eigen::VectorXd& x,
 	}
 	this->number_of_hessian_elements = 0;
 
-	interface->allocation_time += wall_time() - start_time;
+	atomic_increment_double(this->allocation_time, wall_time() - start_time);
 
 	// Copy values from the global vector x to the temporary storage
 	// used for evaluating the term.
@@ -1052,7 +1091,7 @@ double Function::Implementation::evaluate(const Eigen::VectorXd& x,
 
 	start_time = wall_time();
 
-	interface->write_gradient_hessian_time += wall_time() - start_time;
+	atomic_increment_double(this->write_gradient_hessian_time, wall_time() - start_time);
 	start_time = wall_time();
 
 	// Initialize each thread's global gradient.
@@ -1152,7 +1191,7 @@ double Function::Implementation::evaluate(const Eigen::VectorXd& x,
 		}
 	#endif
 
-	interface->evaluate_with_hessian_time += wall_time() - start_time;
+	atomic_increment_double(this->evaluate_with_hessian_time, wall_time() - start_time);
 	start_time = wall_time();
 
 	// Create the global gradient.
@@ -1175,7 +1214,7 @@ double Function::Implementation::evaluate(const Eigen::VectorXd& x,
 	                         thread_sparse_hessian_storage[0].end());
 	//hessian->makeCompressed();
 
-	interface->write_gradient_hessian_time += wall_time() - start_time;
+	atomic_increment_double(this->write_gradient_hessian_time, wall_time() - start_time);
 
 	return value;
 }
@@ -1187,7 +1226,7 @@ Interval<double> Function::evaluate(const std::vector<Interval<double>>& x) cons
 
 Interval<double>  Function::Implementation::evaluate(const std::vector<Interval<double>>& x) const
 {
-	interface->evaluations_without_gradient++;
+	this->evaluations_without_gradient++;
 	double start_time = wall_time();
 
 	std::vector<const Interval<double> *> scratch_space;
@@ -1204,7 +1243,7 @@ Interval<double>  Function::Implementation::evaluate(const std::vector<Interval<
 		value += terms[i].term->evaluate_interval(&scratch_space[0]);
 	}
 
-	interface->evaluate_time += wall_time() - start_time;
+	atomic_increment_double(this->evaluate_time, wall_time() - start_time);
 	return value;
 }
 

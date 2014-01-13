@@ -586,40 +586,6 @@ TEST(Function, evaluate_hessian)
 	}}
 }
 
-
-TEST(Function, evaluation_count)
-{
-
-	double x[3] = {1.0, 2.0, 3.0};
-	double y[2] = {3.0, 4.0};
-
-	Function f;
-	f.add_variable(x, 3);
-	f.add_variable(y, 2);
-
-	f.add_term(std::make_shared<AutoDiffTerm<Single3, 3>>(), x);
-	f.add_term(std::make_shared<AutoDiffTerm<Single2, 2>>(), y);
-	f.add_term(std::make_shared<AutoDiffTerm<Mixed3_2, 3, 2>>(), x, y);
-
-	Eigen::VectorXd xg(5);
-	xg.setZero();
-	Eigen::VectorXd gradient;
-	Eigen::MatrixXd hessian;
-	Eigen::SparseMatrix<double> sparse_hessian;
-	f.create_sparse_hessian(&sparse_hessian);
-
-	f.evaluate();
-	f.evaluate();
-	f.evaluate(xg);
-	f.evaluate(xg, &gradient, &hessian);
-
-	EXPECT_EQ(f.evaluations_without_gradient, 3);
-	EXPECT_EQ(f.evaluations_with_gradient, 1);
-	f.evaluate(xg, &gradient, &hessian);
-	f.evaluate(xg, &gradient, &sparse_hessian);
-	EXPECT_EQ(f.evaluations_with_gradient, 3);
-}
-
 //
 //	x_i = exp(t_i)
 //  t_i = log(x_i)
