@@ -19,3 +19,7 @@ after_success:
   - cd examples
   - ${CXX} -std=c++0x -I/usr/include/eigen3 -I/usr/local/include/eigen3 standalone_example.cpp -lspii
   - ./a.out
+
+branches:
+  only:
+    - master
