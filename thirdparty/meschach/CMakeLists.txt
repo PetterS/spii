@@ -84,6 +84,7 @@ ADD_EXECUTABLE(test_meschach_torture torture.c)
 
 ADD_TEST(NAME meschach_torture
          COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/test_meschach_torture)
+SET_PROPERTY(TARGET test_meschach_torture         PROPERTY FOLDER "Tests")
 
 ADD_EXECUTABLE(test_meschach_sptort sptort.c)
     TARGET_LINK_LIBRARIES(test_meschach_sptort meschach)
@@ -93,3 +94,4 @@ ADD_EXECUTABLE(test_meschach_sptort sptort.c)
 
 ADD_TEST(NAME meschach_sptort
          COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/test_meschach_sptort)
+SET_PROPERTY(TARGET test_meschach_sptort         PROPERTY FOLDER "Tests")

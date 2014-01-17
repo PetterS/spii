@@ -6,7 +6,7 @@ MACRO (SPII_TEST NAME)
 	               ${SPII_HEADERS})
 
 	TARGET_LINK_LIBRARIES(${NAME} spii)
-
+	SET_PROPERTY(TARGET ${NAME}         PROPERTY FOLDER "Tests")
 	ADD_TEST(NAME ${NAME}
 	         COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${NAME})
 ENDMACRO (SPII_TEST)
@@ -27,12 +27,13 @@ ADD_EXECUTABLE(test_meschach test_meschach.cpp)
 	TARGET_LINK_LIBRARIES(test_meschach meschach)
 	ADD_TEST(NAME meschach
 	       COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/test_meschach)
+	SET_PROPERTY(TARGET test_meschach         PROPERTY FOLDER "Tests")
 
 # String test does not link to spii.
 ADD_EXECUTABLE(test_string test_string.cpp)
 	ADD_TEST(NAME string
 	       COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/test_string)
-
+	SET_PROPERTY(TARGET test_string         PROPERTY FOLDER "Tests")
 #
 # Valgrind (memcheck) testing.
 #
