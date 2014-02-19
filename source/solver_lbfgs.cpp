@@ -1,5 +1,6 @@
 // Petter Strandmark 2012.
 
+#include <iomanip>
 #include <iostream>
 #include <limits>
 #include <stdexcept>
@@ -293,12 +294,21 @@ void LBFGSSolver::solve(const Function& function,
 		}
 		if (this->log_function && iter % log_interval == 0) {
 			char str[1024];
-				if (iter == 0) {
-					this->log_function("Itr       f       deltaf   max|g_i|   alpha      H0       rho");
-				}
-				std::sprintf(str, "%4d %+10.3e %9.3e %9.3e %9.3e %9.3e %9.3e",
-					iter, fval, std::fabs(fval - fprev), normg, alpha_step, H0, rho[0]);
-			this->log_function(str);
+			if (iter == 0) {
+				this->log_function("Itr       f       deltaf   max|g_i|   alpha      H0       rho");
+			}
+
+			this->log_function(
+				to_string(
+					std::setw(4), iter, " ",
+					std::setw(10), std::setprecision(3), std::scientific, std::showpos, fval, std::noshowpos, " ",
+					std::setw(9),  std::setprecision(3), std::scientific, std::fabs(fval - fprev), " ",
+					std::setw(9),  std::setprecision(3), std::setprecision(3), std::scientific, normg, " ",
+					std::setw(9),  std::setprecision(3), std::scientific, alpha_step, " ",
+					std::setw(9),  std::setprecision(3), std::scientific, H0, " ",
+					std::setw(9),  std::setprecision(3), std::scientific, rho[0]
+				)
+			);
 		}
 		results->log_time += wall_time() - start_time;
 
