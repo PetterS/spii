@@ -1,6 +1,6 @@
 // Petter Strandmark 2012.
 
-#include <cstring>
+#include <iomanip>
 #include <iostream>
 #include <limits>
 #include <memory>
@@ -312,13 +312,19 @@ void NewtonSolver::solve(const Function& function,
 		start_time = wall_time();
 
 		if (this->log_function && iter % log_interval == 0) {
-			char str[1024];
 			if (use_sparsity) {
 				if (iter == 0) {
 					this->log_function("Itr        f        max|g_i|   alpha    fac    tau   min(H_ii)");
 				}
-				std::sprintf(str, "%4d %+10.6e %9.3e %9.3e %3d   %.1e %+.2e",
-					iter, fval, normg, alpha, factorizations, tau, mindiag);
+				this->log_function(
+					to_string(std::setw(4), iter) + " " +
+					to_string(std::scientific, std::showpos, std::setprecision(6), std::setw(10), fval) + " " +
+					to_string(std::scientific, std::setprecision(3), std::setw(9), normg) + " " +
+					to_string(std::scientific, std::setprecision(3), std::setw(9), alpha) + " " +
+					to_string(std::setw(3), factorizations) + "   " +
+					to_string(std::scientific, std::setprecision(1), tau) + " " +
+					to_string(std::scientific, std::showpos, std::setprecision(2), mindiag)
+					);
 			}
 			else {
 				double detH = H.determinant();
@@ -327,10 +333,17 @@ void NewtonSolver::solve(const Function& function,
 				if (iter == 0) {
 					this->log_function("Itr        f        max|g_i|   ||H||     det(H)     alpha    fac");
 				}
-				std::sprintf(str, "%4d %+10.6e %9.3e %9.3e %+10.3e %9.3e %3d",
-					iter, fval, normg, normH, detH, alpha, factorizations);
+
+				this->log_function(
+					to_string(std::setw(4), iter) + " " +
+					to_string(std::scientific, std::showpos, std::setprecision(6), std::setw(10), fval) + " " +
+					to_string(std::scientific, std::setprecision(3), std::setw(9), normg) + " " +
+					to_string(std::scientific, std::setprecision(3), std::setw(9), normH) + " " +
+					to_string(std::scientific, std::showpos, std::setprecision(3), std::setw(10), detH) + " " +
+					to_string(std::scientific, std::setprecision(3), std::setw(9), alpha) + " " +
+					to_string(std::setw(3), factorizations)
+					);
 			}
-			this->log_function(str);
 		}
 		results->log_time += wall_time() - start_time;
 
