@@ -920,9 +920,9 @@ TEST_CASE("variables_overlap_3")
 TEST_CASE("begin_end_terms")
 {
 	Function f;
-	double xx[2];
-	double x[1];
-	double y[1];
+	double xx[2] = {0, 0};
+	double x[1] = {0};
+	double y[1] = {0};
 	f.add_variable(xx, 2);
 	f.add_variable(x, 1);
 	f.add_variable(y, 1);
@@ -938,4 +938,33 @@ TEST_CASE("begin_end_terms")
 		CHECK((added_term.term == term1 || added_term.term == term2));
 	}
 	CHECK(n_iterations == 2);
+}
+
+TEST_CASE("invalid_user_data")
+{
+	Function f;
+	double xx[2] = {0, 0};
+	double x[1] = {0};
+	double y[1] = {0};
+	f.add_variable(xx, 2);
+	f.add_variable(x, 1);
+	f.add_variable(y, 1);
+
+	auto term1 = make_differentiable<2>(Term1{});
+	auto term2 = make_differentiable<1, 1>(Term2{});
+	f.add_term(term1, xx);
+	f.add_term(term2, x, y);
+
+	Eigen::VectorXd eigen_vector;
+
+	CHECK_NOTHROW(f.evaluate());
+	CHECK_NOTHROW(f.copy_user_to_global(&eigen_vector));
+
+	x[0] = std::numeric_limits<double>::quiet_NaN();
+	CHECK_THROWS(f.evaluate());
+	CHECK_THROWS(f.copy_user_to_global(&eigen_vector));
+	x[0] = 0;
+	y[0] = std::numeric_limits<double>::infinity();
+	CHECK_THROWS(f.evaluate());
+	CHECK_THROWS(f.copy_user_to_global(&eigen_vector));
 }

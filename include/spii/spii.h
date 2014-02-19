@@ -34,14 +34,6 @@ double SPII_API wall_time();
 // Will throw if expression is false.
 //
 template<typename... Args>
-void check(bool everything_OK, const char* message)
-{
-	if (!everything_OK) {
-		throw std::runtime_error(message);
-	}
-}
-
-template<typename... Args>
 void check(bool everything_OK, Args&&... args)
 {
 	if (!everything_OK) {

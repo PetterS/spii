@@ -41,6 +41,25 @@ struct IntPairHash
 	}
 };
 
+namespace
+{
+	bool is_real(double value)
+	{
+		if (value != value) {
+			return false;
+		}
+		else if (value == std::numeric_limits<double>::infinity()) {
+			return false;
+		}
+		else if (value == -std::numeric_limits<double>::infinity()) {
+			return false;
+		}
+		else {
+			return true;
+		}
+	}
+}
+
 class Function::Implementation
 {
 public:
@@ -749,6 +768,8 @@ void Function::Implementation::copy_user_to_global(Eigen::VectorXd* x) const
 		if ( ! var.is_constant) {
 			if (var.change_of_variables == nullptr) {
 				for (int i = 0; i < var.user_dimension; ++i) {
+					check(is_real(data[i]), "User data is invalid (NaN or infinity).");
+
 					(*x)[var.global_index + i] = data[i];
 				}
 			}
@@ -802,6 +823,8 @@ void Function::Implementation::copy_user_to_local() const
 		// Both variables and constants are copied here.
 
 		for (int i = 0; i < var.user_dimension; ++i) {
+			check(is_real(data[i]), "User data is invalid (NaN or infinity).");
+
 			var.temp_space[i] = data[i];
 		}
 	}
