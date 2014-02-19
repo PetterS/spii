@@ -48,6 +48,16 @@ TEST_CASE("to_string_set")
 	CHECK(to_string(v) == "{}");
 }
 
+TEST_CASE("to_string_setprecision")
+{
+	double d = 1.123456;
+	CHECK(to_string(setprecision(2), d) == "1.1");
+}
+
+TEST_CASE("to_string_setfill_setw")
+{
+	CHECK(to_string(setfill('P'), setw(3), 1) == "PP1");
+}
 
 TEST_CASE("format_string_1")
 {
