@@ -1,22 +1,31 @@
-// Petter Strandmark 2013.
+// Petter Strandmark 2013–2014.
 
 #define CATCH_CONFIG_MAIN
 #include <catch.hpp>
 
 #include <spii/string_utils.h>
 
+#include <list>
+#include <map>
+
 using namespace spii;
 using namespace std;
 
 TEST_CASE("to_string")
 {
-	CHECK(to_string("Test",12,"test") == "Test12test");
+	CHECK(to_string("Test", 12, "test") == "Test12test");
 }
 
 TEST_CASE("to_string_pair")
 {
 	pair<int, string> p{123, "Test"};
 	CHECK(to_string(p) == "(123, Test)");
+}
+
+TEST_CASE("to_string_tuple")
+{
+	auto t = make_tuple(123, "Test", 'A');
+	CHECK(to_string(t) == "(123, Test, A)");
 }
 
 TEST_CASE("to_string_pair_pair")
@@ -45,7 +54,19 @@ TEST_CASE("to_string_set")
 	set<int> v{1, 2, 3};
 	CHECK(to_string(v) == "{1, 2, 3}");
 	v.clear();
-	CHECK(to_string(v) == "{}");
+	CHECK(to_string(v, v, v) == "{}{}{}");
+}
+
+TEST_CASE("to_string_map")
+{
+	map<int, string> m;
+	m[1] = "P";
+	m[0] = "E";
+	m[2] = "T";
+	CHECK(to_string(m) == "[(0, E), (1, P), (2, T)]");
+	CHECK(to_string(m, " ", map<int, int>{}) == "[(0, E), (1, P), (2, T)] []");
+	m.clear();
+	CHECK(to_string(m) == "[]");
 }
 
 TEST_CASE("to_string_setprecision")

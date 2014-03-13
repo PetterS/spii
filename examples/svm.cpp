@@ -97,9 +97,8 @@ int main_function()
 	function.add_term<AutoDiffTerm<Norm, 2>>(&w(0));
 
 	for (size_t i = 0; i < y.size(); ++i) {
-		stringstream name; name << i;
 		function.add_constraint_term(
-			name.str(), 
+			to_string(i), 
 			make_shared<AutoDiffTerm<SVMConstraint, 2, 1>>(y[i], x[i]),
 			&w[0], 
 			&b);

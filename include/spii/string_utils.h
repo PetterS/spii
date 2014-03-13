@@ -1,12 +1,14 @@
-// Petter Strandmark 2013.
+// Petter Strandmark 2013–2014.
 #ifndef SPII_STRING_UTILS_H
 #define SPII_STRING_UTILS_H
 
+#include <map>
 #include <ostream>
 #include <set>
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <tuple>
 #include <typeinfo>
 #include <vector>
 
@@ -18,6 +20,16 @@ namespace spii
 //
 // Anonymous namespace is needed because the base case for the
 // template recursion is a normal function.
+//
+// Works for
+//
+//  std::pair
+//  std::tuple
+//  std::vector
+//  std::set
+//  std::map
+//
+// and combinations thereof, e.g. vector<pair<int, string>>.
 namespace {
 
 	void add_to_stream(std::ostream*)
@@ -51,45 +63,82 @@ namespace {
 	}
 
 	template<typename T1, typename T2>
-	std::string to_string(std::pair<T1, T2> p)
+	std::ostream& operator<<(std::ostream& stream, std::pair<T1, T2> p)
 	{
-		// Recursively call to_string to handle pairs of pairs,
-		// pairs of vectors etc.
-		return to_string("(", to_string(p.first), ", ", to_string(p.second), ")");
+		stream << '(' << p.first << ", " << p.second << ')';
+		return stream;
+	}
+
+	//
+	// Printing a std::tuple requires the following helper class.
+	//
+	template<typename Tuple, std::size_t i, std::size_t N>
+	struct print_tuple_helper
+	{
+		static void print(std::ostream& stream, const Tuple& t)
+		{
+			stream << std::get<i>(t) << ", ";
+			print_tuple_helper<Tuple, i + 1, N>::print(stream, t);
+		}
+	};
+
+	template<typename Tuple, std::size_t N>
+	struct print_tuple_helper<Tuple, N, N>
+	{
+		static void print(std::ostream& stream, const Tuple& t)
+		{
+			stream << std::get<N>(t);
+		}
+	};
+
+	template<typename... Args>
+	std::ostream& operator<<(std::ostream& stream, const std::tuple<Args...>& t)
+	{
+		stream << '(';
+		typedef print_tuple_helper<std::tuple<Args...>, 0, sizeof...(Args) - 1> Helper;
+		Helper::print(stream, t);
+		stream << ')';
+		return stream;
+	}
+
+	template<typename Container>
+	void add_container_to_stream(std::ostream* stream, const Container& container)
+	{
+		bool first = true;
+		for (const auto& value : container) {
+			if (!first) {
+				*stream << ", ";
+			}
+			*stream << value;
+			first = false;
+		}
 	}
 
 	template<typename T, typename Alloc>
-	std::string to_string(const std::vector<T, Alloc> v)
+	std::ostream& operator<<(std::ostream& stream, const std::vector<T, Alloc>& v)
 	{
-		std::ostringstream stream;
-		stream << "[";
-		bool first = true;
-		for (const auto& value: v) {
-			if (!first) {
-				stream << ", ";
-			}
-			stream << to_string(value);
-			first = false;
-		}
-		stream << "]";
-		return stream.str();
+		stream << '[';
+		add_container_to_stream(&stream, v);
+		stream << ']';
+		return stream;
 	}
 
 	template<typename T, typename Comp, typename Alloc>
-	std::string to_string(const std::set<T, Comp, Alloc> s)
+	std::ostream& operator<<(std::ostream& stream, const std::set<T, Comp, Alloc>& s)
 	{
-		std::ostringstream stream;
-		stream << "{";
-		bool first = true;
-		for (const auto& value : s) {
-			if (!first) {
-				stream << ", ";
-			}
-			stream << to_string(value);
-			first = false;
-		}
-		stream << "}";
-		return stream.str();
+		stream << '{';
+		add_container_to_stream(&stream, s);
+		stream << '}';
+		return stream;
+	}
+
+	template<typename T1, typename T2, typename Comp, typename Alloc>
+	std::ostream& operator<<(std::ostream& stream, const std::map<T1, T2, Comp, Alloc>& m)
+	{
+		stream << '[';
+		add_container_to_stream(&stream, m);
+		stream << ']';
+		return stream;
 	}
 }
 
