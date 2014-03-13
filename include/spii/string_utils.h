@@ -32,38 +32,8 @@ namespace spii
 // and combinations thereof, e.g. vector<pair<int, string>>.
 namespace {
 
-	void add_to_stream(std::ostream*)
-	{  }
-
-	template<typename T, typename... Args>
-	void add_to_stream(std::ostream* stream, T&& t, Args&&... args)
-	{
-		(*stream) << std::forward<T>(t);
-		add_to_stream(stream, std::forward<Args>(args)...);
-	}
-
-	std::string to_string()
-	{
-		return{};
-	}
-
-	// Overload for string literals.
-	template<size_t n>
-	std::string to_string(const char(&c_str)[n])
-	{
-		return{c_str};
-	}
-
-	template<typename... Args>
-	std::string to_string(Args&&... args)
-	{
-		std::ostringstream stream;
-		add_to_stream(&stream, std::forward<Args>(args)...);
-		return stream.str();
-	}
-
 	template<typename T1, typename T2>
-	std::ostream& operator<<(std::ostream& stream, std::pair<T1, T2> p)
+	std::ostream& operator<<(std::ostream& stream, const std::pair<T1, T2>& p)
 	{
 		stream << '(' << p.first << ", " << p.second << ')';
 		return stream;
@@ -139,6 +109,36 @@ namespace {
 		add_container_to_stream(&stream, m);
 		stream << ']';
 		return stream;
+	}
+
+	void add_to_stream(std::ostream*)
+	{  }
+
+	template<typename T, typename... Args>
+	void add_to_stream(std::ostream* stream, T&& t, Args&&... args)
+	{
+		(*stream) << std::forward<T>(t);
+		add_to_stream(stream, std::forward<Args>(args)...);
+	}
+
+	std::string to_string()
+	{
+		return{};
+	}
+
+	// Overload for string literals.
+	template<size_t n>
+	std::string to_string(const char(&c_str)[n])
+	{
+		return{c_str};
+	}
+
+	template<typename... Args>
+	std::string to_string(Args&&... args)
+	{
+		std::ostringstream stream;
+		add_to_stream(&stream, std::forward<Args>(args)...);
+		return stream.str();
 	}
 }
 
