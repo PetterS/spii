@@ -293,7 +293,6 @@ void LBFGSSolver::solve(const Function& function,
 			log_interval = 1000;
 		}
 		if (this->log_function && iter % log_interval == 0) {
-			char str[1024];
 			if (iter == 0) {
 				this->log_function("Itr       f       deltaf   max|g_i|   alpha      H0       rho");
 			}
