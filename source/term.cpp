@@ -8,7 +8,7 @@ namespace spii
 // desired.
 Interval<double> Term::evaluate_interval(const Interval<double> * const * const variables) const
 {
-	throw std::runtime_error("evaluate_interval: Not implemented.");
+	spii_assert(false, "evaluate_interval: Not implemented.");
 };
 
 void Term::read(std::istream& in)

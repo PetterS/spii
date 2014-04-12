@@ -22,15 +22,9 @@ std::ostream& operator << (std::ostream& out, const Serialize& serializer)
 
 std::istream& operator >> (std::istream& in,  const Serialize& serializer)
 {
-	if ( ! serializer.writable_function) {
-		throw runtime_error("Serializer << : Invalid function pointer.");
-	}
-	if ( ! serializer.user_space) {
-		throw runtime_error("Serializer << : Invalid user space pointer.");
-	}
-	if ( ! serializer.factory) {
-		throw runtime_error("Serializer << : Invalid factory pointer.");
-	}
+	spii_assert(serializer.writable_function, "Serializer << : Invalid function pointer.");
+	spii_assert(serializer.user_space, "Serializer << : Invalid user space pointer.");
+	spii_assert(serializer.factory, "Serializer << : Invalid factory pointer.");
 	Function& f = *serializer.writable_function;
 	f.read_from_stream(in, serializer.user_space, *serializer.factory);
 	return in;

@@ -466,8 +466,9 @@ void Function::add_term(std::shared_ptr<const Term> term, const std::vector<doub
 				var_itr = impl->variables_map.find(arguments[var]);
 			}
 			// The x-dimension of the variable must match what is expected by the term.
-			else if (impl->variables[var_itr->second].user_dimension != term->variable_dimension(var)) {
-				throw std::runtime_error("Function::add_term: variable dimension does not match term.");
+			else {
+				spii_assert(impl->variables[var_itr->second].user_dimension == term->variable_dimension(var),
+				            "Function::add_term: variable dimension does not match term.");
 			}
 
 			// Look up this variable.
@@ -493,10 +494,8 @@ const BeginEndProvider<AddedTerm> Function::terms() const
 void Function::set_number_of_threads(int num)
 {
 	#ifdef USE_OPENMP
-		if (num <= 0) {
-			throw std::runtime_error("Function::set_number_of_threads: "
-			                         "invalid number of threads.");
-		}
+		spii_assert(num > 0, "Function::set_number_of_threads: "
+		                     "invalid number of threads.");
 		impl->local_storage_allocated = false;
 		impl->number_of_threads = num;
 	#endif
@@ -852,9 +851,8 @@ double Function::Implementation::evaluate(const Eigen::VectorXd& x,
 {
 	interface->evaluations_with_gradient++;
 
-	if (hessian && ! interface->hessian_is_enabled) {
-		throw std::runtime_error("Function::evaluate: Hessian computation is not enabled.");
-	}
+	spii_assert(!hessian || interface->hessian_is_enabled,
+	            "Function::evaluate: Hessian computation is not enabled.");
 
 	if (! this->local_storage_allocated) {
 		this->allocate_local_storage();
@@ -921,9 +919,8 @@ double Function::Implementation::evaluate(const Eigen::VectorXd& x,
 			for (int var0 = 0; var0 < term->number_of_variables(); ++var0) {
 
 				if ( ! variables[indices[var0]].is_constant) {
-					if (variables[indices[var0]].change_of_variables) {
-						throw std::runtime_error("Change of variables not supported for Hessians");
-					}
+					spii_assert(!variables[indices[var0]].change_of_variables,
+					            "Change of variables not supported for Hessians");
 
 					size_t global_offset0 = variables[indices[var0]].global_index;
 					for (int var1 = 0; var1 < term->number_of_variables(); ++var1) {
@@ -1042,13 +1039,9 @@ double Function::Implementation::evaluate(const Eigen::VectorXd& x,
 {
 	interface->evaluations_with_gradient++;
 
-	if (! hessian) {
-		throw std::runtime_error("Function::evaluate: hessian can not be null.");
-	}
-
-	if (! interface->hessian_is_enabled) {
-		throw std::runtime_error("Function::evaluate: Hessian computation is not enabled.");
-	}
+	spii_assert(hessian);
+	spii_assert(interface->hessian_is_enabled,
+	            "Function::evaluate: Hessian computation is not enabled.");
 
 	if (! this->local_storage_allocated) {
 		this->allocate_local_storage();
@@ -1114,9 +1107,8 @@ double Function::Implementation::evaluate(const Eigen::VectorXd& x,
 		for (int var = 0; var < indices.size(); ++var) {
 
 			if ( ! variables[indices[var]].is_constant) {
-				if (variables[indices[var]].change_of_variables) {
-					throw std::runtime_error("Change of variables not supported for sparse Hessian");
-				}
+				spii_assert(!variables[indices[var]].change_of_variables,
+				            "Change of variables not supported for sparse Hessian");
 
 				size_t global_offset = variables[indices[var]].global_index;
 				for (int i = 0; i < variables[indices[var]].user_dimension; ++i) {
@@ -1253,9 +1245,8 @@ void Function::write_to_stream(std::ostream& out) const
 
 	vector<pair<std::size_t, std::size_t>> variable_dimensions; 
 	for (const auto& variable: impl->variables) {
-		if (variable.change_of_variables != nullptr) {
-			throw runtime_error("Function::write_to_stream: Change of variables not allowed.");
-		}
+		spii_assert(variable.change_of_variables == nullptr,
+		            "Function::write_to_stream: Change of variables not allowed.");
 
 		variable_dimensions.emplace_back(variable.global_index, variable.user_dimension);
 	}
@@ -1292,12 +1283,7 @@ void Function::read_from_stream(std::istream& in, std::vector<double>* user_spac
 
 	auto check = [&in](const char* variable_name) 
 	{ 
-		if (!in) {
-			std::string msg = "Function::read_from_stream: Reading ";
-			msg += variable_name;
-			msg += " failed.";
-			throw runtime_error(msg.c_str()); 
-		}
+		spii_assert(in, "Function::read_from_stream: Reading ", variable_name, " failed.");
 	};
 	#define read_and_check(var) in >> var; check(#var); //cout << #var << " = " << var << endl;
 
@@ -1305,9 +1291,8 @@ void Function::read_from_stream(std::istream& in, std::vector<double>* user_spac
 
 	string spii_function;
 	read_and_check(spii_function);
-	if (spii_function != "spii::function") {
-		throw runtime_error("Function::read_from_stream: Not a function stream.");
-	}
+	spii_assert(spii_function == "spii::function");
+
 	int version;
 	read_and_check(version);
 	string compiler_type_format;
@@ -1335,9 +1320,7 @@ void Function::read_from_stream(std::istream& in, std::vector<double>* user_spac
 		this->add_variable(&user_space->at(current_var), variable_dimension);
 		current_var += variable_dimension;
 	}
-	if (current_var != number_of_scalars) {
-		throw runtime_error("Function::read_from_stream: Not enough variables in stream.");
-	}
+	spii_assert(current_var == number_of_scalars);
 
 	for (unsigned i = 0; i < number_of_scalars; ++i) {
 		read_and_check(user_space->at(i));

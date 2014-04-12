@@ -136,7 +136,7 @@ void split_interval(const IntervalVector& x,
 void GlobalSolver::solve(const Function& function,
                          SolverResults* results) const
 {
-	throw std::runtime_error("GlobalSolver::solve_global should be called.");
+	spii_assert(false, "GlobalSolver::solve_global should be called.");
 }
 
 void GlobalSolver::solve_global(const Function& function,
@@ -145,14 +145,6 @@ void GlobalSolver::solve_global(const Function& function,
 {
 	using namespace std;
 	double global_start_time = wall_time();
-
-	/*
-	for (auto itr = function.variables.begin(); itr != function.variables.end(); ++itr) {
-		if (itr->second.change_of_variables != 0) {
-			throw std::runtime_error("Solver::solve_global: "
-				"function can not have change of variables.");
-		}
-	}*/
 
 	IntervalQueue queue;
 	GlobalQueueEntry entry;

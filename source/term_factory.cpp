@@ -30,11 +30,9 @@ std::shared_ptr<const Term> TermFactory::create(const std::string& term_name,
                                                 std::istream& in) const
 {
 	auto creator = impl->creators.find(fix_name(term_name));
-	if (creator == impl->creators.end()) {
-		std::string msg = "TermFactory::create: Unknown Term ";
-		msg += term_name;
-		throw runtime_error(msg.c_str());
-	}
+	spii_assert(creator != impl->creators.end(),
+		"TermFactory::create: Unknown Term ",
+		term_name);
 	return std::shared_ptr<const Term>(creator->second(in));
 }
 

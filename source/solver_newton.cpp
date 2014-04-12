@@ -238,9 +238,8 @@ void NewtonSolver::solve(const Function& function,
 				}
 				tau = std::max(2*tau, beta);
 
-				if (factorizations > 100) {
-					throw std::runtime_error("Solver::solve: factorization failed.");
-				}
+				spii_assert(factorizations <= 100,
+				            "Solver::solve: factorization failed.");
 			}
 		
 

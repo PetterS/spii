@@ -16,9 +16,8 @@ public:
 
 	BALProblem(const std::string& filename)
 	{
-		if (!LoadFile(filename.c_str())) {
-			throw std::runtime_error("Could not load BA problem file.");
-		}
+		auto result = LoadFile(filename.c_str());
+		spii_assert(result, "Could not load BA problem file.");
 	}
 
 	int number_of_observations()       const { return num_observations;                  }

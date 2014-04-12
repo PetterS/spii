@@ -5,6 +5,8 @@
 #include <cmath>
 #include <stdexcept>
 
+#include <spii/spii.h>
+
 namespace spii {
 
 // Transformation to force a variable to
@@ -67,9 +69,7 @@ public:
 
 	IntervalConstraint(double a, double b)
 	{
-		if (b <= a) {
-			throw std::runtime_error("Interval: non-positive size");
-		}
+		spii_assert(b > a, "Interval: non-positive size");
 		this->a = a;
 		this->b = b;
 	}
@@ -115,9 +115,7 @@ public:
 	Box(int dimension, const double* constraint_lower, const double* constraint_upper)
 	{
 		for (int i = 0; i < dimension; ++i) {
-			if (constraint_upper[i] <= constraint_lower[i]) {
-				throw std::runtime_error("Interval: non-positive size");
-			}
+			spii_assert(constraint_upper[i] > constraint_lower[i], "Interval: non-positive size");
 		}
 		this->dimension = dimension;
 		this->a = constraint_lower;
