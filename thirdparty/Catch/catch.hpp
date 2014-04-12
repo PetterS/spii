@@ -1,6 +1,6 @@
 /*
- *  CATCH v1.0 build 23 (master branch)
- *  Generated: 2013-12-23 10:22:45.547645
+ *  CATCH v1.0 build 33 (master branch)
+ *  Generated: 2014-03-24 18:11:50.426554
  *  ----------------------------------------------------------
  *  This file has been merged from multiple headers. Please don't edit it directly
  *  Copyright (c) 2012 Two Blue Cubes Ltd. All rights reserved.
@@ -19,6 +19,17 @@
 #pragma clang diagnostic ignored "-Wc99-extensions"
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wpadded"
+#endif
+
+#ifdef CATCH_CONFIG_MAIN
+#  define CATCH_CONFIG_RUNNER
+#endif
+
+#ifdef CATCH_CONFIG_RUNNER
+#  ifndef CLARA_CONFIG_MAIN
+#    define CLARA_CONFIG_MAIN_NOT_DEFINED
+#    define CLARA_CONFIG_MAIN
+#  endif
 #endif
 
 // #included from: internal/catch_notimplemented_exception.h
@@ -681,6 +692,24 @@ namespace Detail {
         }
     };
 
+    // For display purposes only.
+    // Does not consider endian-ness
+    template<typename T>
+    std::string rawMemoryToString( T value ) {
+        union {
+            T typedValue;
+            unsigned char bytes[sizeof(T)];
+        };
+
+        typedValue = value;
+
+        std::ostringstream oss;
+        oss << "0x";
+        for( unsigned char* cp = bytes; cp < bytes+sizeof(T); ++cp )
+            oss << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)*cp;
+        return oss.str();
+    }
+
 } // end namespace Detail
 
 template<typename T>
@@ -696,9 +725,18 @@ struct StringMaker<T*> {
     static std::string convert( U* p ) {
         if( !p )
             return INTERNAL_CATCH_STRINGIFY( NULL );
-        std::ostringstream oss;
-        oss << p;
-        return oss.str();
+        else
+            return Detail::rawMemoryToString( p );
+    }
+};
+
+template<typename R, typename C>
+struct StringMaker<R C::*> {
+    static std::string convert( R C::* p ) {
+        if( !p )
+            return INTERNAL_CATCH_STRINGIFY( NULL );
+        else
+            return Detail::rawMemoryToString( p );
     }
 };
 
@@ -2618,7 +2656,7 @@ return @ desc; \
 
 #endif
 
-#if defined( CATCH_CONFIG_MAIN ) || defined( CATCH_CONFIG_RUNNER )
+#ifdef CATCH_CONFIG_RUNNER
 // #included from: internal/catch_impl.hpp
 #define TWOBLUECUBES_CATCH_IMPL_HPP_INCLUDED
 
@@ -2975,22 +3013,63 @@ namespace Catch {
 
 } // end namespace Catch
 
-// #included from: clara.h
-#define TWOBLUECUBES_CLARA_H_INCLUDED
+// #included from: catch_clara.h
+#define TWOBLUECUBES_CATCH_CLARA_H_INCLUDED
 
-// #included from: catch_text.h
-#define TWOBLUECUBES_CATCH_TEXT_H_INCLUDED
+// Use Catch's value for console width (store Clara's off to the side, if present)
+#ifdef CLARA_CONFIG_CONSOLE_WIDTH
+#define CATCH_TEMP_CLARA_CONFIG_CONSOLE_WIDTH CLARA_CONFIG_CONSOLE_WIDTH
+#undef CLARA_CONFIG_CONSOLE_WIDTH
+#endif
+#define CLARA_CONFIG_CONSOLE_WIDTH CATCH_CONFIG_CONSOLE_WIDTH
+
+// Declare Clara inside the Catch namespace
+#define STITCH_CLARA_OPEN_NAMESPACE namespace Catch {
+// #included from: ../external/clara.h
+
+// Only use header guard if we are not using an outer namespace
+#if !defined(TWOBLUECUBES_CLARA_H_INCLUDED) || defined(STITCH_CLARA_OPEN_NAMESPACE)
+
+#ifndef STITCH_CLARA_OPEN_NAMESPACE
+#define TWOBLUECUBES_CLARA_H_INCLUDED
+#define STITCH_CLARA_OPEN_NAMESPACE
+#define STITCH_CLARA_CLOSE_NAMESPACE
+#else
+#define STITCH_CLARA_CLOSE_NAMESPACE }
+#endif
+
+#define STITCH_TBC_TEXT_FORMAT_OPEN_NAMESPACE STITCH_CLARA_OPEN_NAMESPACE
+
+// ----------- #included from tbc_text_format.h -----------
+
+// Only use header guard if we are not using an outer namespace
+#if !defined(TBC_TEXT_FORMAT_H_INCLUDED) || defined(STITCH_TBC_TEXT_FORMAT_OUTER_NAMESPACE)
+#ifndef STITCH_TBC_TEXT_FORMAT_OUTER_NAMESPACE
+#define TBC_TEXT_FORMAT_H_INCLUDED
+#endif
 
 #include <string>
 #include <vector>
+#include <sstream>
 
-namespace Catch {
+// Use optional outer namespace
+#ifdef STITCH_TBC_TEXT_FORMAT_OUTER_NAMESPACE
+namespace STITCH_TBC_TEXT_FORMAT_OUTER_NAMESPACE {
+#endif
+
+namespace Tbc {
+
+#ifdef TBC_TEXT_FORMAT_CONSOLE_WIDTH
+    const unsigned int consoleWidth = TBC_TEXT_FORMAT_CONSOLE_WIDTH;
+#else
+    const unsigned int consoleWidth = 80;
+#endif
 
     struct TextAttributes {
         TextAttributes()
         :   initialIndent( std::string::npos ),
             indent( 0 ),
-            width( CATCH_CONFIG_CONSOLE_WIDTH-1 ),
+            width( consoleWidth-1 ),
             tabChar( '\t' )
         {}
 
@@ -3007,8 +3086,66 @@ namespace Catch {
 
     class Text {
     public:
-        Text( std::string const& _str, TextAttributes const& _attr = TextAttributes() );
-        void spliceLine( std::size_t _indent, std::string& _remainder, std::size_t _pos );
+        Text( std::string const& _str, TextAttributes const& _attr = TextAttributes() )
+        : attr( _attr )
+        {
+            std::string wrappableChars = " [({.,/|\\-";
+            std::size_t indent = _attr.initialIndent != std::string::npos
+                ? _attr.initialIndent
+                : _attr.indent;
+            std::string remainder = _str;
+
+            while( !remainder.empty() ) {
+                if( lines.size() >= 1000 ) {
+                    lines.push_back( "... message truncated due to excessive size" );
+                    return;
+                }
+                std::size_t tabPos = std::string::npos;
+                std::size_t width = (std::min)( remainder.size(), _attr.width - indent );
+                std::size_t pos = remainder.find_first_of( '\n' );
+                if( pos <= width ) {
+                    width = pos;
+                }
+                pos = remainder.find_last_of( _attr.tabChar, width );
+                if( pos != std::string::npos ) {
+                    tabPos = pos;
+                    if( remainder[width] == '\n' )
+                        width--;
+                    remainder = remainder.substr( 0, tabPos ) + remainder.substr( tabPos+1 );
+                }
+
+                if( width == remainder.size() ) {
+                    spliceLine( indent, remainder, width );
+                }
+                else if( remainder[width] == '\n' ) {
+                    spliceLine( indent, remainder, width );
+                    if( width <= 1 || remainder.size() != 1 )
+                        remainder = remainder.substr( 1 );
+                    indent = _attr.indent;
+                }
+                else {
+                    pos = remainder.find_last_of( wrappableChars, width );
+                    if( pos != std::string::npos && pos > 0 ) {
+                        spliceLine( indent, remainder, pos );
+                        if( remainder[0] == ' ' )
+                            remainder = remainder.substr( 1 );
+                    }
+                    else {
+                        spliceLine( indent, remainder, width-1 );
+                        lines.back() += "-";
+                    }
+                    if( lines.size() == 1 )
+                        indent = _attr.indent;
+                    if( tabPos != std::string::npos )
+                        indent += tabPos;
+                }
+            }
+        }
+
+        void spliceLine( std::size_t _indent, std::string& _remainder, std::size_t _pos ) {
+            lines.push_back( std::string( _indent, ' ' ) + _remainder.substr( 0, _pos ) );
+            _remainder = _remainder.substr( _pos );
+        }
 
         typedef std::vector<std::string>::const_iterator const_iterator;
 
@@ -3017,9 +3154,21 @@ namespace Catch {
         std::string const& last() const { return lines.back(); }
         std::size_t size() const { return lines.size(); }
         std::string const& operator[]( std::size_t _index ) const { return lines[_index]; }
-        std::string toString() const;
+        std::string toString() const {
+            std::ostringstream oss;
+            oss << *this;
+            return oss.str();
+        }
 
-        friend std::ostream& operator << ( std::ostream& _stream, Text const& _text );
+        inline friend std::ostream& operator << ( std::ostream& _stream, Text const& _text ) {
+            for( Text::const_iterator it = _text.begin(), itEnd = _text.end();
+                it != itEnd; ++it ) {
+                if( it != _text.begin() )
+                    _stream << "\n";
+                _stream << *it;
+            }
+            return _stream;
+        }
 
     private:
         std::string str;
@@ -3027,10 +3176,53 @@ namespace Catch {
         std::vector<std::string> lines;
     };
 
-} // end namespace Catch
+} // end namespace Tbc
+
+#ifdef STITCH_TBC_TEXT_FORMAT_OUTER_NAMESPACE
+} // end outer namespace
+#endif
+
+#endif // TBC_TEXT_FORMAT_H_INCLUDED
+
+// ----------- end of #include from tbc_text_format.h -----------
+// ........... back in /Users/philnash/Dev/OSS/Clara/srcs/clara.h
+
+#undef STITCH_TBC_TEXT_FORMAT_OPEN_NAMESPACE
+
+#include <map>
+#include <algorithm>
+#include <stdexcept>
+#include <memory>
+
+// Use optional outer namespace
+#ifdef STITCH_CLARA_OPEN_NAMESPACE
+STITCH_CLARA_OPEN_NAMESPACE
+#endif
 
 namespace Clara {
+
+    struct UnpositionalTag {};
+
+    extern UnpositionalTag _;
+
+#ifdef CLARA_CONFIG_MAIN
+    UnpositionalTag _;
+#endif
+
     namespace Detail {
+
+#ifdef CLARA_CONSOLE_WIDTH
+    const unsigned int consoleWidth = CLARA_CONFIG_CONSOLE_WIDTH;
+#else
+    const unsigned int consoleWidth = 80;
+#endif
+
+        using namespace Tbc;
+
+        inline bool startsWith( std::string const& str, std::string const& prefix ) {
+            return str.size() >= prefix.size() && str.substr( 0, prefix.size() ) == prefix;
+        }
+
         template<typename T> struct RemoveConstRef{ typedef T type; };
         template<typename T> struct RemoveConstRef<T&>{ typedef T type; };
         template<typename T> struct RemoveConstRef<T const&>{ typedef T type; };
@@ -3080,10 +3272,11 @@ namespace Clara {
         template<typename ConfigT>
         class BoundArgFunction {
         public:
+            BoundArgFunction() : functionObj( NULL ) {}
             BoundArgFunction( IArgFunction<ConfigT>* _functionObj ) : functionObj( _functionObj ) {}
-            BoundArgFunction( BoundArgFunction const& other ) : functionObj( other.functionObj->clone() ) {}
+            BoundArgFunction( BoundArgFunction const& other ) : functionObj( other.functionObj ? other.functionObj->clone() : NULL ) {}
             BoundArgFunction& operator = ( BoundArgFunction const& other ) {
-                IArgFunction<ConfigT>* newFunctionObj = other.functionObj->clone();
+                IArgFunction<ConfigT>* newFunctionObj = other.functionObj ? other.functionObj->clone() : NULL;
                 delete functionObj;
                 functionObj = newFunctionObj;
                 return *this;
@@ -3097,6 +3290,10 @@ namespace Clara {
                 functionObj->setFlag( config );
             }
             bool takesArg() const { return functionObj->takesArg(); }
+
+            bool isSet() const {
+                return functionObj != NULL;
+            }
         private:
             IArgFunction<ConfigT>* functionObj;
         };
@@ -3191,26 +3388,6 @@ namespace Clara {
             void (*function)( C&, T );
         };
 
-        template<typename C, typename M>
-        BoundArgFunction<C> makeBoundField( M C::* _member ) {
-            return BoundArgFunction<C>( new BoundDataMember<C,M>( _member ) );
-        }
-        template<typename C, typename M>
-        BoundArgFunction<C> makeBoundField( void (C::*_member)( M ) ) {
-            return BoundArgFunction<C>( new BoundUnaryMethod<C,M>( _member ) );
-        }
-        template<typename C>
-        BoundArgFunction<C> makeBoundField( void (C::*_member)() ) {
-            return BoundArgFunction<C>( new BoundNullaryMethod<C>( _member ) );
-        }
-        template<typename C>
-        BoundArgFunction<C> makeBoundField( void (*_function)( C& ) ) {
-            return BoundArgFunction<C>( new BoundUnaryFunction<C>( _function ) );
-        }
-        template<typename C, typename T>
-        BoundArgFunction<C> makeBoundField( void (*_function)( C&, T ) ) {
-            return BoundArgFunction<C>( new BoundBinaryFunction<C, T>( _function ) );
-        }
     } // namespace Detail
 
     struct Parser {
@@ -3258,42 +3435,58 @@ namespace Clara {
     };
 
     template<typename ConfigT>
+    struct CommonArgProperties {
+        CommonArgProperties() {}
+        CommonArgProperties( Detail::BoundArgFunction<ConfigT> const& _boundField ) : boundField( _boundField ) {}
+
+        Detail::BoundArgFunction<ConfigT> boundField;
+        std::string description;
+        std::string detail;
+        std::string placeholder; // Only value if boundField takes an arg
+
+        bool takesArg() const {
+            return !placeholder.empty();
+        }
+        void validate() const {
+            if( !boundField.isSet() )
+                throw std::logic_error( "option not bound" );
+        }
+    };
+    struct OptionArgProperties {
+        std::vector<std::string> shortNames;
+        std::string longName;
+
+        bool hasShortName( std::string const& shortName ) const {
+            return std::find( shortNames.begin(), shortNames.end(), shortName ) != shortNames.end();
+        }
+        bool hasLongName( std::string const& _longName ) const {
+            return _longName == longName;
+        }
+    };
+    struct PositionalArgProperties {
+        PositionalArgProperties() : position( -1 ) {}
+        int position; // -1 means non-positional (floating)
+
+        bool isFixedPositional() const {
+            return position != -1;
+        }
+    };
+
+    template<typename ConfigT>
     class CommandLine {
 
-        struct Arg {
-            Arg( Detail::BoundArgFunction<ConfigT> const& _boundField ) : boundField( _boundField ), position( -1 ) {}
+        struct Arg : CommonArgProperties<ConfigT>, OptionArgProperties, PositionalArgProperties {
+            Arg() {}
+            Arg( Detail::BoundArgFunction<ConfigT> const& _boundField ) : CommonArgProperties<ConfigT>( _boundField ) {}
 
-            bool hasShortName( std::string const& shortName ) const {
-                for(    std::vector<std::string>::const_iterator
-                            it = shortNames.begin(), itEnd = shortNames.end();
-                        it != itEnd;
-                        ++it )
-                    if( *it == shortName )
-                        return true;
-                return false;
-            }
-            bool hasLongName( std::string const& _longName ) const {
-                return _longName == longName;
-            }
-            bool takesArg() const {
-                return !hint.empty();
-            }
-            bool isFixedPositional() const {
-                return position != -1;
-            }
-            bool isAnyPositional() const {
-                return position == -1 && shortNames.empty() && longName.empty();
-            }
+            using CommonArgProperties<ConfigT>::placeholder; // !TBD
+
             std::string dbgName() const {
                 if( !longName.empty() )
                     return "--" + longName;
                 if( !shortNames.empty() )
                     return "-" + shortNames[0];
                 return "positional args";
-            }
-            void validate() const {
-                if( boundField.takesArg() && !takesArg() )
-                    throw std::logic_error( dbgName() + " must specify an arg name" );
             }
             std::string commands() const {
                 std::ostringstream oss;
@@ -3311,17 +3504,10 @@ namespace Clara {
                         oss << ", ";
                     oss << "--" << longName;
                 }
-                if( !hint.empty() )
-                    oss << " <" << hint << ">";
+                if( !placeholder.empty() )
+                    oss << " <" << placeholder << ">";
                 return oss.str();
             }
-
-            Detail::BoundArgFunction<ConfigT> boundField;
-            std::vector<std::string> shortNames;
-            std::string longName;
-            std::string description;
-            std::string hint;
-            int position;
         };
 
         // NOTE: std::auto_ptr is deprecated in c++11/c++0x
@@ -3331,59 +3517,98 @@ namespace Clara {
         typedef std::auto_ptr<Arg> ArgAutoPtr;
 #endif
 
-        class ArgBinder {
+        friend void addOptName( Arg& arg, std::string const& optName )
+        {
+            if( optName.empty() )
+                return;
+            if( Detail::startsWith( optName, "--" ) ) {
+                if( !arg.longName.empty() )
+                    throw std::logic_error( "Only one long opt may be specified. '"
+                        + arg.longName
+                        + "' already specified, now attempting to add '"
+                        + optName + "'" );
+                arg.longName = optName.substr( 2 );
+            }
+            else if( Detail::startsWith( optName, "-" ) )
+                arg.shortNames.push_back( optName.substr( 1 ) );
+            else
+                throw std::logic_error( "option must begin with - or --. Option was: '" + optName + "'" );
+        }
+        friend void setPositionalArg( Arg& arg, int position )
+        {
+            arg.position = position;
+        }
+
+        class ArgBuilder {
         public:
-            template<typename F>
-            ArgBinder( CommandLine* cl, F f )
-            :   m_cl( cl ),
-                m_arg( Detail::makeBoundField( f ) )
-            {}
-            ArgBinder( ArgBinder& other )
-            :   m_cl( other.m_cl ),
-                m_arg( other.m_arg )
-            {
-                other.m_cl = NULL;
+            ArgBuilder( Arg* arg ) : m_arg( arg ) {}
+
+            // Bind a non-boolean data member (requires placeholder string)
+            template<typename C, typename M>
+            void bind( M C::* field, std::string const& placeholder ) {
+                m_arg->boundField = new Detail::BoundDataMember<C,M>( field );
+                m_arg->placeholder = placeholder;
             }
-            ~ArgBinder() {
-                if( m_cl ) {
-                    m_arg.validate();
-                    if( m_arg.isFixedPositional() ) {
-                        m_cl->m_positionalArgs.insert( std::make_pair( m_arg.position, m_arg ) );
-                        if( m_arg.position > m_cl->m_highestSpecifiedArgPosition )
-                            m_cl->m_highestSpecifiedArgPosition = m_arg.position;
-                    }
-                    else if( m_arg.isAnyPositional() ) {
-                        if( m_cl->m_arg.get() )
-                            throw std::logic_error( "Only one unpositional argument can be added" );
-                        m_cl->m_arg = ArgAutoPtr( new Arg( m_arg ) );
-                    }
-                    else
-                        m_cl->m_options.push_back( m_arg );
-                }
+            // Bind a boolean data member (no placeholder required)
+            template<typename C>
+            void bind( bool C::* field ) {
+                m_arg->boundField = new Detail::BoundDataMember<C,bool>( field );
             }
-            ArgBinder& shortOpt( std::string const& name ) {
-                m_arg.shortNames.push_back( name );
+
+            // Bind a method taking a single, non-boolean argument (requires a placeholder string)
+            template<typename C, typename M>
+            void bind( void (C::* unaryMethod)( M ), std::string const& placeholder ) {
+                m_arg->boundField = new Detail::BoundUnaryMethod<C,M>( unaryMethod );
+                m_arg->placeholder = placeholder;
+            }
+
+            // Bind a method taking a single, boolean argument (no placeholder string required)
+            template<typename C>
+            void bind( void (C::* unaryMethod)( bool ) ) {
+                m_arg->boundField = new Detail::BoundUnaryMethod<C,bool>( unaryMethod );
+            }
+
+            // Bind a method that takes no arguments (will be called if opt is present)
+            template<typename C>
+            void bind( void (C::* nullaryMethod)() ) {
+                m_arg->boundField = new Detail::BoundNullaryMethod<C>( nullaryMethod );
+            }
+
+            // Bind a free function taking a single argument - the object to operate on (no placeholder string required)
+            template<typename C>
+            void bind( void (* unaryFunction)( C& ) ) {
+                m_arg->boundField = new Detail::BoundUnaryFunction<C>( unaryFunction );
+            }
+
+            // Bind a free function taking a single argument - the object to operate on (requires a placeholder string)
+            template<typename C, typename T>
+            void bind( void (* binaryFunction)( C&, T ), std::string const& placeholder ) {
+                m_arg->boundField = new Detail::BoundBinaryFunction<C, T>( binaryFunction );
+                m_arg->placeholder = placeholder;
+            }
+
+            ArgBuilder& describe( std::string const& description ) {
+                m_arg->description = description;
                 return *this;
             }
-            ArgBinder& longOpt( std::string const& name ) {
-                m_arg.longName = name;
+            ArgBuilder& detail( std::string const& detail ) {
+                m_arg->detail = detail;
                 return *this;
             }
-            ArgBinder& describe( std::string const& description ) {
-                m_arg.description = description;
+
+        protected:
+            Arg* m_arg;
+        };
+
+        class OptBuilder : public ArgBuilder {
+        public:
+            OptBuilder( Arg* arg ) : ArgBuilder( arg ) {}
+            OptBuilder( OptBuilder& other ) : ArgBuilder( other ) {}
+
+            OptBuilder& operator[]( std::string const& optName ) {
+                addOptName( *ArgBuilder::m_arg, optName );
                 return *this;
             }
-            ArgBinder& hint( std::string const& hint ) {
-                m_arg.hint = hint;
-                return *this;
-            }
-            ArgBinder& position( int position ) {
-                m_arg.position = position;
-                return *this;
-            }
-        private:
-            CommandLine* m_cl;
-            Arg m_arg;
         };
 
     public:
@@ -3400,8 +3625,8 @@ namespace Clara {
             m_highestSpecifiedArgPosition( other.m_highestSpecifiedArgPosition ),
             m_throwOnUnrecognisedTokens( other.m_throwOnUnrecognisedTokens )
         {
-            if( other.m_arg.get() )
-                m_arg = ArgAutoPtr( new Arg( *other.m_arg ) );
+            if( other.m_floatingArg.get() )
+                m_floatingArg = ArgAutoPtr( new Arg( *other.m_floatingArg ) );
         }
 
         CommandLine& setThrowOnUnrecognisedTokens( bool shouldThrow = true ) {
@@ -3409,29 +3634,52 @@ namespace Clara {
             return *this;
         }
 
-        template<typename F>
-        ArgBinder bind( F f ) {
-            ArgBinder binder( this, f );
-            return binder;
-        }
-        template<typename F>
-        void bindProcessName( F f ) {
-            m_boundProcessName = Detail::makeBoundField( f );
+        OptBuilder operator[]( std::string const& optName ) {
+            m_options.push_back( Arg() );
+            addOptName( m_options.back(), optName );
+            OptBuilder builder( &m_options.back() );
+            return builder;
         }
 
-        void optUsage( std::ostream& os, std::size_t indent = 0, std::size_t width = CATCH_CONFIG_CONSOLE_WIDTH ) const {
+        ArgBuilder operator[]( int position ) {
+            m_positionalArgs.insert( std::make_pair( position, Arg() ) );
+            if( position > m_highestSpecifiedArgPosition )
+                m_highestSpecifiedArgPosition = position;
+            setPositionalArg( m_positionalArgs[position], position );
+            ArgBuilder builder( &m_positionalArgs[position] );
+            return builder;
+        }
+
+        // Invoke this with the _ instance
+        ArgBuilder operator[]( UnpositionalTag ) {
+            if( m_floatingArg.get() )
+                throw std::logic_error( "Only one unpositional argument can be added" );
+            m_floatingArg = ArgAutoPtr( new Arg() );
+            ArgBuilder builder( m_floatingArg.get() );
+            return builder;
+        }
+
+        template<typename C, typename M>
+        void bindProcessName( M C::* field ) {
+            m_boundProcessName = new Detail::BoundDataMember<C,M>( field );
+        }
+        template<typename C, typename M>
+        void bindProcessName( void (C::*_unaryMethod)( M ) ) {
+            m_boundProcessName = new Detail::BoundUnaryMethod<C,M>( _unaryMethod );
+        }
+
+        void optUsage( std::ostream& os, std::size_t indent = 0, std::size_t width = Detail::consoleWidth ) const {
             typename std::vector<Arg>::const_iterator itBegin = m_options.begin(), itEnd = m_options.end(), it;
             std::size_t maxWidth = 0;
             for( it = itBegin; it != itEnd; ++it )
                 maxWidth = (std::max)( maxWidth, it->commands().size() );
 
             for( it = itBegin; it != itEnd; ++it ) {
-                Catch::Text usage( it->commands(), Catch::TextAttributes()
+                Detail::Text usage( it->commands(), Detail::TextAttributes()
                                                         .setWidth( maxWidth+indent )
                                                         .setIndent( indent ) );
-                // !TBD handle longer usage strings
-                Catch::Text desc( it->description, Catch::TextAttributes()
-                                                        .setWidth( width - maxWidth -3 ) );
+                Detail::Text desc( it->description, Detail::TextAttributes()
+                                                        .setWidth( width - maxWidth - 3 ) );
 
                 for( std::size_t i = 0; i < (std::max)( usage.size(), desc.size() ); ++i ) {
                     std::string usageCol = i < usage.size() ? usage[i] : "";
@@ -3456,17 +3704,17 @@ namespace Clara {
                     os << " ";
                 typename std::map<int, Arg>::const_iterator it = m_positionalArgs.find( i );
                 if( it != m_positionalArgs.end() )
-                    os << "<" << it->second.hint << ">";
-                else if( m_arg.get() )
-                    os << "<" << m_arg->hint << ">";
+                    os << "<" << it->second.placeholder << ">";
+                else if( m_floatingArg.get() )
+                    os << "<" << m_floatingArg->placeholder << ">";
                 else
                     throw std::logic_error( "non consecutive positional arguments with no floating args" );
             }
             // !TBD No indication of mandatory args
-            if( m_arg.get() ) {
+            if( m_floatingArg.get() ) {
                 if( m_highestSpecifiedArgPosition > 1 )
                     os << " ";
-                os << "[<" << m_arg->hint << "> ...]";
+                os << "[<" << m_floatingArg->placeholder << "> ...]";
             }
         }
         std::string argSynopsis() const {
@@ -3476,6 +3724,7 @@ namespace Clara {
         }
 
         void usage( std::ostream& os, std::string const& procName ) const {
+            validate();
             os << "usage:\n  " << procName << " ";
             argSynopsis( os );
             if( !m_options.empty() ) {
@@ -3488,6 +3737,12 @@ namespace Clara {
             std::ostringstream oss;
             usage( oss, procName );
             return oss.str();
+        }
+
+        ConfigT parse( int argc, char const * const * argv ) const {
+            ConfigT config;
+            parseInto( argc, argv, config );
+            return config;
         }
 
         std::vector<Parser::Token> parseInto( int argc, char const * const * argv, ConfigT& config ) const {
@@ -3503,9 +3758,7 @@ namespace Clara {
         }
 
         std::vector<Parser::Token> populate( std::vector<Parser::Token> const& tokens, ConfigT& config ) const {
-            if( m_options.empty() && m_positionalArgs.empty() )
-                throw std::logic_error( "No options or arguments specified" );
-
+            validate();
             std::vector<Parser::Token> unusedTokens = populateOptions( tokens, config );
             unusedTokens = populateFixedArgs( unusedTokens, config );
             unusedTokens = populateFloatingArgs( unusedTokens, config );
@@ -3576,29 +3829,53 @@ namespace Clara {
             return unusedTokens;
         }
         std::vector<Parser::Token> populateFloatingArgs( std::vector<Parser::Token> const& tokens, ConfigT& config ) const {
-            if( !m_arg.get() )
+            if( !m_floatingArg.get() )
                 return tokens;
             std::vector<Parser::Token> unusedTokens;
             for( std::size_t i = 0; i < tokens.size(); ++i ) {
                 Parser::Token const& token = tokens[i];
                 if( token.type == Parser::Token::Positional )
-                    m_arg->boundField.set( config, token.data );
+                    m_floatingArg->boundField.set( config, token.data );
                 else
                     unusedTokens.push_back( token );
             }
             return unusedTokens;
         }
 
+        void validate() const
+        {
+            if( m_options.empty() && m_positionalArgs.empty() && !m_floatingArg.get() )
+                throw std::logic_error( "No options or arguments specified" );
+
+            for( typename std::vector<Arg>::const_iterator  it = m_options.begin(),
+                                                            itEnd = m_options.end();
+                    it != itEnd; ++it )
+                it->validate();
+        }
+
     private:
         Detail::BoundArgFunction<ConfigT> m_boundProcessName;
         std::vector<Arg> m_options;
         std::map<int, Arg> m_positionalArgs;
-        ArgAutoPtr m_arg;
+        ArgAutoPtr m_floatingArg;
         int m_highestSpecifiedArgPosition;
         bool m_throwOnUnrecognisedTokens;
     };
 
 } // end namespace Clara
+
+STITCH_CLARA_CLOSE_NAMESPACE
+#undef STITCH_CLARA_OPEN_NAMESPACE
+#undef STITCH_CLARA_CLOSE_NAMESPACE
+
+#endif // TWOBLUECUBES_CLARA_H_INCLUDED
+#undef STITCH_CLARA_OPEN_NAMESPACE
+
+// Restore Clara's value for console width, if present
+#ifdef CATCH_TEMP_CLARA_CONFIG_CONSOLE_WIDTH
+#define CLARA_CONFIG_CONSOLE_WIDTH CATCH_TEMP_CLARA_CONFIG_CONSOLE_WIDTH
+#undef CATCH_TEMP_CLARA_CONFIG_CONSOLE_WIDTH
+#endif
 
 #include <fstream>
 
@@ -3643,107 +3920,87 @@ namespace Catch {
 
     inline Clara::CommandLine<ConfigData> makeCommandLineParser() {
 
-        Clara::CommandLine<ConfigData> cli;
+        using namespace Clara;
+        CommandLine<ConfigData> cli;
 
         cli.bindProcessName( &ConfigData::processName );
 
-        cli.bind( &ConfigData::showHelp )
+        cli["-?"]["-h"]["--help"]
             .describe( "display usage information" )
-            .shortOpt( "?")
-            .shortOpt( "h")
-            .longOpt( "help" );
+            .bind( &ConfigData::showHelp );
 
-        cli.bind( &ConfigData::listTests )
+        cli["-l"]["--list-tests"]
             .describe( "list all/matching test cases" )
-            .shortOpt( "l")
-            .longOpt( "list-tests" );
+            .bind( &ConfigData::listTests );
 
-        cli.bind( &ConfigData::listTags )
+        cli["-t"]["--list-tags"]
             .describe( "list all/matching tags" )
-            .shortOpt( "t")
-            .longOpt( "list-tags" );
+            .bind( &ConfigData::listTags );
 
-        cli.bind( &ConfigData::showSuccessfulTests )
+        cli["-s"]["--success"]
             .describe( "include successful tests in output" )
-            .shortOpt( "s")
-            .longOpt( "success" );
+            .bind( &ConfigData::showSuccessfulTests );
 
-        cli.bind( &ConfigData::shouldDebugBreak )
+        cli["-b"]["--break"]
             .describe( "break into debugger on failure" )
-            .shortOpt( "b")
-            .longOpt( "break" );
+            .bind( &ConfigData::shouldDebugBreak );
 
-        cli.bind( &ConfigData::noThrow )
+        cli["-e"]["--nothrow"]
             .describe( "skip exception tests" )
-            .shortOpt( "e")
-            .longOpt( "nothrow" );
+            .bind( &ConfigData::noThrow );
 
-        cli.bind( &ConfigData::outputFilename )
+        cli["-o"]["--out"]
             .describe( "output filename" )
-            .shortOpt( "o")
-            .longOpt( "out" )
-            .hint( "filename" );
+            .bind( &ConfigData::outputFilename, "filename" );
 
-        cli.bind( &ConfigData::reporterName )
+        cli["-r"]["--reporter"]
+//            .placeholder( "name[:filename]" )
             .describe( "reporter to use (defaults to console)" )
-            .shortOpt( "r")
-            .longOpt( "reporter" )
-//            .hint( "name[:filename]" );
-            .hint( "name" );
+            .bind( &ConfigData::reporterName, "name" );
 
-        cli.bind( &ConfigData::name )
+        cli["-n"]["--name"]
             .describe( "suite name" )
-            .shortOpt( "n")
-            .longOpt( "name" )
-            .hint( "name" );
+            .bind( &ConfigData::name, "name" );
 
-        cli.bind( &abortAfterFirst )
+        cli["-a"]["--abort"]
             .describe( "abort at first failure" )
-            .shortOpt( "a")
-            .longOpt( "abort" );
+            .bind( &abortAfterFirst );
 
-        cli.bind( &abortAfterX )
+        cli["-x"]["--abortx"]
             .describe( "abort after x failures" )
-            .shortOpt( "x")
-            .longOpt( "abortx" )
-            .hint( "number of failures" );
+            .bind( &abortAfterX, "no. failures" );
 
-        cli.bind( &addWarning )
+        cli["-w"]["--warn"]
             .describe( "enable warnings" )
-            .shortOpt( "w")
-            .longOpt( "warn" )
-            .hint( "warning name" );
+            .bind( &addWarning, "warning name" );
 
-//        cli.bind( &setVerbosity )
+// - needs updating if reinstated
+//        cli.into( &setVerbosity )
 //            .describe( "level of verbosity (0=no output)" )
 //            .shortOpt( "v")
 //            .longOpt( "verbosity" )
-//            .hint( "level" );
+//            .placeholder( "level" );
 
-        cli.bind( &addTestOrTags )
+        cli[_]
             .describe( "which test or tests to use" )
-            .hint( "test name, pattern or tags" );
+            .bind( &addTestOrTags, "test name, pattern or tags" );
 
-        cli.bind( &setShowDurations )
+        cli["-d"]["--durations"]
             .describe( "show test durations" )
-            .shortOpt( "d")
-            .longOpt( "durations" )
-            .hint( "yes/no" );
+            .bind( &setShowDurations, "yes/no" );
 
-        cli.bind( &loadTestNamesFromFile )
+        cli["-f"]["--input-file"]
             .describe( "load test names to run from a file" )
-            .shortOpt( "f")
-            .longOpt( "input-file" )
-            .hint( "filename" );
+            .bind( &loadTestNamesFromFile, "filename" );
 
         // Less common commands which don't have a short form
-        cli.bind( &ConfigData::listTestNamesOnly )
+        cli["--list-test-names-only"]
             .describe( "list all/matching test cases names only" )
-            .longOpt( "list-test-names-only" );
+            .bind( &ConfigData::listTestNamesOnly );
 
-        cli.bind( &ConfigData::listReporters )
+        cli["--list-reporters"]
             .describe( "list all reporters" )
-            .longOpt( "list-reporters" );
+            .bind( &ConfigData::listReporters );
 
         return cli;
     }
@@ -3752,6 +4009,166 @@ namespace Catch {
 
 // #included from: internal/catch_list.hpp
 #define TWOBLUECUBES_CATCH_LIST_HPP_INCLUDED
+
+// #included from: catch_text.h
+#define TWOBLUECUBES_CATCH_TEXT_H_INCLUDED
+
+#define TBC_TEXT_FORMAT_CONSOLE_WIDTH CATCH_CONFIG_CONSOLE_WIDTH
+
+#define CLICHE_TBC_TEXT_FORMAT_OUTER_NAMESPACE Catch
+// #included from: ../external/tbc_text_format.h
+// Only use header guard if we are not using an outer namespace
+#ifndef CLICHE_TBC_TEXT_FORMAT_OUTER_NAMESPACE
+# ifdef TWOBLUECUBES_TEXT_FORMAT_H_INCLUDED
+#  ifndef TWOBLUECUBES_TEXT_FORMAT_H_ALREADY_INCLUDED
+#   define TWOBLUECUBES_TEXT_FORMAT_H_ALREADY_INCLUDED
+#  endif
+# else
+#  define TWOBLUECUBES_TEXT_FORMAT_H_INCLUDED
+# endif
+#endif
+#ifndef TWOBLUECUBES_TEXT_FORMAT_H_ALREADY_INCLUDED
+#include <string>
+#include <vector>
+#include <sstream>
+
+// Use optional outer namespace
+#ifdef CLICHE_TBC_TEXT_FORMAT_OUTER_NAMESPACE
+namespace CLICHE_TBC_TEXT_FORMAT_OUTER_NAMESPACE {
+#endif
+
+namespace Tbc {
+
+#ifdef TBC_TEXT_FORMAT_CONSOLE_WIDTH
+    const unsigned int consoleWidth = TBC_TEXT_FORMAT_CONSOLE_WIDTH;
+#else
+    const unsigned int consoleWidth = 80;
+#endif
+
+    struct TextAttributes {
+        TextAttributes()
+        :   initialIndent( std::string::npos ),
+            indent( 0 ),
+            width( consoleWidth-1 ),
+            tabChar( '\t' )
+        {}
+
+        TextAttributes& setInitialIndent( std::size_t _value )  { initialIndent = _value; return *this; }
+        TextAttributes& setIndent( std::size_t _value )         { indent = _value; return *this; }
+        TextAttributes& setWidth( std::size_t _value )          { width = _value; return *this; }
+        TextAttributes& setTabChar( char _value )               { tabChar = _value; return *this; }
+
+        std::size_t initialIndent;  // indent of first line, or npos
+        std::size_t indent;         // indent of subsequent lines, or all if initialIndent is npos
+        std::size_t width;          // maximum width of text, including indent. Longer text will wrap
+        char tabChar;               // If this char is seen the indent is changed to current pos
+    };
+
+    class Text {
+    public:
+        Text( std::string const& _str, TextAttributes const& _attr = TextAttributes() )
+        : attr( _attr )
+        {
+            std::string wrappableChars = " [({.,/|\\-";
+            std::size_t indent = _attr.initialIndent != std::string::npos
+                ? _attr.initialIndent
+                : _attr.indent;
+            std::string remainder = _str;
+
+            while( !remainder.empty() ) {
+                if( lines.size() >= 1000 ) {
+                    lines.push_back( "... message truncated due to excessive size" );
+                    return;
+                }
+                std::size_t tabPos = std::string::npos;
+                std::size_t width = (std::min)( remainder.size(), _attr.width - indent );
+                std::size_t pos = remainder.find_first_of( '\n' );
+                if( pos <= width ) {
+                    width = pos;
+                }
+                pos = remainder.find_last_of( _attr.tabChar, width );
+                if( pos != std::string::npos ) {
+                    tabPos = pos;
+                    if( remainder[width] == '\n' )
+                        width--;
+                    remainder = remainder.substr( 0, tabPos ) + remainder.substr( tabPos+1 );
+                }
+
+                if( width == remainder.size() ) {
+                    spliceLine( indent, remainder, width );
+                }
+                else if( remainder[width] == '\n' ) {
+                    spliceLine( indent, remainder, width );
+                    if( width <= 1 || remainder.size() != 1 )
+                        remainder = remainder.substr( 1 );
+                    indent = _attr.indent;
+                }
+                else {
+                    pos = remainder.find_last_of( wrappableChars, width );
+                    if( pos != std::string::npos && pos > 0 ) {
+                        spliceLine( indent, remainder, pos );
+                        if( remainder[0] == ' ' )
+                            remainder = remainder.substr( 1 );
+                    }
+                    else {
+                        spliceLine( indent, remainder, width-1 );
+                        lines.back() += "-";
+                    }
+                    if( lines.size() == 1 )
+                        indent = _attr.indent;
+                    if( tabPos != std::string::npos )
+                        indent += tabPos;
+                }
+            }
+        }
+
+        void spliceLine( std::size_t _indent, std::string& _remainder, std::size_t _pos ) {
+            lines.push_back( std::string( _indent, ' ' ) + _remainder.substr( 0, _pos ) );
+            _remainder = _remainder.substr( _pos );
+        }
+
+        typedef std::vector<std::string>::const_iterator const_iterator;
+
+        const_iterator begin() const { return lines.begin(); }
+        const_iterator end() const { return lines.end(); }
+        std::string const& last() const { return lines.back(); }
+        std::size_t size() const { return lines.size(); }
+        std::string const& operator[]( std::size_t _index ) const { return lines[_index]; }
+        std::string toString() const {
+            std::ostringstream oss;
+            oss << *this;
+            return oss.str();
+        }
+
+        inline friend std::ostream& operator << ( std::ostream& _stream, Text const& _text ) {
+            for( Text::const_iterator it = _text.begin(), itEnd = _text.end();
+                it != itEnd; ++it ) {
+                if( it != _text.begin() )
+                    _stream << "\n";
+                _stream << *it;
+            }
+            return _stream;
+        }
+
+    private:
+        std::string str;
+        TextAttributes attr;
+        std::vector<std::string> lines;
+    };
+
+} // end namespace Tbc
+
+#ifdef CLICHE_TBC_TEXT_FORMAT_OUTER_NAMESPACE
+} // end outer namespace
+#endif
+
+#endif // TWOBLUECUBES_TEXT_FORMAT_H_ALREADY_INCLUDED
+#undef CLICHE_TBC_TEXT_FORMAT_OUTER_NAMESPACE
+
+namespace Catch {
+    using Tbc::Text;
+    using Tbc::TextAttributes;
+}
 
 // #included from: catch_console_colour.hpp
 #define TWOBLUECUBES_CATCH_CONSOLE_COLOUR_HPP_INCLUDED
@@ -3834,9 +4251,11 @@ namespace Catch {
         }
 
         Option& operator= ( Option const& _other ) {
-            reset();
-            if( _other )
-                nullableValue = new( storage ) T( *_other );
+            if( &_other != this ) {
+                reset();
+                if( _other )
+                    nullableValue = new( storage ) T( *_other );
+            }
             return *this;
         }
         Option& operator = ( T const& _value ) {
@@ -6179,95 +6598,8 @@ namespace Catch {
 namespace Catch {
 
     // These numbers are maintained by a script
-    Version libraryVersion( 1, 0, 23, "master" );
+    Version libraryVersion( 1, 0, 33, "master" );
 }
-
-// #included from: catch_text.hpp
-#define TWOBLUECUBES_CATCH_TEXT_HPP_INCLUDED
-
-#include <string>
-#include <vector>
-
-namespace Catch {
-
-    Text::Text( std::string const& _str, TextAttributes const& _attr )
-    : attr( _attr )
-    {
-        std::string wrappableChars = " [({.,/|\\-";
-        std::size_t indent = _attr.initialIndent != std::string::npos
-            ? _attr.initialIndent
-            : _attr.indent;
-        std::string remainder = _str;
-
-        while( !remainder.empty() ) {
-            if( lines.size() >= 1000 ) {
-                lines.push_back( "... message truncated due to excessive size" );
-                return;
-            }
-            std::size_t tabPos = std::string::npos;
-            std::size_t width = (std::min)( remainder.size(), _attr.width - indent );
-            std::size_t pos = remainder.find_first_of( '\n' );
-            if( pos <= width ) {
-                width = pos;
-            }
-            pos = remainder.find_last_of( _attr.tabChar, width );
-            if( pos != std::string::npos ) {
-                tabPos = pos;
-                if( remainder[width] == '\n' )
-                    width--;
-                remainder = remainder.substr( 0, tabPos ) + remainder.substr( tabPos+1 );
-            }
-
-            if( width == remainder.size() ) {
-                spliceLine( indent, remainder, width );
-            }
-            else if( remainder[width] == '\n' ) {
-                spliceLine( indent, remainder, width );
-                if( width <= 1 || remainder.size() != 1 )
-                    remainder = remainder.substr( 1 );
-                indent = _attr.indent;
-            }
-            else {
-                pos = remainder.find_last_of( wrappableChars, width );
-                if( pos != std::string::npos && pos > 0 ) {
-                    spliceLine( indent, remainder, pos );
-                    if( remainder[0] == ' ' )
-                        remainder = remainder.substr( 1 );
-                }
-                else {
-                    spliceLine( indent, remainder, width-1 );
-                    lines.back() += "-";
-                }
-                if( lines.size() == 1 )
-                    indent = _attr.indent;
-                if( tabPos != std::string::npos )
-                    indent += tabPos;
-            }
-        }
-    }
-
-    void Text::spliceLine( std::size_t _indent, std::string& _remainder, std::size_t _pos ) {
-        lines.push_back( std::string( _indent, ' ' ) + _remainder.substr( 0, _pos ) );
-        _remainder = _remainder.substr( _pos );
-    }
-
-    std::string Text::toString() const {
-        std::ostringstream oss;
-        oss << *this;
-        return oss.str();
-    }
-
-    std::ostream& operator << ( std::ostream& _stream, Text const& _text ) {
-        for( Text::const_iterator it = _text.begin(), itEnd = _text.end();
-            it != itEnd; ++it ) {
-            if( it != _text.begin() )
-                _stream << "\n";
-            _stream << *it;
-        }
-        return _stream;
-    }
-
-} // end namespace Catch
 
 // #included from: catch_message.hpp
 #define TWOBLUECUBES_CATCH_MESSAGE_HPP_INCLUDED
@@ -6598,7 +6930,6 @@ namespace Catch {
         // running under the debugger or has a debugger attached post facto).
         bool isDebuggerActive(){
 
-            int                 junk;
             int                 mib[4];
             struct kinfo_proc   info;
             size_t              size;
@@ -6619,8 +6950,10 @@ namespace Catch {
             // Call sysctl.
 
             size = sizeof(info);
-            junk = sysctl(mib, sizeof(mib) / sizeof(*mib), &info, &size, NULL, 0);
-            assert(junk == 0);
+            if( sysctl(mib, sizeof(mib) / sizeof(*mib), &info, &size, NULL, 0) != 0 ) {
+                std::cerr << "\n** Call to sysctl failed - unable to determine if debugger is active **\n" << std::endl;
+                return false;
+            }
 
             // We're being debugged if the P_TRACED flag is set.
 
@@ -6759,6 +7092,8 @@ namespace Catch {
                 return node->stats.sectionInfo.lineInfo == m_other.lineInfo;
             }
         private:
+            BySectionInfo& operator=( BySectionInfo const& other ); // = delete;
+
             SectionInfo const& m_other;
         };
 
@@ -7917,7 +8252,7 @@ namespace Catch {
 #pragma clang diagnostic pop
 #endif
 
-#endif // CATCH_CONFIG_MAIN || CATCH_CONFIG_RUNNER
+#endif
 
 #ifdef CATCH_CONFIG_MAIN
 // #included from: internal/catch_default_main.hpp
@@ -7950,7 +8285,11 @@ int main (int argc, char * const argv[]) {
 
 #endif // __OBJC__
 
-#endif // CATCH_CONFIG_MAIN
+#endif
+
+#ifdef CLARA_CONFIG_MAIN_NOT_DEFINED
+#  undef CLARA_CONFIG_MAIN
+#endif
 
 //////
 
