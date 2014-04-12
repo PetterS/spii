@@ -9,7 +9,7 @@
 
 // GNU 4.8.1 define _X on Cygwin.
 // This breaks Eigen.
-// http://eigen.tuxfamily.org/bz/process_bug.cgi
+// http://eigen.tuxfamily.org/bz/show_bug.cgi?id=658
 #ifdef _X
 #undef _X
 #endif
