@@ -31,6 +31,7 @@ All tests pass with the following compilers:
 * GCC 4.8 (Cygwin)
 * GCC 4.7 (Ubuntu)
 * Clang 3.3 (Ubuntu)
+* Clang 3.5 (Ubuntu)
 Earlier compilers will probably not work.
 
 You can check travis.yml for the commands used to build the library and run all tests on Ubuntu.
