@@ -68,7 +68,7 @@ TEST(Function, term_variable_mismatch)
 	Function f;
 	double x[5] = {0};
 	f.add_variable(x, 5);
-	EXPECT_THROW((f.add_term<AutoDiffTerm<Term1, 4>>(x)), std::runtime_error);
+	EXPECT_THROW((f.add_term<AutoDiffTerm<Term1, 4>>(x)), std::logic_error);
 }
 
 class DestructorTerm :

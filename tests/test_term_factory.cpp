@@ -37,5 +37,5 @@ TEST_CASE("TermFactory/simple_test", "")
 TEST_CASE("TermFactory/throws_on_unknown", "")
 {
 	TermFactory factory;
-	CHECK_THROWS_AS(factory.create(typeid(AutoDiffTerm<Dummy<1>,1>).name(), cin), runtime_error);
+	CHECK_THROWS_AS(factory.create(typeid(AutoDiffTerm<Dummy<1>,1>).name(), cin), logic_error);
 }
