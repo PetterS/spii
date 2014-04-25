@@ -11,6 +11,7 @@
 
 #include <spii/auto_diff_term.h>
 #include <spii/solver.h>
+#include <spii/solver-callbacks.h>
 
 using namespace spii;
 
@@ -67,6 +68,10 @@ int main()
 	LBFGSSolver solver;
 	//solver.sparsity_mode = Solver::DENSE;  // For NewtonSolver.
 	solver.maximum_iterations = 3000;
+	std::ofstream file("convergence.data");
+	FileCallback callback(file);
+	solver.callback_function = callback;
+
 	SolverResults results;
 	solver.solve(potential, &results);
 
