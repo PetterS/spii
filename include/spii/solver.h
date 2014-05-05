@@ -94,6 +94,7 @@ class SPII_API Solver
 public:
 	Solver();
 	virtual ~Solver();
+	Solver(const Solver&) = default;
 
 	virtual void solve(const Function& function, SolverResults* results) const = 0;
 
