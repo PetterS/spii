@@ -32,18 +32,20 @@ struct LennardJonesTerm
 
 int main()
 {
-	std::mt19937 prng(1);
-	std::normal_distribution<double> normal;
-	auto randn = std::bind(normal, prng);
+	using namespace std;
+
+	mt19937 prng(1);
+	normal_distribution<double> normal;
+	auto randn = bind(normal, ref(prng));
 
 	int N = -1;
-	std::cout << "Enter N = ";
-	std::cin >> N;
+	cout << "Enter N = ";
+	cin >> N;
 
 	Function potential;
-	std::vector<Eigen::Vector3d> points(N);
+	vector<Eigen::Vector3d> points(N);
 
-	int n = int(std::ceil(std::pow(double(N), 1.0/3.0)));
+	int n = int(ceil(pow(double(N), 1.0/3.0)));
 
 	// Initial position is a cubic grid with random pertubations.
 	for (int i = 0; i < N; ++i) {
@@ -68,15 +70,15 @@ int main()
 	LBFGSSolver solver;
 	//solver.sparsity_mode = Solver::DENSE;  // For NewtonSolver.
 	solver.maximum_iterations = 3000;
-	std::ofstream file("convergence.data");
+	ofstream file("convergence.data");
 	FileCallback callback(file);
 	solver.callback_function = callback;
 
 	SolverResults results;
 	solver.solve(potential, &results);
 
-	std::cerr << results;
-	potential.print_timing_information(std::cout);
+	cerr << results;
+	potential.print_timing_information(cout);
 
-	std::cout << "Energy = " << std::setprecision(10) << potential.evaluate() << std::endl;
+	cout << "Energy = " << setprecision(10) << potential.evaluate() << endl;
 }
