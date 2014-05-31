@@ -1,21 +1,34 @@
 // Petter Strandmark 2013.
 //
-// Run as "curvature > output.data"
+// Run as “curvature > output.data”
 //
 // The data can then be visualized with e.g. the following
-// Matlab script.
+// Python script.
 //
-//		A = load('output.data');
-//		clf
-//		hold on
-//		plot(A(1,:), A(2,:), '.-k');
-//		plot(A(3,:), A(4,:), '.-b');
-//		plot(A(5,:), A(6,:), '.-r');
-//		legend({'start', '"length"', 'curvature'});
+//		import numpy as np
+//		import matplotlib.pyplot as plt
+//
+//		A = np.loadtxt('curvature.txt')
+//
+//		plt.hold(True)
+//		plt.plot(A[0, :], A[1, :], '.-k')
+//		plt.plot(A[2, :], A[3, :], '.-b')
+//		plt.plot(A[4, :], A[5, :], '.-r')
+//		plt.legend(['Start', '"Length"', 'Curvature'])
+//
+//
+// See also [1], [2].
+//
+//  [1] Petter Strandmark, Johannes Ulén, Fredrik Kahl, Leo Grady.
+//      Shortest Paths with Curvature and Torsion. International
+//      Conference on Computer Vision. 2013.
+//
+//  [2] https://github.com/PetterS/curve_extraction .
 //
 
 #include <cstdlib>
 #include <iostream>
+#include <random>
 #include <stdexcept>
 
 #include <spii/auto_diff_term.h>
@@ -166,9 +179,11 @@ int main_function()
 	}
 
 	// Slight pertubation.
+	mt19937_64 engine;
+	auto rand = uniform_real_distribution<double>(0, 1e-3);
 	for (int i = 2; i < n-2; ++i) {
-		points[i].xy[0] += (rand() % 1000) / 1000000.0;
-		points[i].xy[1] += (rand() % 1000) / 1000000.0;
+		points[i].xy[0] += rand(engine);
+		points[i].xy[1] += rand(engine);
 	}
 
 	solver.factorization_method = NewtonSolver::ITERATIVE;
