@@ -79,11 +79,13 @@ namespace spii
 		class Timer
 		{
 			double start_time;
+			double elapsed_time;
 			bool active = true;
 
 		 public:
 			template<typename String>
 			Timer(const String& string)
+				: elapsed_time(-1)
 			{
 				std::stringstream sout;
 				sout << string << "...";
@@ -101,11 +103,17 @@ namespace spii
 			void OK()
 			{
 				if (active) {
-					auto elapsed_time = wall_time() - start_time;
+					elapsed_time = wall_time() - start_time;
 					std::cerr << "\b\b\b\b\b\b\b\b" << GREEN << "  OK  " << NORMAL << "]   ";
 					std::cerr <<  elapsed_time << " s." << std::endl;
 					active = false;
 				}
+			}
+
+			double get_elapsed_time() const
+			{
+				spii_assert(elapsed_time >= 0);
+				return elapsed_time;
 			}
 
 			void fail()
