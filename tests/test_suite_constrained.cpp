@@ -125,6 +125,7 @@ struct Ex14_1_3_Constraint_x1_ub
 TEST_CASE("Ex14_1_3")
 {
 	ConstrainedFunction function;
+	function.max_number_of_iterations = 1000;
 
 	vector<double> x(3);
 	x[0] = 5.49E-6;
