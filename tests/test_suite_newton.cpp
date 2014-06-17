@@ -86,13 +86,22 @@ double run_test(double* var, Solver* solver_input = 0)
 	// First, test that the iterative factorization method
 	// achieves convergence. 
 	std::vector<double> var_copy(var, var + dimension);
+	INFO("NewtonSolver::ITERATIVE");
 	solver->factorization_method = NewtonSolver::ITERATIVE;
 	run_test_with_factorization_method<Functor, dimension>(&var_copy[0], solver);
 
+	// sym-ildl is not ready for production yet.
+	#if 0 && defined(USE_SYM_ILDL)
+		INFO("NewtonSolver::SYM_ILDL");
+		solver->factorization_method = NewtonSolver::SYM_ILDL;
+		std::vector<double> var_copy_ildl(var, var + dimension);
+		run_test_with_factorization_method<Functor, dimension>(var_copy_ildl.data(), solver);
+	#endif
+
 	// Then, test the BKP factorization and return the results using
 	// this method.
+	INFO("NewtonSolver::BKP");
 	solver->factorization_method = NewtonSolver::BKP;
-
 	return run_test_with_factorization_method<Functor, dimension>(var, solver);
 }
 
