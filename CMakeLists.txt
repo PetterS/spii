@@ -42,6 +42,14 @@ ELSE (${OPENMP})
   MESSAGE("-- OpenMP is disabled. Continuing without it.")
 ENDIF (${OPENMP})
 
+# sym-ildl is optional.
+FIND_PATH(SYM_ILDL_INCLUDE NAMES lil_sparse_matrix.h )
+IF (EXISTS ${SYM_ILDL_INCLUDE})
+	INCLUDE_DIRECTORIES(${SYM_ILDL_INCLUDE})
+	ADD_DEFINITIONS("-DUSE_SYM_ILDL=1")
+	MESSAGE("-- Found sym-ildl at ${SYM_ILDL_INCLUDE}. Will use it if requested to.")
+ENDIF ()
+
 
 INCLUDE_DIRECTORIES(
   include

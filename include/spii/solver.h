@@ -178,6 +178,13 @@ protected:
 	               const FactorizationCache& cache,
 	               Eigen::VectorXd* p,
 	               SolverResults* results) const;
+
+	// Performs a BKP block diagonal factorization, modifies it, and
+	// solvers the linear system. Uses sym-ildl.
+	void BKP_dense_sym_ildl(const Eigen::MatrixXd& H,
+	                        const Eigen::VectorXd& g,
+	                        Eigen::VectorXd* p,
+	                        SolverResults* results) const;
 };
 
 // Newton's method. It requires first and
@@ -199,6 +206,7 @@ public:
 	// sparse systems.
 	enum {BKP,       // Using the Meschach library (dense only). Production-ready.
 	      ITERATIVE, // Iterative diagonal modification (dense + sparse). Production-ready.
+	      SYM_ILDL,  // Using the sym-ildl library. NOT Production-ready.
 	} factorization_method = BKP;
 
 	virtual void solve(const Function& function, SolverResults* results) const override;

@@ -259,11 +259,18 @@ void NewtonSolver::solve(const Function& function,
 
 			results->linear_solver_time += wall_time() - start_time;
 		}
-		else {
+		else if (this->factorization_method == BKP) {
 			// Performs a BKP block diagonal factorization, modifies it, and
 			// solvers the linear system.
 			this->BKP_dense(H, g, factorization_cache, &p, results);
 			factorizations = 1;
+		}
+		else if (this->factorization_method == SYM_ILDL) {
+			this->BKP_dense_sym_ildl(H, g, &p, results);
+			factorizations = 1;
+		}
+		else {
+			throw std::runtime_error("Unknown factorization method.");
 		}
 
 		//
