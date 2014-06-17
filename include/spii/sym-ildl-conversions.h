@@ -129,7 +129,7 @@ void solve_system_ildl_dense(const Eigen::MatrixXd& D,
 	// TODO: make more efficient if needed.
 
 	x = S * lhs;
-	x = P.inverse() * x;
+	x = P.transpose() * x;
 	x = L.lu().solve(x);
 	x = D.lu().solve(x);
 	x = L.transpose().lu().solve(x);

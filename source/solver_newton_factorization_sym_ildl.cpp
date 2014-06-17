@@ -7,7 +7,14 @@
 #include <random>
 #include <stdexcept>
 
+// GNU 4.8.1 define _X on Cygwin.
+// This breaks Eigen.
+// http://eigen.tuxfamily.org/bz/show_bug.cgi?id=658
+#ifdef _X
+#undef _X
+#endif
 #include <Eigen/Dense>
+#include <Eigen/Eigenvalues>
 #include <Eigen/Sparse>
 
 #include <spii/spii.h>
@@ -59,40 +66,63 @@ void Solver::BKP_dense_sym_ildl(const Eigen::MatrixXd& Hinput,
 	Hlilc.sym_perm(perm);
 	const double fill_factor = 1.0;
 	const double tol         = 1e-12;
-	Hlilc.ildl(Llilc, Dblockdiag, perm, fill_factor, tol, 1.0);
+	const double pp_tol      = 1.0; // For full Bunch-Kaufman.
+	Hlilc.ildl(Llilc, Dblockdiag, perm, fill_factor, tol, pp_tol);
 
 	//
 	// Convert back to Eigen matrices.
 	//
 	MyPermutation P(perm);
 	auto L = lilc_to_eigen(Llilc);
-	auto D = block_diag_to_eigen(Dblockdiag);
+	auto B = block_diag_to_eigen(Dblockdiag);
 	auto S = diag_to_eigen(Hlilc.S);
 
 	//
 	// Modify the block diagonalization.
 	//
 	const double delta = 1e-12;
-	MatrixXd B(n, n);
-	B.setZero();
+
+	MatrixXd Q(n, n);
+	VectorXd tau(n);
+	VectorXd lambda(n);
+	Q.setZero();
+
+	SelfAdjointEigenSolver<MatrixXd> eigensolver;
 
 	bool onebyone;
 	for (int i = 0; i < n; i = onebyone ? i+1 : i+2 ) {
-		onebyone = (i == n-1 || D(i+1, i) == 0.0);
+		onebyone = (i == n-1 || B(i+1, i) == 0.0);
 
 		if ( onebyone ) {
-		    B(i, i) = std::max(D(i, i), delta);
+			lambda(i) = B(i, i);
+			if (lambda(i) >= delta) {
+				tau(i) = 0;
+			}
+			else {
+				tau(i) = delta - (1.0 + delta) * lambda(i);
+			}
+			Q(i, i) = 1;
 		}
 		else {
-		    auto block_a = D(i, i);
-		    auto block_b = D(i+1, i+1);
-		    auto block_d = D(i+1, i);
-			auto lambda = (block_a+block_d)/2.0 - std::sqrt(4.0*block_b*block_b + (block_a - block_d)*(block_a - block_d))/2.0;
-			B.block(i, i, 2, 2) = D.block(i, i, 2, 2);
-			B(i, i)     += lambda + delta;
-			B(i+1, i+1) += lambda + delta;
+			spii_assert(B(i+1, i) == B(i, i+1));
+
+			eigensolver.compute(B.block(i, i, 2, 2));
+			lambda(i)   = eigensolver.eigenvalues()(0);
+			lambda(i+1) = eigensolver.eigenvalues()(1);
+			for (int k = i; k <= i + 1; ++k) {
+				if (lambda(k) >= delta) {
+					tau(k) = 0;
+				}
+				else {
+					tau(k) = delta - (1.0 + delta) * lambda(k);
+				}
+			}
+
+			Q.block(i, i, 2, 2) = eigensolver.eigenvectors();
 		}
 	}
+
+	B = B + Q * tau.asDiagonal() * Q.transpose();
 
 	results->matrix_factorization_time += wall_time() - start_time;
 	//
