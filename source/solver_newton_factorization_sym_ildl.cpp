@@ -8,7 +8,6 @@
 #include <stdexcept>
 
 #include <Eigen/Dense>
-#include <Eigen/Eigenvalues>
 #include <Eigen/Sparse>
 
 #include <spii/spii.h>
@@ -73,7 +72,6 @@ void Solver::BKP_dense_sym_ildl(const Eigen::MatrixXd& Hinput,
 	//
 	// Modify the block diagonalization.
 	//
-	SelfAdjointEigenSolver<MatrixXd> eigensolver;
 	const double delta = 1e-12;
 	MatrixXd B(n, n);
 	B.setZero();
