@@ -185,6 +185,27 @@ NewtonSolver create_solver<NewtonSolver>()
 	return solver;
 }
 
+const bool use_sym_ildl =
+#ifdef USE_SYM_ILDL
+	true;
+#else
+	false;
+#endif
+
+class NewtonSolverSYM_ILDL
+	: public NewtonSolver
+{
+};
+
+template<>
+NewtonSolverSYM_ILDL create_solver<NewtonSolverSYM_ILDL>()
+{
+	NewtonSolverSYM_ILDL solver;
+	static_cast<NewtonSolver&>(solver) = create_solver<NewtonSolver>();
+	solver.factorization_method = NewtonSolver::SYM_ILDL;
+	return solver;
+}
+
 template<>
 LBFGSSolver create_solver<LBFGSSolver>()
 {
@@ -335,6 +356,12 @@ TEST_CASE(#Category "/" #Problem, "")    \
 	SECTION("Newton") {					 \
 		run_problem_main<NewtonSolver, Problem, n>(    \
 			"nist/" #Problem ".dat");    \
+	}                                    \
+	SECTION("NewtonSolverSYM_ILDL") {    \
+		if (use_sym_ildl) {              \
+			run_problem_main<NewtonSolverSYM_ILDL, Problem, n>(    \
+			"nist/" #Problem ".dat");    \
+		}                                \
 	}                                    \
 	SECTION("LBFGS") {                   \
 		run_problem_main<LBFGSSolver, Problem, n>(    \

@@ -61,7 +61,14 @@ void Solver::BKP_dense_sym_ildl(const Eigen::MatrixXd& Hinput,
 	vector<int> perm;	                  // A permutation vector containing all permutations on A.
 	perm.reserve(Hlilc.n_cols());
 	block_diag_matrix<double> Dblockdiag; // The diagonal factor of A.
+
+	// The (very challenging) NIST test suite fails if eps
+	// is kept at its default value when calling sym_equil.
+	auto prev_eps = Hlilc.eps;
+	Hlilc.eps = 0;
 	Hlilc.sym_equil();
+	Hlilc.eps = prev_eps;
+
 	Hlilc.sym_rcm(perm);
 	Hlilc.sym_perm(perm);
 	const double fill_factor = 1.0;
