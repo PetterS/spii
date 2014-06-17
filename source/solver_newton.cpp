@@ -260,12 +260,14 @@ void NewtonSolver::solve(const Function& function,
 			results->linear_solver_time += wall_time() - start_time;
 		}
 		else if (this->factorization_method == BKP) {
+			mindiag = H.diagonal().minCoeff();
 			// Performs a BKP block diagonal factorization, modifies it, and
 			// solvers the linear system.
 			this->BKP_dense(H, g, factorization_cache, &p, results);
 			factorizations = 1;
 		}
 		else if (this->factorization_method == SYM_ILDL) {
+			mindiag = H.diagonal().minCoeff();
 			this->BKP_dense_sym_ildl(H, g, &p, results);
 			factorizations = 1;
 		}
@@ -337,7 +339,7 @@ void NewtonSolver::solve(const Function& function,
 				double normH = H.norm();
 
 				if (iter == 0) {
-					this->log_function("Itr        f        max|g_i|   ||H||     det(H)     alpha    fac");
+					this->log_function("Itr        f        max|g_i|   ||H||     det(H)    min(H_ii)  alpha    fac");
 				}
 
 				this->log_function(
@@ -346,6 +348,7 @@ void NewtonSolver::solve(const Function& function,
 					to_string(std::scientific, std::setprecision(3), std::setw(9), normg) + " " +
 					to_string(std::scientific, std::setprecision(3), std::setw(9), normH) + " " +
 					to_string(std::scientific, std::showpos, std::setprecision(3), std::setw(10), detH) + " " +
+					to_string(std::scientific, std::showpos, std::setprecision(2), mindiag) + " " +
 					to_string(std::scientific, std::setprecision(3), std::setw(9), alpha) + " " +
 					to_string(std::setw(3), factorizations)
 					);
