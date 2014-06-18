@@ -1,5 +1,6 @@
 // Petter Strandmark 2013.
 
+#include <cstdio>
 #include <queue>
 #include <set>
 #include <sstream>

@@ -1,6 +1,7 @@
 // Petter Strandmark 2012.
 
 #include <algorithm>
+#include <cstdio>
 #include <iostream>
 #include <limits>
 #include <stdexcept>

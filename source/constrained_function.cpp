@@ -4,6 +4,7 @@
 //
 // See Nocedal & Wright, chapter 17.
 
+#include <cstdio>
 #include <iomanip>
 
 #include <spii/constrained_function.h>

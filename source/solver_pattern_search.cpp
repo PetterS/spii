@@ -1,5 +1,6 @@
 // Petter Strandmark 2012.
 
+#include <cstdio>
 #include <iostream>
 #include <limits>
 #include <stdexcept>
