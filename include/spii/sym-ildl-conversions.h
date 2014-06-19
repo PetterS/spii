@@ -219,8 +219,25 @@ void solve_block_diag(block_diag_matrix<double>& B,
 void solve_lower_triangular(const lilc_matrix<double>& Llilc,
                       Eigen::VectorXd* x)
 {
-	auto L = lilc_to_eigen(Llilc);
-	*x = L.lu().solve(*x);
+	auto n = Llilc.n_cols();
+	spii_assert(Llilc.n_rows() == n);
+
+	for (int j = 0; j < n; ++j) {
+		auto n_elements = Llilc.m_idx[j].size();
+		spii_assert(Llilc.m_x[j].size() == n_elements);
+
+		for (std::size_t k = 0; k < n_elements; ++k) {
+			auto i     = Llilc.m_idx[j][k];
+			auto value = Llilc.m_x[j][k];
+
+			if (i == j) {
+				(*x)[j] /= value;
+			}
+			else {
+				(*x)[i] -= value * (*x)[j];
+			}
+		}
+	}
 }
 
 // Solve A*x = b, where

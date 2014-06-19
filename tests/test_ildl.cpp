@@ -53,7 +53,7 @@ MAT* Eigen_to_Meschach(const EigenMat& eigen_matrix)
 	return A;
 }
 
-TEST_CASE("ildl-sym", "4x4 dense")
+TEST_CASE("ildl-sym")
 {
 	using namespace std;
 	using namespace Eigen;
