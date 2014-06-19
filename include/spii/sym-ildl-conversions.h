@@ -219,6 +219,10 @@ void solve_block_diag(block_diag_matrix<double>& B,
 void solve_lower_triangular(const lilc_matrix<double>& Llilc,
                             Eigen::VectorXd* x)
 {
+	//Eigen::SparseMatrix<double> L;
+	//lilc_to_eigen(Llilc, &L, false);
+	//*x = L.triangularView<Eigen::Lower>().solve(*x);
+
 	auto n = Llilc.n_cols();
 	spii_assert(Llilc.n_rows() == n);
 
@@ -244,50 +248,54 @@ void solve_lower_triangular(const lilc_matrix<double>& Llilc,
 void solve_lower_triangular_transpose(const lilc_matrix<double>& Llilc,
                                       Eigen::VectorXd* x)
 {
-	auto n = Llilc.n_cols();
-	spii_assert(Llilc.n_rows() == n);
+	Eigen::SparseMatrix<double> L;
+	lilc_to_eigen(Llilc, &L, true);
+	*x = L.triangularView<Eigen::Upper>().solve(*x);
 
-	//
-	// First transpose the matrix.
-	//
-	std::vector<std::vector<int>>    m_idx(n);
-	std::vector<std::vector<double>> m_x(n);
+	//auto n = Llilc.n_cols();
+	//spii_assert(Llilc.n_rows() == n);
 
-	for (int j = 0; j < n; ++j) {
-		auto n_elements = Llilc.m_idx[j].size();
-		spii_assert(Llilc.m_x[j].size() == n_elements);
+	////
+	//// First transpose the matrix.
+	////
+	//std::vector<std::vector<int>>    m_idx(n);
+	//std::vector<std::vector<double>> m_x(n);
 
-		for (std::size_t k = 0; k < n_elements; ++k) {
-			auto i = Llilc.m_idx[j][k];
-			auto value = Llilc.m_x[j][k];
-			m_idx[i].push_back(j);
-			m_x[i].push_back(value);
-		}
-	}
+	//for (int j = 0; j < n; ++j) {
+	//	auto n_elements = Llilc.m_idx[j].size();
+	//	spii_assert(Llilc.m_x[j].size() == n_elements);
 
-	for (auto& vec: m_idx) {
-		std::sort(begin(vec), end(vec));
-	}
+	//	for (std::size_t k = 0; k < n_elements; ++k) {
+	//		auto i = Llilc.m_idx[j][k];
+	//		auto value = Llilc.m_x[j][k];
+	//		m_idx[i].push_back(j);
+	//		m_x[i].push_back(value);
+	//	}
+	//}
 
-	//
-	// Then solve.
-	//
-	for (int j = n - 1; j >= 0; --j) {
-		auto n_elements = m_idx[j].size();
-		spii_assert(m_x[j].size() == n_elements);
+	//for (auto& vec: m_idx) {
+	//	std::sort(begin(vec), end(vec));
+	//}
 
-		for (std::size_t k = 0; k < n_elements; ++k) {
-			auto i     = m_idx[j][k];
-			auto value = m_x[j][k];
+	////
+	//// Then solve.
+	////
+	//for (int j = n - 1; j >= 0; --j) {
+	//	auto n_elements = m_idx[j].size();
+	//	spii_assert(m_x[j].size() == n_elements);
 
-			if (i == j) {
-				(*x)[j] /= value;
-			}
-			else {
-				(*x)[i] -= value * (*x)[j];
-			}
-		}
-	}
+	//	for (std::size_t k = 0; k < n_elements; ++k) {
+	//		auto i     = m_idx[j][k];
+	//		auto value = m_x[j][k];
+
+	//		if (i == j) {
+	//			(*x)[j] /= value;
+	//		}
+	//		else {
+	//			(*x)[i] -= value * (*x)[j];
+	//		}
+	//	}
+	//}
 }
 
 // Solve A*x = b, where
