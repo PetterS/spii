@@ -148,9 +148,7 @@ void Solver::BKP_sym_ildl(const Eigen::MatrixXd& Hinput,
 	const double pp_tol      = 1.0; // For full Bunch-Kaufman.
 	Hlilc.ildl(L, B, perm, fill_factor, tol, pp_tol);
 
-	//
 	// Convert back to Eigen matrices.
-	//
 	MyPermutation P(perm);
 	auto S = diag_to_eigen(Hlilc.S);
 

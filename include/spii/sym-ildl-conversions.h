@@ -215,6 +215,14 @@ void solve_block_diag(block_diag_matrix<double>& B,
 	}
 }
 
+// Solve L*x = b, where L is lower-triangular.
+void solve_lower_triangular(const lilc_matrix<double>& Llilc,
+                      Eigen::VectorXd* x)
+{
+	auto L = lilc_to_eigen(Llilc);
+	*x = L.lu().solve(*x);
+}
+
 // Solve A*x = b, where
 //
 // A = S.inverse() * (P * L * B * L.transpose() * P.transpose()) * S.inverse()
@@ -235,13 +243,12 @@ void solve_system_ildl_dense(block_diag_matrix<double>& B,
 	spii_assert(Llilc.n_cols() == n);
 	spii_assert(S.rows() == n);
 	spii_assert(S.cols() == n);
-	
-	auto L = lilc_to_eigen(Llilc);
 
 	x = S * lhs;
 	x = P.transpose() * x;
-	x = L.lu().solve(x);
+	solve_lower_triangular(Llilc, &x);
 	solve_block_diag(B, &x);
+	auto L = lilc_to_eigen(Llilc);
 	x = L.transpose().lu().solve(x);
 	x = P * x;
 	x = S * x;
