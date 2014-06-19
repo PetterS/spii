@@ -135,7 +135,7 @@ void Solver::BKP_sym_ildl(const Eigen::MatrixXd& Hinput,
 	//
 	// Factorize the matrix.
 	//
-	lilc_matrix<double> Llilc;	          // The lower triangular factor of A.
+	lilc_matrix<double> L;	          // The lower triangular factor of A.
 	vector<int> perm;	                  // A permutation vector containing all permutations on A.
 	perm.reserve(Hlilc.n_cols());
 	block_diag_matrix<double> B; // The diagonal factor of A.
@@ -146,13 +146,12 @@ void Solver::BKP_sym_ildl(const Eigen::MatrixXd& Hinput,
 	const double fill_factor = 1.0;
 	const double tol         = 1e-12;
 	const double pp_tol      = 1.0; // For full Bunch-Kaufman.
-	Hlilc.ildl(Llilc, B, perm, fill_factor, tol, pp_tol);
+	Hlilc.ildl(L, B, perm, fill_factor, tol, pp_tol);
 
 	//
 	// Convert back to Eigen matrices.
 	//
 	MyPermutation P(perm);
-	auto L = lilc_to_eigen(Llilc);
 	auto S = diag_to_eigen(Hlilc.S);
 
 	//

@@ -220,7 +220,7 @@ void solve_block_diag(block_diag_matrix<double>& B,
 // A = S.inverse() * (P * L * B * L.transpose() * P.transpose()) * S.inverse()
 //
 void solve_system_ildl_dense(block_diag_matrix<double>& B,
-                             const Eigen::MatrixXd& L,
+                             const lilc_matrix<double>& Llilc,
                              const Eigen::DiagonalMatrix<double, Eigen::Dynamic>& S,
                              const MyPermutation& P,
                              const Eigen::VectorXd& lhs,
@@ -229,12 +229,14 @@ void solve_system_ildl_dense(block_diag_matrix<double>& B,
 	spii_assert(x_output);
 	auto& x = *x_output;
 	auto n = lhs.rows();
-	spii_assert(L.rows() == n);
-	spii_assert(L.cols() == n);
+	spii_assert(B.n_rows() == n);
+	spii_assert(B.n_cols() == n);
+	spii_assert(Llilc.n_rows() == n);
+	spii_assert(Llilc.n_cols() == n);
 	spii_assert(S.rows() == n);
 	spii_assert(S.cols() == n);
 	
-	// TODO: make more efficient if needed.
+	auto L = lilc_to_eigen(Llilc);
 
 	x = S * lhs;
 	x = P.transpose() * x;
