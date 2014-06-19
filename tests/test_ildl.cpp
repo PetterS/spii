@@ -223,7 +223,7 @@ TEST_CASE("ildl-sym")
 
 	VectorXd xorg = Aorg.lu().solve(b);
 	VectorXd x;
-	solve_system_ildl_dense(Dblockdiag, Llilc, S, P, b, &x);
+	solve_system_ildl(Dblockdiag, Llilc, S, P, b, &x);
 	CAPTURE(xorg.transpose());
 	CAPTURE(x.transpose());
 	CHECK( (xorg - x).norm() <= 1e-6 );

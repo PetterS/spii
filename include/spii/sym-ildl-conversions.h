@@ -282,12 +282,12 @@ void solve_lower_triangular_transpose(const lilc_matrix<double>& Llilc,
 //
 // A = S.inverse() * (P * L * B * L.transpose() * P.transpose()) * S.inverse()
 //
-void solve_system_ildl_dense(block_diag_matrix<double>& B,
-                             const lilc_matrix<double>& Llilc,
-                             const Eigen::DiagonalMatrix<double, Eigen::Dynamic>& S,
-                             const MyPermutation& P,
-                             const Eigen::VectorXd& lhs,
-                             Eigen::VectorXd* x_output)
+void solve_system_ildl(block_diag_matrix<double>& B,
+                       const lilc_matrix<double>& Llilc,
+                       const Eigen::DiagonalMatrix<double, Eigen::Dynamic>& S,
+                       const MyPermutation& P,
+                       const Eigen::VectorXd& lhs,
+                       Eigen::VectorXd* x_output)
 {
 	spii_assert(x_output);
 	auto& x = *x_output;
@@ -306,20 +306,6 @@ void solve_system_ildl_dense(block_diag_matrix<double>& B,
 	solve_lower_triangular_transpose(Llilc, &x);
 	x = P * x;
 	x = S * x;
-}
-
-// Solve A*x = b, where
-//
-// A = S.inverse() * (P * L * D * L.transpose() * P.transpose()) * S.inverse()
-//
-void solve_system_ildl_sparse(block_diag_matrix<double>& B,
-                              const Eigen::SparseMatrix<double>& L,
-                              const Eigen::DiagonalMatrix<double, Eigen::Dynamic>& S,
-                              const MyPermutation& P,
-                              const Eigen::VectorXd& lhs,
-                              Eigen::VectorXd* x_output)
-{
-	spii_assert(false, "Not implemented yet.");
 }
 
 }

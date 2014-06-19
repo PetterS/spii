@@ -116,10 +116,11 @@ void modify_block_diagonal_matrix(block_diag_matrix<double>* B)
 } // anon. namespace
 
 
-void Solver::BKP_sym_ildl(const Eigen::MatrixXd& Hinput,
+template<typename MatrixType>
+void BKP_sym_ildl_generic(const MatrixType& Hinput,
                           const Eigen::VectorXd& g,
                           Eigen::VectorXd* p,
-                          SolverResults* results) const
+                          SolverResults* results)
 {
 	using namespace std;
 	using namespace Eigen;
@@ -163,9 +164,17 @@ void Solver::BKP_sym_ildl(const Eigen::MatrixXd& Hinput,
 	//
 	start_time = wall_time();
 
-	solve_system_ildl_dense(B, L, S, P, -g, p);
+	solve_system_ildl(B, L, S, P, -g, p);
 
 	results->linear_solver_time += wall_time() - start_time;
+}
+
+void Solver::BKP_sym_ildl(const Eigen::MatrixXd& Hinput,
+                          const Eigen::VectorXd& g,
+                          Eigen::VectorXd* p,
+                          SolverResults* results) const
+{
+	BKP_sym_ildl_generic(Hinput, g, p, results);
 }
 
 void Solver::BKP_sym_ildl(const Eigen::SparseMatrix<double>& Hinput,
@@ -173,52 +182,7 @@ void Solver::BKP_sym_ildl(const Eigen::SparseMatrix<double>& Hinput,
                           Eigen::VectorXd* p,
                           SolverResults* results) const
 {
-	using namespace std;
-	using namespace Eigen;
-	double start_time = wall_time();
-
-	//
-	// Create sym-ildl matrix.
-	//
-	auto n = Hinput.rows();
-	lilc_matrix<double> Hlilc;
-	eigen_to_lilc(Hinput, &Hlilc);
-
-	//
-	// Factorize the matrix.
-	//
-	lilc_matrix<double> Llilc;	          // The lower triangular factor of A.
-	vector<int> perm;	                  // A permutation vector containing all permutations on A.
-	perm.reserve(Hlilc.n_cols());
-	block_diag_matrix<double> B; // The diagonal factor of A.
-
-	Hlilc.sym_amd(perm);
-	Hlilc.sym_perm(perm);
-
-	const double fill_factor = 1.0;
-	const double tol         = 1e-12;
-	const double pp_tol      = 1.0; // For full Bunch-Kaufman.
-	Hlilc.ildl(Llilc, B, perm, fill_factor, tol, pp_tol);
-
-	//
-	// Convert back to Eigen matrices.
-	//
-	MyPermutation P(perm);
-	Eigen::SparseMatrix<double> L;
-	lilc_to_eigen(Llilc, &L);
-	auto S = diag_to_eigen(Hlilc.S);
-
-	modify_block_diagonal_matrix(&B);
-
-	results->matrix_factorization_time += wall_time() - start_time;
-	//
-	// Solve the system.
-	//
-	start_time = wall_time();
-
-	solve_system_ildl_sparse(B, L, S, P, -g, p);
-
-	results->linear_solver_time += wall_time() - start_time;
+	BKP_sym_ildl_generic(Hinput, g, p, results);
 }
 
 }  // namespace spii
