@@ -186,7 +186,7 @@ int main_function()
 		points[i].xy[1] += rand(engine);
 	}
 
-	solver.factorization_method = NewtonSolver::ITERATIVE;
+	solver.factorization_method = NewtonSolver::FactorizationMethod::ITERATIVE;
 	solver.maximum_iterations = 1000;
 	solver.solve(f, &results);
 	cerr << results << endl;

@@ -269,7 +269,7 @@ typedef BundleAdjustmentBenchmark<NewtonSolver> BundleAdjustmentBenchmarkNewtonS
 BENCHMARK_F(BundleAdjustmentBenchmarkNewtonSolver, one_newton_iteration)
 {
 	bal_problem.reset_parameters();
-	solver.sparsity_mode = NewtonSolver::SPARSE;
+	solver.sparsity_mode = NewtonSolver::SparsityMode::SPARSE;
 	solver.maximum_iterations = 1;
 	solver.solve(function, &results);
 }

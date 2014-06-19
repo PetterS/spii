@@ -44,10 +44,10 @@ void NewtonSolver::solve(const Function& function,
 	// Determine whether to use sparse representation
 	// and matrix factorization.
 	bool use_sparsity;
-	if (this->sparsity_mode == DENSE) {
+	if (this->sparsity_mode == SparsityMode::DENSE) {
 		use_sparsity = false;
 	}
-	else if (this->sparsity_mode == SPARSE) {
+	else if (this->sparsity_mode == SparsityMode::SPARSE) {
 		use_sparsity = true;
 	}
 	else {
@@ -57,6 +57,14 @@ void NewtonSolver::solve(const Function& function,
 		else {
 			use_sparsity = true;
 		}
+	}
+
+	auto factorization_method = this->factorization_method;
+	if (use_sparsity && this->factorization_method == FactorizationMethod::MESCHACH) {
+		if (this->log_function) {
+			this->log_function("Can not use the Meschach library for sparse problems. Switching to iterative factorization.");
+		}
+		factorization_method = FactorizationMethod::ITERATIVE;
 	}
 
 	// Current point, gradient and Hessian.
@@ -194,7 +202,7 @@ void NewtonSolver::solve(const Function& function,
 		}
 		mindiag = dH.minCoeff();
 
-		if (use_sparsity || this->factorization_method == ITERATIVE) {
+		if (factorization_method == FactorizationMethod::ITERATIVE) {
 			//
 			// Attempt repeated Cholesky factorization until the Hessian
 			// becomes positive semidefinite.
@@ -259,7 +267,7 @@ void NewtonSolver::solve(const Function& function,
 
 			results->linear_solver_time += wall_time() - start_time;
 		}
-		else if (this->factorization_method == BKP) {
+		else if (factorization_method == FactorizationMethod::MESCHACH) {
 			spii_assert(!use_sparsity);
 
 			// Performs a BKP block diagonal factorization, modifies it, and
@@ -267,7 +275,7 @@ void NewtonSolver::solve(const Function& function,
 			this->BKP_dense(H, g, factorization_cache, &p, results);
 			factorizations = 1;
 		}
-		else if (this->factorization_method == SYM_ILDL) {
+		else if (factorization_method == FactorizationMethod::SYM_ILDL) {
 			factorizations = 1;
 			if (use_sparsity) {
 				this->BKP_sym_ildl(sparse_H, g, &p, results);

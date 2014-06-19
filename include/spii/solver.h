@@ -201,17 +201,22 @@ class SPII_API NewtonSolver
 public:
 	// Mode of operation. How the Hessian is stored.
 	// Default: AUTO.
-	enum {DENSE, SPARSE, AUTO} sparsity_mode = AUTO;
+	enum class SparsityMode {DENSE, SPARSE, AUTO};
+	SparsityMode sparsity_mode = SparsityMode::AUTO;
 
 	// The default factorization method is the BKP block
 	// diagonal modification (Nocedal and Wright, p. 55).
 	// Alternatively, it is possible to use iterative diagonal
 	// modification of the Hessian. This is also used for
 	// sparse systems.
-	enum {BKP,       // Using the Meschach library (dense only). Production-ready.
-	      ITERATIVE, // Iterative diagonal modification (dense + sparse). Production-ready.
-	      SYM_ILDL,  // Using the sym-ildl library. NOT Production-ready.
-	} factorization_method = BKP;
+	enum class FactorizationMethod
+	{
+		ITERATIVE, // Iterative diagonal modification (dense + sparse). Production-ready.
+		MESCHACH,  // Using the Meschach library (dense only). Production-ready.
+		           // Will fall back to ’iterative’ for sparse problems.
+		SYM_ILDL,  // Using the sym-ildl library.
+	};
+	FactorizationMethod factorization_method = FactorizationMethod::MESCHACH;
 
 	virtual void solve(const Function& function, SolverResults* results) const override;
 };

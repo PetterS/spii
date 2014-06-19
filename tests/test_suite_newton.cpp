@@ -86,8 +86,8 @@ double run_test(double* var, Solver* solver_input = 0)
 	// First, test that the iterative factorization method
 	// achieves convergence. 
 	std::vector<double> var_copy(var, var + dimension);
-	INFO("NewtonSolver::ITERATIVE");
-	solver->factorization_method = NewtonSolver::ITERATIVE;
+	INFO("FactorizationMethod::ITERATIVE");
+	solver->factorization_method = NewtonSolver::FactorizationMethod::ITERATIVE;
 	run_test_with_factorization_method<Functor, dimension>(&var_copy[0], solver);
 
 	#if defined(USE_SYM_ILDL)
@@ -98,8 +98,8 @@ double run_test(double* var, Solver* solver_input = 0)
 			functor_name.find("Rosenbrock") != std::string::npos
 			&& std::abs(var[0]) > 1e3;
 		if (!is_RosenbrockFar) {
-			INFO("NewtonSolver::SYM_ILDL");
-			solver->factorization_method = NewtonSolver::SYM_ILDL;
+			INFO("FactorizationMethod::SYM_ILDL");
+			solver->factorization_method = NewtonSolver::FactorizationMethod::SYM_ILDL;
 			std::vector<double> var_copy_ildl(var, var + dimension);
 			run_test_with_factorization_method<Functor, dimension>(var_copy_ildl.data(), solver);
 		}
@@ -107,8 +107,8 @@ double run_test(double* var, Solver* solver_input = 0)
 
 	// Then, test the BKP factorization and return the results using
 	// this method.
-	INFO("NewtonSolver::BKP");
-	solver->factorization_method = NewtonSolver::BKP;
+	INFO("FactorizationMethod::MESCHACH");
+	solver->factorization_method = NewtonSolver::FactorizationMethod::MESCHACH;
 	return run_test_with_factorization_method<Functor, dimension>(var, solver);
 }
 

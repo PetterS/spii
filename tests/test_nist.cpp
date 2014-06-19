@@ -182,7 +182,7 @@ NewtonSolver create_solver<NewtonSolver>()
 
 	solver.line_search_rho = 0.6;
 
-	solver.factorization_method = NewtonSolver::BKP;
+	solver.factorization_method = NewtonSolver::FactorizationMethod::MESCHACH;
 	return solver;
 }
 
@@ -203,7 +203,7 @@ NewtonSolverSYM_ILDL create_solver<NewtonSolverSYM_ILDL>()
 {
 	NewtonSolverSYM_ILDL solver;
 	static_cast<NewtonSolver&>(solver) = create_solver<NewtonSolver>();
-	solver.factorization_method = NewtonSolver::SYM_ILDL;
+	solver.factorization_method = NewtonSolver::FactorizationMethod::SYM_ILDL;
 	return solver;
 }
 
