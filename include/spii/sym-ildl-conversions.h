@@ -247,32 +247,44 @@ void solve_lower_triangular_transpose(const lilc_matrix<double>& Llilc,
 	auto n = Llilc.n_cols();
 	spii_assert(Llilc.n_rows() == n);
 
-	for (int j = n - 1; j >= 0; --j) {
+	//
+	// First transpose the matrix.
+	//
+	std::vector<std::vector<int>>    m_idx(n);
+	std::vector<std::vector<double>> m_x(n);
+
+	for (int j = 0; j < n; ++j) {
 		auto n_elements = Llilc.m_idx[j].size();
 		spii_assert(Llilc.m_x[j].size() == n_elements);
 
-		for (int k = n_elements - 1; k >= 0; --k) {
-			auto i     = Llilc.m_idx[j][k];
+		for (std::size_t k = 0; k < n_elements; ++k) {
+			auto i = Llilc.m_idx[j][k];
 			auto value = Llilc.m_x[j][k];
+			m_idx[i].push_back(j);
+			m_x[i].push_back(value);
+		}
+	}
+
+	for (auto& vec: m_idx) {
+		std::sort(begin(vec), end(vec));
+	}
+
+	//
+	// Then solve.
+	//
+	for (int j = n - 1; j >= 0; --j) {
+		auto n_elements = m_idx[j].size();
+		spii_assert(m_x[j].size() == n_elements);
+
+		for (std::size_t k = 0; k < n_elements; ++k) {
+			auto i     = m_idx[j][k];
+			auto value = m_x[j][k];
 
 			if (i == j) {
 				(*x)[j] /= value;
-				break;
 			}
-		}
-
-		for (int j2 = j - 1; j2 >= 0; --j2) {
-			auto n_elements = Llilc.m_idx[j2].size();
-			spii_assert(Llilc.m_x[j2].size() == n_elements);
-
-			for (int k = n_elements - 1; k >= 0; --k) {
-				auto i     = Llilc.m_idx[j2][k];
-				auto value = Llilc.m_x[j2][k];
-
-				if (i == j) {
-					(*x)[j2] -= value * (*x)[j];
-					break;
-				}
+			else {
+				(*x)[i] -= value * (*x)[j];
 			}
 		}
 	}
