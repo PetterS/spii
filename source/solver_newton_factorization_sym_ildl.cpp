@@ -22,10 +22,18 @@
 
 #ifndef USE_SYM_ILDL
 
-void spii::Solver::BKP_dense_sym_ildl(const Eigen::MatrixXd& Hinput,
-                                      const Eigen::VectorXd& g,
-                                      Eigen::VectorXd* p,
-                                      SolverResults* results) const
+void spii::Solver::BKP_sym_ildl(const Eigen::MatrixXd& Hinput,
+                                const Eigen::VectorXd& g,
+                                Eigen::VectorXd* p,
+                                SolverResults* results) const
+{
+	throw std::runtime_error("sym-ildl is not available.");
+}
+
+void spii::Solver::BKP_sym_ildl(const Eigen::SparseMatrix<double>& Hinput,
+                                const Eigen::VectorXd& g,
+                                Eigen::VectorXd* p,
+                                SolverResults* results) const
 {
 	throw std::runtime_error("sym-ildl is not available.");
 }
@@ -38,10 +46,80 @@ void spii::Solver::BKP_dense_sym_ildl(const Eigen::MatrixXd& Hinput,
 
 namespace spii {
 
-void Solver::BKP_dense_sym_ildl(const Eigen::MatrixXd& Hinput,
-                                const Eigen::VectorXd& g,
-                                Eigen::VectorXd* p,
-                                SolverResults* results) const
+namespace{
+void modify_block_diagonal_matrix(block_diag_matrix<double>* B)
+{
+	using namespace Eigen;
+
+	auto n = B->n_rows();
+	spii_assert(B->n_cols() == n);
+
+	//
+	// Modify the block diagonalization.
+	//
+	const double delta = 1e-12;
+
+	VectorXd tau(n);
+	VectorXd lambda(n);
+
+	SelfAdjointEigenSolver<MatrixXd> eigensolver;
+
+	bool onebyone;
+	for (int i = 0; i < n; i = (onebyone ? i+1 : i+2) ) {
+		onebyone = (i == n-1 || B->block_size(i) == 1);
+
+		if ( onebyone ) {
+			auto& Bii = (*B)[i];
+
+			double lambda = Bii;
+			double tau;
+			if (lambda >= delta) {
+				tau = 0;
+			}
+			else {
+				tau = delta - (1.0 + delta) * lambda;
+			}
+			//Q(i, i) = 1;
+			Bii = Bii + tau;
+		}
+		else {
+			Matrix2d Bblock;
+			Bblock(0, 0) = (*B)[i];
+			Bblock(0, 1) = B->off_diagonal(i);
+			Bblock(1, 0) = B->off_diagonal(i);
+			Bblock(1, 1) = (*B)[i+1];
+			spii_assert(Bblock(1, 0) == Bblock(0, 1));
+
+			eigensolver.compute(Bblock);
+			Vector2d lambda;
+			lambda(0) = eigensolver.eigenvalues()(0);
+			lambda(1) = eigensolver.eigenvalues()(1);
+
+			Vector2d tau;
+			for (int k = 0; k < 2; ++k) {
+				if (lambda(k) >= delta) {
+					tau(k) = 0;
+				}
+				else {
+					tau(k) = delta - (1.0 + delta) * lambda(k);
+				}
+			}
+
+			Matrix2d Qblock = eigensolver.eigenvectors();
+			Bblock = Bblock + Qblock * tau.asDiagonal() * Qblock.transpose();
+			(*B)[i]            = Bblock(0, 0);
+			B->off_diagonal(i) = Bblock(0, 1);
+			(*B)[i+1]          = Bblock(1, 1);
+		}
+	}
+}
+} // anon. namespace
+
+
+void Solver::BKP_sym_ildl(const Eigen::MatrixXd& Hinput,
+                          const Eigen::VectorXd& g,
+                          Eigen::VectorXd* p,
+                          SolverResults* results) const
 {
 	using namespace std;
 	using namespace Eigen;
@@ -60,76 +138,27 @@ void Solver::BKP_dense_sym_ildl(const Eigen::MatrixXd& Hinput,
 	lilc_matrix<double> Llilc;	          // The lower triangular factor of A.
 	vector<int> perm;	                  // A permutation vector containing all permutations on A.
 	perm.reserve(Hlilc.n_cols());
-	block_diag_matrix<double> Dblockdiag; // The diagonal factor of A.
+	block_diag_matrix<double> B; // The diagonal factor of A.
 
-	// The (very challenging) NIST test suite fails if eps
-	// is kept at its default value when calling sym_equil.
-	auto prev_eps = Hlilc.eps;
-	Hlilc.eps = 0;
-	Hlilc.sym_equil();
-	Hlilc.eps = prev_eps;
-
-	Hlilc.sym_rcm(perm);
+	Hlilc.sym_amd(perm);
 	Hlilc.sym_perm(perm);
+
 	const double fill_factor = 1.0;
 	const double tol         = 1e-12;
 	const double pp_tol      = 1.0; // For full Bunch-Kaufman.
-	Hlilc.ildl(Llilc, Dblockdiag, perm, fill_factor, tol, pp_tol);
+	Hlilc.ildl(Llilc, B, perm, fill_factor, tol, pp_tol);
 
 	//
 	// Convert back to Eigen matrices.
 	//
 	MyPermutation P(perm);
 	auto L = lilc_to_eigen(Llilc);
-	auto B = block_diag_to_eigen(Dblockdiag);
 	auto S = diag_to_eigen(Hlilc.S);
 
 	//
 	// Modify the block diagonalization.
 	//
-	const double delta = 1e-12;
-
-	MatrixXd Q(n, n);
-	VectorXd tau(n);
-	VectorXd lambda(n);
-	Q.setZero();
-
-	SelfAdjointEigenSolver<MatrixXd> eigensolver;
-
-	bool onebyone;
-	for (int i = 0; i < n; i = onebyone ? i+1 : i+2 ) {
-		onebyone = (i == n-1 || B(i+1, i) == 0.0);
-
-		if ( onebyone ) {
-			lambda(i) = B(i, i);
-			if (lambda(i) >= delta) {
-				tau(i) = 0;
-			}
-			else {
-				tau(i) = delta - (1.0 + delta) * lambda(i);
-			}
-			Q(i, i) = 1;
-		}
-		else {
-			spii_assert(B(i+1, i) == B(i, i+1));
-
-			eigensolver.compute(B.block(i, i, 2, 2));
-			lambda(i)   = eigensolver.eigenvalues()(0);
-			lambda(i+1) = eigensolver.eigenvalues()(1);
-			for (int k = i; k <= i + 1; ++k) {
-				if (lambda(k) >= delta) {
-					tau(k) = 0;
-				}
-				else {
-					tau(k) = delta - (1.0 + delta) * lambda(k);
-				}
-			}
-
-			Q.block(i, i, 2, 2) = eigensolver.eigenvectors();
-		}
-	}
-
-	B = B + Q * tau.asDiagonal() * Q.transpose();
+	modify_block_diagonal_matrix(&B);
 
 	results->matrix_factorization_time += wall_time() - start_time;
 	//
@@ -138,6 +167,59 @@ void Solver::BKP_dense_sym_ildl(const Eigen::MatrixXd& Hinput,
 	start_time = wall_time();
 
 	solve_system_ildl_dense(B, L, S, P, -g, p);
+
+	results->linear_solver_time += wall_time() - start_time;
+}
+
+void Solver::BKP_sym_ildl(const Eigen::SparseMatrix<double>& Hinput,
+                          const Eigen::VectorXd& g,
+                          Eigen::VectorXd* p,
+                          SolverResults* results) const
+{
+	using namespace std;
+	using namespace Eigen;
+	double start_time = wall_time();
+
+	//
+	// Create sym-ildl matrix.
+	//
+	auto n = Hinput.rows();
+	lilc_matrix<double> Hlilc;
+	eigen_to_lilc(Hinput, &Hlilc);
+
+	//
+	// Factorize the matrix.
+	//
+	lilc_matrix<double> Llilc;	          // The lower triangular factor of A.
+	vector<int> perm;	                  // A permutation vector containing all permutations on A.
+	perm.reserve(Hlilc.n_cols());
+	block_diag_matrix<double> B; // The diagonal factor of A.
+
+	Hlilc.sym_amd(perm);
+	Hlilc.sym_perm(perm);
+
+	const double fill_factor = 1.0;
+	const double tol         = 1e-12;
+	const double pp_tol      = 1.0; // For full Bunch-Kaufman.
+	Hlilc.ildl(Llilc, B, perm, fill_factor, tol, pp_tol);
+
+	//
+	// Convert back to Eigen matrices.
+	//
+	MyPermutation P(perm);
+	Eigen::SparseMatrix<double> L;
+	lilc_to_eigen(Llilc, &L);
+	auto S = diag_to_eigen(Hlilc.S);
+
+	modify_block_diagonal_matrix(&B);
+
+	results->matrix_factorization_time += wall_time() - start_time;
+	//
+	// Solve the system.
+	//
+	start_time = wall_time();
+
+	solve_system_ildl_sparse(B, L, S, P, -g, p);
 
 	results->linear_solver_time += wall_time() - start_time;
 }

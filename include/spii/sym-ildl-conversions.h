@@ -4,6 +4,8 @@
 
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
+#include <Eigen/SparseQR>
+#include <Eigen/SparseLU>
 
 #include <lilc_matrix.h>
 
@@ -40,6 +42,39 @@ void eigen_to_lilc(const Eigen::MatrixXd& A, lilc_matrix<double>* Alilc_input)
 	Alilc.nnz_count = count;
 }
 
+void eigen_to_lilc(const Eigen::SparseMatrix<double>& A, lilc_matrix<double>* Alilc_input)
+{
+	spii_assert(Alilc_input);
+	lilc_matrix<double>& Alilc = *Alilc_input;
+
+	auto m = A.rows();
+	auto n = A.cols();
+	spii_assert(m == n);
+
+	int count = 0;
+	Alilc.resize(n, n);
+	fill(Alilc.first.begin(), Alilc.first.end(), 0);
+
+	for (int k = 0; k < A.outerSize(); ++k) {
+		for (Eigen::SparseMatrix<double>::InnerIterator it(A, k); it; ++it) {
+			auto i = it.row();
+			auto j = it.col(); // (here it is equal to k)
+			if (j < i) {
+				continue;
+			}
+
+			Alilc.m_idx[i].push_back(j);
+			Alilc.m_x[i].push_back(it.value());
+			if (i != j) {
+				Alilc.list[j].push_back(i);
+			}
+			count++;
+		}
+	}
+
+	Alilc.nnz_count = count;
+}
+
 Eigen::MatrixXd lilc_to_eigen(const lilc_matrix<double>& Alilc, bool symmetric=false)
 {
 	Eigen::MatrixXd A{Alilc.n_rows(), Alilc.n_cols()};
@@ -56,6 +91,26 @@ Eigen::MatrixXd lilc_to_eigen(const lilc_matrix<double>& Alilc, bool symmetric=f
 		}
 	}
 	return std::move(A);
+}
+
+void lilc_to_eigen(const lilc_matrix<double>& Alilc, Eigen::SparseMatrix<double>* A, bool symmetric=false)
+{
+	A->resize(Alilc.n_rows(), Alilc.n_cols());
+	std::vector<Eigen::Triplet<double>> triplets;
+
+	for (int i = 0; i < Alilc.n_rows(); i++) {
+		for (std::size_t ind = 0; ind < Alilc.m_idx.at(i).size(); ind++) {
+			auto j = Alilc.m_idx.at(i)[ind];
+			auto value = Alilc.m_x.at(i).at(ind);
+			if (symmetric && i != j) {
+				triplets.emplace_back(i, j, value);
+			}
+			triplets.emplace_back(j, i, value);
+		}
+	}
+
+	A->setFromTriplets(begin(triplets), end(triplets));
+	A->makeCompressed();
 }
 
 Eigen::DiagonalMatrix<double, Eigen::Dynamic> diag_to_eigen(const block_diag_matrix<double>& Ablock)
@@ -92,6 +147,26 @@ Eigen::MatrixXd block_diag_to_eigen(const block_diag_matrix<double>& Ablock)
 	return std::move(A);
 }
 
+void block_diag_to_eigen(const block_diag_matrix<double>& Ablock, Eigen::SparseMatrix<double>* A)
+{
+	A->resize(Ablock.n_rows(), Ablock.n_cols());
+	std::vector<Eigen::Triplet<double>> triplets;
+
+	for (std::size_t i = 0; i < Ablock.main_diag.size(); ++i) {
+		triplets.emplace_back(i, i, Ablock.main_diag[i]);
+	}
+
+	for (const auto& i_and_value: Ablock.off_diag) {
+		auto i = i_and_value.first;
+		auto value = i_and_value.second;
+		triplets.emplace_back(i    , i + 1, value);
+		triplets.emplace_back(i + 1, i    , value);
+	}
+
+	A->setFromTriplets(begin(triplets), end(triplets));
+	A->makeCompressed();
+}
+
 class MyPermutation
 	: public Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic, int>
 {
@@ -105,11 +180,46 @@ public:
 	}
 };
 
+
+// Solve B*x = b, where B is block-diagonal.
+void solve_block_diag(block_diag_matrix<double>& B,
+                      Eigen::VectorXd* x)
+{
+	using namespace Eigen;
+
+	auto n = B.n_rows();
+	spii_assert(B.n_cols() == n);
+
+	bool onebyone;
+	for (int i = 0; i < n; i = (onebyone ? i+1 : i+2) ) {
+		onebyone = (i == n-1 || B.block_size(i) == 1);
+
+		if ( onebyone ) {
+			(*x)(i) /= B[i];
+		}
+		else {
+			Matrix2d Bblock;
+			Bblock(0, 0) = B[i];
+			Bblock(0, 1) = B.off_diagonal(i);
+			Bblock(1, 0) = B.off_diagonal(i);
+			Bblock(1, 1) = B[i+1];
+			spii_assert(Bblock(1, 0) == Bblock(0, 1));
+
+			Vector2d x_copy;
+			x_copy(0) = (*x)[i];
+			x_copy(1) = (*x)[i+1];
+			x_copy = Bblock.lu().solve(x_copy);
+			(*x)[i]   = x_copy(0);
+			(*x)[i+1] = x_copy(1);
+		}
+	}
+}
+
 // Solve A*x = b, where
 //
-// A = S.inverse() * (P * L * D * L.transpose() * P.transpose()) * S.inverse()
+// A = S.inverse() * (P * L * B * L.transpose() * P.transpose()) * S.inverse()
 //
-void solve_system_ildl_dense(const Eigen::MatrixXd& D,
+void solve_system_ildl_dense(block_diag_matrix<double>& B,
                              const Eigen::MatrixXd& L,
                              const Eigen::DiagonalMatrix<double, Eigen::Dynamic>& S,
                              const MyPermutation& P,
@@ -119,8 +229,6 @@ void solve_system_ildl_dense(const Eigen::MatrixXd& D,
 	spii_assert(x_output);
 	auto& x = *x_output;
 	auto n = lhs.rows();
-	spii_assert(D.rows() == n);
-	spii_assert(D.cols() == n);
 	spii_assert(L.rows() == n);
 	spii_assert(L.cols() == n);
 	spii_assert(S.rows() == n);
@@ -131,10 +239,24 @@ void solve_system_ildl_dense(const Eigen::MatrixXd& D,
 	x = S * lhs;
 	x = P.transpose() * x;
 	x = L.lu().solve(x);
-	x = D.lu().solve(x);
+	solve_block_diag(B, &x);
 	x = L.transpose().lu().solve(x);
 	x = P * x;
 	x = S * x;
+}
+
+// Solve A*x = b, where
+//
+// A = S.inverse() * (P * L * D * L.transpose() * P.transpose()) * S.inverse()
+//
+void solve_system_ildl_sparse(block_diag_matrix<double>& B,
+                              const Eigen::SparseMatrix<double>& L,
+                              const Eigen::DiagonalMatrix<double, Eigen::Dynamic>& S,
+                              const MyPermutation& P,
+                              const Eigen::VectorXd& lhs,
+                              Eigen::VectorXd* x_output)
+{
+	spii_assert(false, "Not implemented yet.");
 }
 
 }

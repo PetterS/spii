@@ -181,10 +181,14 @@ protected:
 
 	// Performs a BKP block diagonal factorization, modifies it, and
 	// solvers the linear system. Uses sym-ildl.
-	void BKP_dense_sym_ildl(const Eigen::MatrixXd& H,
-	                        const Eigen::VectorXd& g,
-	                        Eigen::VectorXd* p,
+	void BKP_sym_ildl(const Eigen::MatrixXd& H,
+	                  const Eigen::VectorXd& g,
+	                  Eigen::VectorXd* p,
 	                        SolverResults* results) const;
+	void BKP_sym_ildl(const Eigen::SparseMatrix<double>& H,
+	                  const Eigen::VectorXd& g,
+	                  Eigen::VectorXd* p,
+	                  SolverResults* results) const;
 };
 
 // Newton's method. It requires first and

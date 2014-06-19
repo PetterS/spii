@@ -1,5 +1,6 @@
 // Petter Strandmark 2012.
 
+#include <cstdio>
 #include <iomanip>
 #include <iostream>
 #include <limits>
@@ -184,6 +185,14 @@ void NewtonSolver::solve(const Function& function,
 		int factorizations = 0;
 		double tau = 0;
 		double mindiag = 0;
+		Eigen::VectorXd dH;
+		if (use_sparsity) {
+			dH = sparse_H.diagonal();
+		}
+		else {
+			dH = H.diagonal();
+		}
+		mindiag = dH.minCoeff();
 
 		if (use_sparsity || this->factorization_method == ITERATIVE) {
 			//
@@ -192,15 +201,6 @@ void NewtonSolver::solve(const Function& function,
 			//
 			//start_time = wall_time();
 			double beta = 1.0;
-
-			Eigen::VectorXd dH;
-			if (use_sparsity) {
-				dH = sparse_H.diagonal();
-			}
-			else {
-				dH = H.diagonal();
-			}
-			mindiag = dH.minCoeff();
 
 			if (mindiag > 0) {
 				tau = 0;
@@ -260,16 +260,21 @@ void NewtonSolver::solve(const Function& function,
 			results->linear_solver_time += wall_time() - start_time;
 		}
 		else if (this->factorization_method == BKP) {
-			mindiag = H.diagonal().minCoeff();
+			spii_assert(!use_sparsity);
+
 			// Performs a BKP block diagonal factorization, modifies it, and
 			// solvers the linear system.
 			this->BKP_dense(H, g, factorization_cache, &p, results);
 			factorizations = 1;
 		}
 		else if (this->factorization_method == SYM_ILDL) {
-			mindiag = H.diagonal().minCoeff();
-			this->BKP_dense_sym_ildl(H, g, &p, results);
 			factorizations = 1;
+			if (use_sparsity) {
+				this->BKP_sym_ildl(sparse_H, g, &p, results);
+			}
+			else {
+				this->BKP_sym_ildl(H, g, &p, results);
+			}
 		}
 		else {
 			throw std::runtime_error("Unknown factorization method.");

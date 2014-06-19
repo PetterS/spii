@@ -14,6 +14,17 @@
 
 using namespace spii;
 
+class NewtonSolverSymIldl
+	: public NewtonSolver
+
+{
+public:
+	NewtonSolverSymIldl()
+	{
+		this->factorization_method = NewtonSolver::SYM_ILDL;
+	}
+};
+
 template<typename SolverClass>
 void run_test_main(const std::function<void(std::vector<double>&, Function*)>& create_f,
                    const std::function<std::vector<double>(int)>& start, 
@@ -53,13 +64,13 @@ void run_test(const std::function<void(std::vector<double>&, Function*)>& create
 {
 	if (test_newton) {
 		SECTION("Newton-100", "") {
-			run_test_main<NewtonSolver>(create_f, start, 100);
+			run_test_main<NewtonSolverSymIldl>(create_f, start, 100);
 		}
 		SECTION("Newton-1000", "") {
-			run_test_main<NewtonSolver>(create_f, start, 1000);
+			run_test_main<NewtonSolverSymIldl>(create_f, start, 1000);
 		}
 		SECTION("Newton-10000", "") {
-			run_test_main<NewtonSolver>(create_f, start, 10000);
+			run_test_main<NewtonSolverSymIldl>(create_f, start, 10000);
 		}
 	}
 

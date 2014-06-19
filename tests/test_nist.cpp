@@ -182,6 +182,7 @@ NewtonSolver create_solver<NewtonSolver>()
 
 	solver.line_search_rho = 0.6;
 
+	solver.factorization_method = NewtonSolver::BKP;
 	return solver;
 }
 

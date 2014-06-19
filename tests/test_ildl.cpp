@@ -223,20 +223,140 @@ TEST_CASE("ildl-sym", "4x4 dense")
 
 	VectorXd xorg = Aorg.lu().solve(b);
 	VectorXd x;
-	solve_system_ildl_dense(D, L, S, P, b, &x);
+	solve_system_ildl_dense(Dblockdiag, L, S, P, b, &x);
 	CAPTURE(xorg.transpose());
 	CAPTURE(x.transpose());
 	CHECK( (xorg - x).norm() <= 1e-6 );
 }
 
-TEST_CASE("ildl-sym sparse", "4x4 sparse")
+template<typename Scalar, typename Index=typename Eigen::SparseMatrix<Scalar>::Index>
+struct MutableTriplet: public Eigen::Triplet<Scalar, Index>
+{
+  MutableTriplet(const Index& i, const Index& j, const Scalar& v)
+    : Triplet(i, j, v)
+  {}
+  Index& row() { return m_row; }
+  Index& col() { return m_col; }
+};
+
+TEST_CASE("ildl-sym-sparse")
 {
 	using namespace std;
 	using namespace Eigen;
+	using namespace spii;
 
-	int n = 4;
+	int n = 8;
+	vector<MutableTriplet<double>> triplets;
+	// Matlab indices which start at 1.
+	triplets.emplace_back(1,1, 19);
+	triplets.emplace_back(2,1,  7);
+	triplets.emplace_back(4,1, 20);
+	triplets.emplace_back(6,1,-15);
+	triplets.emplace_back(8,1, -6);
+	triplets.emplace_back(1,2,  7);
+	triplets.emplace_back(2,2, -8);
+	triplets.emplace_back(4,2,  4);
+	triplets.emplace_back(6,2, -3);
+	triplets.emplace_back(8,2, -3);
+	triplets.emplace_back(4,3,  4);
+	triplets.emplace_back(8,3,  1);
+	triplets.emplace_back(1,4, 20);
+	triplets.emplace_back(2,4,  4);
+	triplets.emplace_back(3,4,  4);
+	triplets.emplace_back(4,4, 23);
+	triplets.emplace_back(6,4,-12);
+	triplets.emplace_back(8,4,  4);
+	triplets.emplace_back(5,5,-10);
+	triplets.emplace_back(1,6,-15);
+	triplets.emplace_back(2,6, -3);
+	triplets.emplace_back(4,6,-12);
+	triplets.emplace_back(6,6, -1);
+	triplets.emplace_back(7,7, -1);
+	triplets.emplace_back(1,8, -6);
+	triplets.emplace_back(2,8, -3);
+	triplets.emplace_back(3,8,  1);
+	triplets.emplace_back(4,8,  4);
+	// Convert to C indices.
+	for (auto& triplet: triplets) {
+		triplet.col()--;
+		triplet.row()--;
+	}
 
-	// TODO.
+	SparseMatrix<double> Aorg(8, 8);
+	Aorg.setFromTriplets(begin(triplets), end(triplets));
+
+	cerr << Aorg << endl;
+
+	// Create sym-ildl matrix.
+	lilc_matrix<double> Alilc;
+	eigen_to_lilc(Aorg, &Alilc);
+
+	SparseMatrix<double> A;
+	lilc_to_eigen(Alilc, &A, true);
+
+	cerr << "Original A = " << endl;
+	cerr << Aorg << endl;
+	cerr << "sym-ildl A = " << endl;
+	cerr << Alilc << endl;
+	cerr << "A converted back = " << endl;
+	cerr << A << endl;
+
+	SparseMatrix<double> Zero = A - Aorg;
+	CHECK(Zero.sum() == 0);
+
+	cerr << "A is " << Alilc.n_rows() << " by " << Alilc.n_cols() << " with " << Alilc.nnz() << " non-zeros." << endl;
+	lilc_matrix<double> Llilc;	     //<The lower triangular factor of A.
+	vector<int> perm;	         //<A permutation vector containing all permutations on A.
+	perm.reserve(Alilc.n_cols());
+	block_diag_matrix<double> Dblockdiag; //<The diagonal factor of A.
+	Alilc.sym_equil();
+	Alilc.sym_rcm(perm);
+	Alilc.sym_perm(perm);
+	const double fill_factor = 1.0;
+	const double tol         = 0.001;
+
+	Alilc.ildl(Llilc, Dblockdiag, perm, fill_factor, tol, 1.0);
+
+	cerr << "L is " << Llilc.n_rows() << " by " << Llilc.n_cols() << " with " << Llilc.nnz() << " non-zeros." << endl;
+	cerr << Llilc << endl;
+	cerr << "D is " << Dblockdiag.n_rows() << " by " << Dblockdiag.n_cols() << " with " << Dblockdiag.nnz() << " non-zeros." << endl;
+	cerr << Dblockdiag << endl;
+
+	cerr << "P = ";
+	for (auto val: perm) {
+		cerr << val << " ";
+	}
+	cerr << endl;
+
+	MyPermutation P(perm);
+	MatrixXd I(perm.size(), perm.size());
+	I.setIdentity();
+	cerr << "P = " << endl << (P * I) << endl;
+
+	auto L = lilc_to_eigen(Llilc);
+	cerr << "L = " << endl << L << endl;
+
+	SparseMatrix<double> D;
+	block_diag_to_eigen(Dblockdiag, &D);
+	cerr << "D = " << endl << D << endl;
+
+	auto S = diag_to_eigen(Alilc.S);
+	cerr << "S = " << endl << S.toDenseMatrix() << endl;
+
+	SparseMatrix<double> Btmp;
+	lilc_to_eigen(Alilc, &Btmp, true);
+	cerr << "B = " << endl << Btmp.toDense() << endl;
+	cerr << "P^T * S * A * S * P = " << endl << (P.transpose() * (S * A.toDense() * S) * P) << endl;
+	cerr << "L * D * L^T = " << endl << (L * D.toDense() * L.transpose()) << endl;
+
+	cerr << endl << endl;
+	auto SiPLDLtPtSi = S.inverse() * (P * L * D * L.transpose() * P.transpose()) * S.inverse();
+	cerr << " S^-1 * P * L * D * L^T * P^T * S^-1 = " << endl 
+	     << SiPLDLtPtSi << endl;
+
+	REQUIRE((SiPLDLtPtSi - Aorg.toDense()).norm() <= 1e-6);
+
+	cerr << endl << endl;
 }
 
 #endif // #ifndef USE_SYM_ILDL
