@@ -7,7 +7,7 @@ Features
 * Newton's method 
     * Bunch-Kaufman-Parlett factorization and block-diagonal modification. This is a robust method of dealing with nonconvex functions.
     * The sparse solver uses repeated diagonal modification of the hessian for nonconvex problems. This simple method seems to work well, but can require several Cholesky factorizations per iteration and is not as robust as B-K-P.
-* Sparse Cholesky factorization using Eigen (included) if the problem is large and sparse.
+    * The sparse solver can also use sym-ildl (if available) for sparse Bunch-Kaufman-Parlett.
 * L-BFGS.
 * Nelder-Mead for nondifferentiable problems.
 * Automatic differentiation to compute gradient and hessian using FADBAD++ (included).
@@ -19,9 +19,6 @@ This repository also contains some experimental features. These features are not
 * Wolfe line search.
 * Global optimization with interval arithmetic.
 * Constrained optimization (augmented lagrangian).
-
-####To Do
-* Sparse block-diagonal factorization.
 
 Compilation
 -----------
