@@ -53,6 +53,11 @@ public:
 		return upper;
 	}
 
+	R length() const
+	{
+		return upper - lower;
+	}
+
 	template<typename R2>
 	bool operator == (const Interval<R2>& interval) const
 	{

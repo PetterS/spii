@@ -190,6 +190,48 @@ TEST_CASE("Constant variable")
 	}
 }
 
+template<typename Functor, int dimension>
+double run_test(double* x,
+                double distance_from_start = 1.0,
+                double x_maximum_gap = 1e-5,
+                double ground_truth = std::numeric_limits<double>::quiet_NaN())
+{
+	using namespace std;
+
+	Function f;
+	f.add_variable(x, dimension);
+	f.add_term<IntervalTerm<Functor, dimension>>(x);
+
+	GlobalSolver solver;
+	solver.maximum_iterations = 10000;
+	solver.argument_improvement_tolerance = 0;
+	solver.function_improvement_tolerance = 1e-12;
+	stringstream info_buffer;
+	solver.log_function = [&info_buffer](const std::string& str) { info_buffer << str << std::endl; };
+	SolverResults results;
+
+	vector<Interval<double>> x_interval;
+	x_interval.push_back(Interval<double>(-0.784 - distance_from_start + x[0],  x[0] + distance_from_start + 0.7868));
+	x_interval.push_back(Interval<double>(-0.123 - distance_from_start + x[1],  x[1] + distance_from_start + 0.3252));
+	auto interval = solver.solve_global(f, x_interval, &results);
+	INFO(info_buffer.str());
+	INFO(results);
+	REQUIRE(interval.size() == dimension);
+
+	auto opt = Interval<double>(results.optimum_lower, results.optimum_upper);
+	CHECK((opt.get_upper() - opt.get_lower()) <= 1e-10);
+	CHECK(results.exit_condition == SolverResults::FUNCTION_TOLERANCE);
+
+	if (ground_truth == ground_truth) {  // Tests for nan.
+		CHECK(opt.get_lower() <= ground_truth); CHECK(ground_truth <= opt.get_upper());
+	}
+
+	double parameter_ground_truth = 1.0;
+	for (int i = 0; i < dimension; ++i) {
+		CHECK(interval[i].length() <= x_maximum_gap);
+	}
+}
+
 struct Rosenbrock
 {
 	template<typename R>
@@ -206,40 +248,32 @@ struct Rosenbrock
 
 TEST_CASE("Rosenbrock")
 {
-	using namespace std;
-
 	double x[] = {2.0, 2.0};
-	Function f;
-	f.add_variable(x, 2);
-	f.add_term<IntervalTerm<Rosenbrock, 2>>(x);
+	run_test<Rosenbrock, 2>(x);
+	CHECK(std::abs(x[0] - 1.0) <= 1e-6);
+	CHECK(std::abs(x[1] - 1.0) <= 1e-6);
+}
 
-	GlobalSolver solver;
-	solver.maximum_iterations = 10000;
-	solver.argument_improvement_tolerance = 0;
-	solver.function_improvement_tolerance = 1e-12;
-	stringstream info_buffer;
-	solver.log_function = [&info_buffer](const std::string& str) { info_buffer << str << std::endl; };
-	SolverResults results;
-
-	vector<Interval<double>> x_interval;
-	x_interval.push_back(Interval<double>(-1.784, 2.7868));
-	x_interval.push_back(Interval<double>(-2.123, 2.3252));
-	auto interval = solver.solve_global(f, x_interval, &results);
-	INFO(info_buffer.str());
-	INFO(results);
-	REQUIRE(interval.size() == 2);
-
-	auto opt = Interval<double>(results.optimum_lower, results.optimum_upper);
-	CHECK((opt.get_upper() - opt.get_lower()) <= 1e-10);
-	CHECK(results.exit_condition == SolverResults::FUNCTION_TOLERANCE);
-
-	double ground_truth = 42;
-	CHECK(opt.get_lower() <= ground_truth); CHECK(ground_truth <= opt.get_upper());
-
-	double parameter_ground_truth = 1.0;
-	for (int i = 0; i < 2; ++i) {
-		CHECK(interval[i].get_lower() <= parameter_ground_truth);
-		CHECK(parameter_ground_truth <= interval[i].get_upper());
-		CHECK(abs(x[i] - 1.0) <= 1e-6);
+struct FreudenStein_Roth
+{
+	template<typename R>
+	R operator()(const R* const x) const
+	{
+		R d0 =  -13.0 + x[0] + ((5.0 - x[1])*x[1] - 2.0)*x[1];
+		R d1 =  -29.0 + x[0] + ((x[1] + 1.0)*x[1] - 14.0)*x[1];
+		// Add a constant to make optimum not equal to 0.
+		// If optimum is 0, everything works except that the notion
+		// of relative interval size is not very useful.
+		return d0*d0 + d1*d1 + 42.0;
 	}
+};
+
+TEST_CASE("FreudenStein_Roth")
+{
+	double x[2] = {0.5, -2.0};
+	run_test<FreudenStein_Roth, 2>(x, 10.0, 1e-4, 42.0);
+	CHECK(std::abs(x[0] - 5.0) <= 1e-6);
+	CHECK(std::abs(x[1] - 4.0) <= 1e-6);
+
+	// test_suite_newton ends up in local minima 48.9842...
 }
