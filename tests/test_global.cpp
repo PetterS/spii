@@ -195,7 +195,8 @@ void run_test(double* x,
               double distance_from_start = 1.0,
               double x_maximum_gap = 1e-5,
               double ground_truth = std::numeric_limits<double>::quiet_NaN(),
-              double maximum_gap = 1e-10)
+              double maximum_gap = 1e-10,
+              double function_improvement_tolerance = 1e-12)
 {
 	using namespace std;
 
@@ -206,7 +207,7 @@ void run_test(double* x,
 	GlobalSolver solver;
 	solver.maximum_iterations = 1000000;
 	solver.argument_improvement_tolerance = 0;
-	solver.function_improvement_tolerance = 1e-12;
+	solver.function_improvement_tolerance = function_improvement_tolerance;
 	stringstream info_buffer;
 	solver.log_function = [&info_buffer](const std::string& str) { info_buffer << str << std::endl; };
 	SolverResults results;
@@ -380,4 +381,32 @@ TEST_CASE("BraninRCOS")
 		CHECK( std::fabs(x[0] - 9.42478) <= 1e-5);
 		CHECK( std::fabs(x[1] - 2.475) <= 1e-5);
 	}
+}
+
+struct PowellSingular
+{
+	template<typename R>
+	R operator()(const R* const x) const
+	{
+		R d0 = x[0] + 10.0 * x[1];
+		R d1 = sqrt(5.0) * (x[2] - x[3]);
+		R d2 = x[1] - 2.0*x[3];
+		d2 = d2 * d2;
+		R d3 = sqrt(10.0) * (x[0] - x[3]) * (x[0] - x[3]);
+		return d0*d0 + d1*d1 + d2*d2 + d3*d3 + 42.0;
+	}
+};
+
+TEST_CASE("PowellSingular")
+{
+	using namespace std;
+
+	// With four variables, convergence can already be quite slow.
+	double x[4] = {3.0, -1.0, 0.0, 1.0};
+	run_test<PowellSingular, 4>(x, 4.0, 2e-1, 42.0, 1e-4, 1e-6);
+
+	CHECK(abs(x[0]) <= 1e-1);
+	CHECK(abs(x[1]) <= 1e-1);
+	CHECK(abs(x[2]) <= 1e-1);
+	CHECK(abs(x[3]) <= 1e-1);
 }
