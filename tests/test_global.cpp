@@ -189,3 +189,57 @@ TEST_CASE("Constant variable")
 		CHECK(opt.get_lower() <= ground_truth); CHECK(ground_truth <= opt.get_upper());
 	}
 }
+
+struct Rosenbrock
+{
+	template<typename R>
+	R operator()(const R* const x) const
+	{
+		R d0 =  x[1] - x[0]*x[0];
+		R d1 =  1.0 - x[0];
+		// Add a constant to make optimum not equal to 0.
+		// If optimum is 0, everything works except that the notion
+		// of relative interval size is not very useful.
+		return 100.0 * d0*d0 + d1*d1 + 42.0;
+	}
+};
+
+TEST_CASE("Rosenbrock")
+{
+	using namespace std;
+
+	double x[] = {2.0, 2.0};
+	Function f;
+	f.add_variable(x, 2);
+	f.add_term<IntervalTerm<Rosenbrock, 2>>(x);
+
+	GlobalSolver solver;
+	solver.maximum_iterations = 10000;
+	solver.argument_improvement_tolerance = 0;
+	solver.function_improvement_tolerance = 1e-12;
+	stringstream info_buffer;
+	solver.log_function = [&info_buffer](const std::string& str) { info_buffer << str << std::endl; };
+	SolverResults results;
+
+	vector<Interval<double>> x_interval;
+	x_interval.push_back(Interval<double>(-1.784, 2.7868));
+	x_interval.push_back(Interval<double>(-2.123, 2.3252));
+	auto interval = solver.solve_global(f, x_interval, &results);
+	INFO(info_buffer.str());
+	INFO(results);
+	REQUIRE(interval.size() == 2);
+
+	auto opt = Interval<double>(results.optimum_lower, results.optimum_upper);
+	CHECK((opt.get_upper() - opt.get_lower()) <= 1e-10);
+	CHECK(results.exit_condition == SolverResults::FUNCTION_TOLERANCE);
+
+	double ground_truth = 42;
+	CHECK(opt.get_lower() <= ground_truth); CHECK(ground_truth <= opt.get_upper());
+
+	double parameter_ground_truth = 1.0;
+	for (int i = 0; i < 2; ++i) {
+		CHECK(interval[i].get_lower() <= parameter_ground_truth);
+		CHECK(parameter_ground_truth <= interval[i].get_upper());
+		CHECK(abs(x[i] - 1.0) <= 1e-6);
+	}
+}

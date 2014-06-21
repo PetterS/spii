@@ -179,6 +179,7 @@ IntervalVector GlobalSolver::solve_global(const Function& function,
 	double lower_bound = - std::numeric_limits<double>::infinity();
 
 	Eigen::VectorXd best_x(n);
+	IntervalVector best_interval;
 
 	int iterations = 0;
 	results->exit_condition = SolverResults::INTERNAL_ERROR;
@@ -192,6 +193,7 @@ IntervalVector GlobalSolver::solve_global(const Function& function,
 		}
 
 		const auto box = queue.top().box;
+		best_interval = box;
 		// Remove current element from queue.
 		queue.pop();
 
@@ -285,7 +287,10 @@ IntervalVector GlobalSolver::solve_global(const Function& function,
 	double tmp1, tmp2;
 	auto bounding_box = get_bounding_box(queue, &tmp1, &tmp2);
 	if (bounding_box.empty()) {
-		bounding_box.emplace_back(lower_bound, upper_bound);
+		// Problem was solved exactly (queue empty)
+		spii_assert(queue.empty());
+		results->exit_condition = SolverResults::FUNCTION_TOLERANCE;
+		bounding_box = best_interval;
 	}
 
 	function.copy_global_to_user(best_x);
