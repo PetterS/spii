@@ -194,7 +194,8 @@ template<typename Functor, int dimension>
 void run_test(double* x,
               double distance_from_start = 1.0,
               double x_maximum_gap = 1e-5,
-              double ground_truth = std::numeric_limits<double>::quiet_NaN())
+              double ground_truth = std::numeric_limits<double>::quiet_NaN(),
+              double maximum_gap = 1e-10)
 {
 	using namespace std;
 
@@ -203,7 +204,7 @@ void run_test(double* x,
 	f.add_term<IntervalTerm<Functor, dimension>>(x);
 
 	GlobalSolver solver;
-	solver.maximum_iterations = 10000;
+	solver.maximum_iterations = 1000000;
 	solver.argument_improvement_tolerance = 0;
 	solver.function_improvement_tolerance = 1e-12;
 	stringstream info_buffer;
@@ -220,7 +221,7 @@ void run_test(double* x,
 	REQUIRE(interval.size() == dimension);
 
 	auto opt = Interval<double>(results.optimum_lower, results.optimum_upper);
-	CHECK((opt.get_upper() - opt.get_lower()) <= 1e-10);
+	CHECK((opt.get_upper() - opt.get_lower()) <= maximum_gap);
 	CHECK(results.exit_condition == SolverResults::FUNCTION_TOLERANCE);
 
 	if (ground_truth == ground_truth) {  // Tests for nan.
@@ -301,4 +302,34 @@ TEST_CASE("Beale")
 
 	CHECK( std::fabs(x[0] - 3.0) <=  1e-5);
 	CHECK( std::fabs(x[1] - 0.5) <= 1e-5);
+}
+
+
+struct Wood
+{
+	template<typename R>
+	R operator()(const R* const x) const
+	{
+		R f1 = 10.0 * (x[1] - x[0]*x[0]);
+		R f2 = 1.0 - x[0];
+		R f3 = sqrt(90.0) * (x[3] - x[2]*x[2]);
+		R f4 = 1.0 - x[2];
+		R f5 = sqrt(10.0) * (x[1] + x[3] - 2.0);
+		R f6 = 1.0 / sqrt(10.0) * (x[1] - x[3]);
+		// Add a constant to make optimum not equal to 0.
+		// If optimum is 0, everything works except that the notion
+		// of relative interval size is not very useful.
+		return f1*f1 + f2*f2 + f3*f3 + f4*f4 + f5*f5 + f6*f6 + 42.0;
+	}
+};
+
+TEST_CASE("Wood")
+{
+	double x[4] = {-3.0, -1.0, -3.0, -1.0};
+	run_test<Wood, 4>(x, 5.0, 1e-2, 42.0);
+
+	CHECK( std::fabs(x[0] - 1.0) <= 1e-5);
+	CHECK( std::fabs(x[1] - 1.0) <= 1e-5);
+	CHECK( std::fabs(x[2] - 1.0) <= 1e-5);
+	CHECK( std::fabs(x[3] - 1.0) <= 1e-5);
 }
