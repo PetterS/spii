@@ -274,8 +274,8 @@ TEST_CASE("FreudenStein_Roth")
 {
 	double x[2] = {0.5, -2.0};
 	run_test<FreudenStein_Roth, 2>(x, 10.0, 1e-4, 42.0);
-	CHECK(std::abs(x[0] - 5.0) <= 1e-6);
-	CHECK(std::abs(x[1] - 4.0) <= 1e-6);
+	CHECK(std::abs(x[0] - 5.0) <= 1e-5);
+	CHECK(std::abs(x[1] - 4.0) <= 1e-5);
 
 	// test_suite_newton can end up in local minima 48.9842...
 }
@@ -298,7 +298,7 @@ struct Beale
 TEST_CASE("Beale")
 {
 	double x[2] = {1.0, 1.0};
-	run_test<Beale, 2>(x, 10.0, 1e-4, 42.0);
+	run_test<Beale, 2>(x, 10.0, 1e-4, 42.0, 1e-8);
 
 	CHECK( std::fabs(x[0] - 3.0) <=  1e-5);
 	CHECK( std::fabs(x[1] - 0.5) <= 1e-5);

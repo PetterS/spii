@@ -135,7 +135,7 @@ public:
 		R c = this->upper * interval.lower;
 		R d = this->upper * interval.upper;
 		this->lower = std::min(std::min(a, b), std::min(c, d));
-		this->upper = std::max(std::min(a, b), std::max(c, d));
+		this->upper = std::max(std::max(a, b), std::max(c, d));
 		return *this;
 	}
 
@@ -169,7 +169,7 @@ public:
 		R c = this->upper / interval.lower;
 		R d = this->upper / interval.upper;
 		this->lower = std::min(std::min(a, b), std::min(c, d));
-		this->upper = std::max(std::min(a, b), std::max(c, d));
+		this->upper = std::max(std::max(a, b), std::max(c, d));
 		return *this;
 	}
 

@@ -57,6 +57,20 @@ TEST_CASE("Interval/multiplication", "")
 	CHECK((i1 * i2) == Interval<double>(-2, 4));
 }
 
+TEST_CASE("multiplication_all_sign_combinations")
+{
+	int lim = 3;
+	for (int i1 = -lim; i1 <= +lim; ++i1) {
+	for (int i2 = i1 + 1; i2 <= +lim; ++i2) {
+		for (int j1 = -lim; j1 <= +lim; ++j1) {
+		for (int j2 = j1 +1; j2 <= +lim; ++j2) {
+			Interval<int> interval1(i1, i2);
+			Interval<int> interval2(j1, j2);
+			CHECK((interval1 * interval2) == (interval2 * interval1));
+		}}
+	}}
+}
+
 TEST_CASE("Interval/division", "")
 {
 	Interval<double> result;
@@ -85,6 +99,43 @@ TEST_CASE("Interval/division", "")
 	result = 3.0 / i5;
 	CHECK(result.get_lower() == - std::numeric_limits<double>::infinity());
 	CHECK(result.get_upper() ==   std::numeric_limits<double>::infinity());
+}
+
+TEST_CASE("division_strictly_positive")
+{
+	int lim = 4;
+	for (int i1 = 1; i1 <= +lim; ++i1) {
+	for (int i2 = i1 + 1; i2 <= +lim; ++i2) {
+		for (int j1 = 1; j1 <= +lim; ++j1) {
+		for (int j2 = j1 +1; j2 <= +lim; ++j2) {
+			if (i1 != 0 && i2 != 0) {
+				Interval<double> interval1(i1, i2);
+				Interval<double> interval2(j1, j2);
+				CAPTURE(interval1);
+				CAPTURE(interval2);
+				CHECK((interval1 / interval2).get_lower() > 0);
+			}
+		}}
+	}}
+}
+
+TEST_CASE("division_as_multiplication")
+{
+	int lim = 4;
+	for (int i1 = -lim; i1 <= +lim; ++i1) {
+	for (int i2 = i1 + 1; i2 <= +lim; ++i2) {
+		for (int j1 = 1; j1 <= +lim; ++j1) {
+		for (int j2 = j1 +1; j2 <= +lim; ++j2) {
+			if (i1 != 0 && i2 != 0) {
+				Interval<double> interval1(i1, i2);
+				Interval<double> interval2(j1, j2);
+				CAPTURE(interval1);
+				CAPTURE(interval2);
+				auto inv2 = 1.0 / interval2;
+				CHECK((interval1 / interval2) == (inv2 * interval1));
+			}
+		}}
+	}}
 }
 
 TEST_CASE("Interval/cos", "")
