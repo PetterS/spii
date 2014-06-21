@@ -66,6 +66,21 @@ int main_function()
 	cout << "Estimated:" << endl;
 	cout << "f = " << f.evaluate() << " mu = " << mu << ", sigma = " << sigma << endl << endl;
 
+	cout << "Perform global optimization? (y/n):";
+	char answer = 'n';
+	cin >> answer;
+	if (cin && tolower(answer) == 'y') {
+		sigma = 3.0;
+		f.set_constant(&sigma, true);
+
+		GlobalSolver global_solver;
+		std::vector<Interval<double>> mu_interval;
+		mu_interval.push_back(Interval<double>(-10.0, 10.0));
+		global_solver.maximum_iterations = 1000;
+		auto interval = global_solver.solve_global(f, mu_interval, &results);
+		cout << "Optimal parameter interval (sigma is kept at " << sigma << "):" << endl;
+		cout << "   mu    = " << interval.at(0) << endl;
+	}
 	return 0;
 }
 

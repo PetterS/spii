@@ -278,9 +278,9 @@ class SPII_API GlobalSolver
 	: public Solver
 {
 public:
-	void solve_global(const Function& function,
-	                  const IntervalVector& start_box,
-	                  SolverResults* results) const;
+	IntervalVector solve_global(const Function& function,
+	                            const IntervalVector& start_box,
+	                            SolverResults* results) const;
 	
 	// Does not do anything. The global solver requires the
 	// extended interface above.

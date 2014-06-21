@@ -1202,20 +1202,49 @@ Interval<double> Function::evaluate(const std::vector<Interval<double>>& x) cons
 
 Interval<double>  Function::Implementation::evaluate(const std::vector<Interval<double>>& x) const
 {
+	if (! this->local_storage_allocated) {
+		this->allocate_local_storage();
+	}
+	// Copies constant variables.
+	this->copy_user_to_local();
+
+	spii_assert(x.size() == this->number_of_scalars);
+
 	interface->evaluations_without_gradient++;
 	double start_time = wall_time();
 
 	std::vector<const Interval<double> *> scratch_space;
+	std::vector<std::vector<Interval<double>>> temp_intervals;
 
 	Interval<double> value = this->constant;
 	// Go through and evaluate each term.
 	for (int i = 0; i < terms.size(); ++i) {
-		// Evaluate the term.
+		// Evaluate each term.
+
+		temp_intervals.clear();
 		scratch_space.clear();
 		for (auto var: terms[i].added_variables_indices) {
-			auto global_index = variables[var].global_index;
-			scratch_space.push_back(&x[global_index]);
+			
+			if (variables[var].is_constant) {
+				// This code assumes that vectors that are part of another
+				// vector are not reallocated when the outer vector is
+				// resized. This is true if std::move of a vector is
+				// implemented without reallocation.
+				temp_intervals.emplace_back();
+				for (auto value: variables[var].temp_space) {
+					temp_intervals.back().emplace_back(value, value);
+				}
+				scratch_space.push_back(temp_intervals.back().data());
+			}
+			else {
+				check(variables[var].change_of_variables == nullptr,
+					"Global optimization does not support change of variables.");
+
+				auto global_index = variables[var].global_index;
+				scratch_space.push_back(&x.at(global_index));
+			}
 		}
+
 		value += terms[i].term->evaluate_interval(&scratch_space[0]);
 	}
 

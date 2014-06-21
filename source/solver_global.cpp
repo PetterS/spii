@@ -24,6 +24,17 @@ struct GlobalQueueEntry
 
 typedef std::priority_queue<GlobalQueueEntry> IntervalQueue;
 
+std::ostream& operator << (std::ostream& out, IntervalQueue queue)
+{
+	while (!queue.empty()) {
+		const auto box = queue.top().box;
+		queue.pop();
+		out << box[0] << "; ";
+	}
+	out << std::endl;
+	return out;
+}
+
 void midpoint(const IntervalVector& x, Eigen::VectorXd* x_mid)
 {
 	x_mid->resize(x.size());
@@ -34,6 +45,10 @@ void midpoint(const IntervalVector& x, Eigen::VectorXd* x_mid)
 
 double volume(const IntervalVector& x)
 {
+	if (x.empty()) {
+		return 0.0;
+	}
+
 	double vol = 1.0;
 	for (auto itr = x.begin(); itr != x.end(); ++itr) {
 		const auto& interval = *itr;
@@ -44,8 +59,10 @@ double volume(const IntervalVector& x)
 
 IntervalVector get_bounding_box(const IntervalQueue& queue_in,
                                 double* function_lower_bound,
-                                double* volume)
+                                double* sum_of_volumes)
 {
+	*sum_of_volumes = 0;
+
 	if (queue_in.empty()) {
 		return IntervalVector();
 	}
@@ -56,14 +73,14 @@ IntervalVector get_bounding_box(const IntervalQueue& queue_in,
 	std::vector<double> lower_bound(n, 1e100);
 
 	*function_lower_bound = std::numeric_limits<double>::infinity();
-	*volume = 0;
+
 	while (!queue.empty()) {
 		const auto& box = queue.top().box;
 		for (int i = 0; i < n; ++i) {
 			lower_bound[i] = std::min(lower_bound[i], box[i].get_lower());
 			upper_bound[i] = std::max(upper_bound[i], box[i].get_upper());
 		}
-		*volume += spii::volume(box);
+		*sum_of_volumes += spii::volume(box);
 		*function_lower_bound = std::min(*function_lower_bound, queue.top().best_known_lower_bound);
 		queue.pop();
 	}
@@ -140,12 +157,16 @@ void GlobalSolver::solve(const Function& function,
 	spii_assert(false, "GlobalSolver::solve_global should be called.");
 }
 
-void GlobalSolver::solve_global(const Function& function,
-                                const IntervalVector& x_interval,
-                                SolverResults* results) const
+IntervalVector GlobalSolver::solve_global(const Function& function,
+                                          const IntervalVector& x_interval,
+                                          SolverResults* results) const
 {
 	using namespace std;
 	double global_start_time = wall_time();
+
+	check(x_interval.size() == function.get_number_of_scalars(),
+		"solve_global: input vector does not match the function's number of scalars");
+	auto n = x_interval.size();
 
 	IntervalQueue queue;
 	GlobalQueueEntry entry;
@@ -157,10 +178,11 @@ void GlobalSolver::solve_global(const Function& function,
 	double upper_bound = bounds.get_upper();
 	double lower_bound = - std::numeric_limits<double>::infinity();
 
-	Eigen::VectorXd best_x(x_interval.size());
+	Eigen::VectorXd best_x(n);
 
 	int iterations = 0;
 	results->exit_condition = SolverResults::INTERNAL_ERROR;
+
 	while (!queue.empty()) {
 		double start_time = wall_time();
 
@@ -174,6 +196,8 @@ void GlobalSolver::solve_global(const Function& function,
 		queue.pop();
 
 		auto bounds = function.evaluate(box);
+
+		//cerr << "-- Processing " << box << " resulting in " << bounds << ". Upper bound is " << upper_bound << endl;
 
 		if (bounds.get_lower() < upper_bound) {
 			// Evaluate middle point.
@@ -215,8 +239,9 @@ void GlobalSolver::solve_global(const Function& function,
 		}
 
 		if (iterations % log_interval == 0) {
-			double vol_sum;
-			auto bounding_box = get_bounding_box(queue, &lower_bound, &vol_sum);
+			double volumes_sum;
+			lower_bound = upper_bound;  // Default lower bound if queue is empty (problem is solved).
+			auto bounding_box = get_bounding_box(queue, &lower_bound, &volumes_sum);
 			double vol_bounding = volume(bounding_box);
 
 			double avg_magnitude = (std::abs(lower_bound) + std::abs(upper_bound)) / 2.0;
@@ -239,7 +264,7 @@ void GlobalSolver::solve_global(const Function& function,
 					upper_bound,
 					relative_gap,
 					vol_bounding,
-					vol_sum);
+					volumes_sum);
 				this->log_function(tmp);
 			}
 
@@ -257,11 +282,19 @@ void GlobalSolver::solve_global(const Function& function,
 		}
 	}
 
+	double tmp1, tmp2;
+	auto bounding_box = get_bounding_box(queue, &tmp1, &tmp2);
+	if (bounding_box.empty()) {
+		bounding_box.emplace_back(lower_bound, upper_bound);
+	}
+
 	function.copy_global_to_user(best_x);
 
 	results->optimum_lower = lower_bound;
 	results->optimum_upper = upper_bound;
 	results->total_time = wall_time() - global_start_time;
+
+	return bounding_box;
 }
 
 }  // namespace spii
