@@ -333,3 +333,51 @@ TEST_CASE("Wood")
 	CHECK( std::fabs(x[2] - 1.0) <= 1e-5);
 	CHECK( std::fabs(x[3] - 1.0) <= 1e-5);
 }
+
+struct BraninRCOS
+{
+	template<typename R>
+	R operator()(const R* const x) const
+	{
+		const double pi = 3.141592653589793;
+		const double a  = 1.0;
+		const double d  = 6.0;
+		const double e  = 10.0;
+		const double b  = 5.1 / ( 4.0 * pi*pi );
+		const double c  = 5.0 / pi;
+		const double ff = 1.0 / ( 8.0 * pi );
+
+		R expr = ( x[1] - b * x[0]*x[0] + c * x[0] - d );
+		return a * expr * expr
+			+ e * ( 1.0 - ff ) * cos ( x[0] ) + e;
+	}
+};
+
+TEST_CASE("BraninRCOS")
+{
+	// From http://www.staff.brad.ac.uk/jpli/research/scga/function/branin_rcos.htm :
+	// Has three solutions.
+	// f(x1,x2)=0.397887; (x1,x2)=(-pi,12.275), (pi,2.275), (9.42478,2.475).
+	const double optimum = 0.3978873577;
+
+	{
+		double x[2] = {-4.0, 11.0};
+		run_test<BraninRCOS, 2>(x, 2.0, 1e-5);
+		CHECK( std::fabs(x[0] + 3.141592653589793) <= 1e-5);
+		CHECK( std::fabs(x[1] - 12.275) <= 1e-4);
+	}
+
+	{
+		double x[2] = {4.1, 1.0};
+		run_test<BraninRCOS, 2>(x, 2.0, 1e-5);
+		CHECK( std::fabs(x[0] - 3.141592653589793) <= 1e-5);
+		CHECK( std::fabs(x[1] - 2.275) <= 1e-4);
+	}
+
+	{
+		double x[2] = {8.0, 3.0};
+		run_test<BraninRCOS, 2>(x, 2.0, 1e-5);
+		CHECK( std::fabs(x[0] - 9.42478) <= 1e-5);
+		CHECK( std::fabs(x[1] - 2.475) <= 1e-5);
+	}
+}
