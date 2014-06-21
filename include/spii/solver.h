@@ -212,9 +212,9 @@ public:
 	enum class FactorizationMethod
 	{
 		ITERATIVE, // Iterative diagonal modification (dense + sparse). Production-ready.
-		MESCHACH,  // Using the Meschach library (dense only). Production-ready.
+		MESCHACH,  // BKP using the Meschach library (dense only). Production-ready.
 		           // Will fall back to ’iterative’ for sparse problems.
-		SYM_ILDL,  // Using the sym-ildl library.
+		SYM_ILDL,  // BKP using the sym-ildl library.
 	};
 	FactorizationMethod factorization_method = FactorizationMethod::MESCHACH;
 

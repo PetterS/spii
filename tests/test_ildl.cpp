@@ -40,8 +40,8 @@ extern "C" {
 template<typename EigenMat>
 MAT* Eigen_to_Meschach(const EigenMat& eigen_matrix)
 {
-	int m = eigen_matrix.rows();
-	int n = eigen_matrix.cols();
+	int m = static_cast<int>(eigen_matrix.rows());
+	int n = static_cast<int>(eigen_matrix.cols());
 
 	auto A = m_get(m, n);
 	for (int i = 0; i < m; ++i) {

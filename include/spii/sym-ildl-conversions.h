@@ -9,6 +9,8 @@
 
 #include <lilc_matrix.h>
 
+#include <spii/spii.h>
+
 namespace spii
 {
 
@@ -17,8 +19,8 @@ void eigen_to_lilc(const Eigen::MatrixXd& A, lilc_matrix<double>* Alilc_input)
 	spii_assert(Alilc_input);
 	lilc_matrix<double>& Alilc = *Alilc_input;
 
-	auto m = A.rows();
-	auto n = A.cols();
+	int m = static_cast<int>(A.rows());
+	int n = static_cast<int>(A.cols());
 	spii_assert(m == n);
 
 	int count = 0;
@@ -172,7 +174,7 @@ class MyPermutation
 {
 public:
 	MyPermutation(const std::vector<int>& perm)
-		: Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic, int>(perm.size())
+		: Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic, int>(static_cast<int>(perm.size()))
 	{
 		for (std::size_t i = 0; i < perm.size(); ++i) {
 			m_indices(i) = perm[i];
