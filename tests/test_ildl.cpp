@@ -229,16 +229,6 @@ TEST_CASE("ildl-sym")
 	CHECK( (xorg - x).norm() <= 1e-6 );
 }
 
-template<typename Scalar, typename Index=typename Eigen::SparseMatrix<Scalar>::Index>
-struct MutableTriplet: public Eigen::Triplet<Scalar, Index>
-{
-  MutableTriplet(const Index& i, const Index& j, const Scalar& v)
-    : Triplet(i, j, v)
-  {}
-  Index& row() { return m_row; }
-  Index& col() { return m_col; }
-};
-
 TEST_CASE("ildl-sym-sparse")
 {
 	using namespace std;
@@ -246,41 +236,40 @@ TEST_CASE("ildl-sym-sparse")
 	using namespace spii;
 
 	int n = 8;
-	vector<MutableTriplet<double>> triplets;
+	vector<Triplet<double>> triplets;
+	auto add_element = [&](int i, int j, double v)
+	{
+		triplets.emplace_back(i - 1, j- 1, v);
+	};
 	// Matlab indices which start at 1.
-	triplets.emplace_back(1,1, 19);
-	triplets.emplace_back(2,1,  7);
-	triplets.emplace_back(4,1, 20);
-	triplets.emplace_back(6,1,-15);
-	triplets.emplace_back(8,1, -6);
-	triplets.emplace_back(1,2,  7);
-	triplets.emplace_back(2,2, -8);
-	triplets.emplace_back(4,2,  4);
-	triplets.emplace_back(6,2, -3);
-	triplets.emplace_back(8,2, -3);
-	triplets.emplace_back(4,3,  4);
-	triplets.emplace_back(8,3,  1);
-	triplets.emplace_back(1,4, 20);
-	triplets.emplace_back(2,4,  4);
-	triplets.emplace_back(3,4,  4);
-	triplets.emplace_back(4,4, 23);
-	triplets.emplace_back(6,4,-12);
-	triplets.emplace_back(8,4,  4);
-	triplets.emplace_back(5,5,-10);
-	triplets.emplace_back(1,6,-15);
-	triplets.emplace_back(2,6, -3);
-	triplets.emplace_back(4,6,-12);
-	triplets.emplace_back(6,6, -1);
-	triplets.emplace_back(7,7, -1);
-	triplets.emplace_back(1,8, -6);
-	triplets.emplace_back(2,8, -3);
-	triplets.emplace_back(3,8,  1);
-	triplets.emplace_back(4,8,  4);
-	// Convert to C indices.
-	for (auto& triplet: triplets) {
-		triplet.col()--;
-		triplet.row()--;
-	}
+	add_element(1,1, 19);
+	add_element(2,1,  7);
+	add_element(4,1, 20);
+	add_element(6,1,-15);
+	add_element(8,1, -6);
+	add_element(1,2,  7);
+	add_element(2,2, -8);
+	add_element(4,2,  4);
+	add_element(6,2, -3);
+	add_element(8,2, -3);
+	add_element(4,3,  4);
+	add_element(8,3,  1);
+	add_element(1,4, 20);
+	add_element(2,4,  4);
+	add_element(3,4,  4);
+	add_element(4,4, 23);
+	add_element(6,4,-12);
+	add_element(8,4,  4);
+	add_element(5,5,-10);
+	add_element(1,6,-15);
+	add_element(2,6, -3);
+	add_element(4,6,-12);
+	add_element(6,6, -1);
+	add_element(7,7, -1);
+	add_element(1,8, -6);
+	add_element(2,8, -3);
+	add_element(3,8,  1);
+	add_element(4,8,  4);
 
 	SparseMatrix<double> Aorg(8, 8);
 	Aorg.setFromTriplets(begin(triplets), end(triplets));
