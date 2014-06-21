@@ -7,6 +7,8 @@
 #include <limits>
 #include <vector>
 
+#include <spii/spii.h>
+
 namespace spii {
 
 template<typename R>
@@ -19,15 +21,19 @@ public:
 		lower(_lower),
 		upper(_upper)
 	{
+		spii_assert(lower <= upper);
 	}
 
 	Interval(R value) :
 		lower(value),
 		upper(value)
 	{
+		spii_assert(lower <= upper);
 	}
 
-	Interval() { }
+	Interval()
+		: lower(-infinity), upper(infinity)
+	{ }
 
 	template<typename R2>
 	Interval(const Interval<R2>& interval)
@@ -299,7 +305,7 @@ Interval<R> pow(const Interval<R>& arg, int power)
 	else {
 		double a = pow(arg.get_lower(), power);
 		double b = pow(arg.get_upper(), power);
-		return Interval<R>(a, b);
+		return Interval<R>(std::min(a, b), std::max(a, b));
 	}
 }
 

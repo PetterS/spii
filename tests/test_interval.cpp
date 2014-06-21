@@ -167,3 +167,23 @@ TEST_CASE("Interval/cos", "")
 	CHECK(Approx(result.get_lower()) == cos(2.5));
 	CHECK(Approx(result.get_upper()) == cos(2.0));
 }
+
+TEST_CASE("odd_powers")
+{
+	using std::pow;
+	Interval<double> i(-2.0, 3.0);
+	CHECK(pow(i, 3) == Interval<double>(-8, 27));
+}
+
+TEST_CASE("even_powers")
+{
+	using std::pow;
+	Interval<double> i1(2.0, 3.0);
+	CHECK(pow(i1, 2) == Interval<double>(4, 9));
+
+	Interval<double> i2(-3.0, -2.0);
+	CHECK(pow(i2, 2) == Interval<double>(4, 9));
+
+	Interval<double> i3(-2.0, 3.0);
+	CHECK(pow(i3, 2) == Interval<double>(0, 9));
+}
