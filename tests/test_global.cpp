@@ -191,10 +191,10 @@ TEST_CASE("Constant variable")
 }
 
 template<typename Functor, int dimension>
-double run_test(double* x,
-                double distance_from_start = 1.0,
-                double x_maximum_gap = 1e-5,
-                double ground_truth = std::numeric_limits<double>::quiet_NaN())
+void run_test(double* x,
+              double distance_from_start = 1.0,
+              double x_maximum_gap = 1e-5,
+              double ground_truth = std::numeric_limits<double>::quiet_NaN())
 {
 	using namespace std;
 
@@ -211,8 +211,9 @@ double run_test(double* x,
 	SolverResults results;
 
 	vector<Interval<double>> x_interval;
-	x_interval.push_back(Interval<double>(-0.784 - distance_from_start + x[0],  x[0] + distance_from_start + 0.7868));
-	x_interval.push_back(Interval<double>(-0.123 - distance_from_start + x[1],  x[1] + distance_from_start + 0.3252));
+	for (int i = 0; i < dimension; ++i) {
+		x_interval.push_back(Interval<double>(-0.784 - distance_from_start + x[i],  x[i] + distance_from_start + 0.1868));
+	}
 	auto interval = solver.solve_global(f, x_interval, &results);
 	INFO(info_buffer.str());
 	INFO(results);
@@ -275,5 +276,29 @@ TEST_CASE("FreudenStein_Roth")
 	CHECK(std::abs(x[0] - 5.0) <= 1e-6);
 	CHECK(std::abs(x[1] - 4.0) <= 1e-6);
 
-	// test_suite_newton ends up in local minima 48.9842...
+	// test_suite_newton can end up in local minima 48.9842...
+}
+
+struct Beale
+{
+	template<typename R>
+	R operator()(const R* const x) const
+	{
+		R d0 = 1.5   - x[0] * (1.0 - x[1]);
+		R d1 = 2.25  - x[0] * (1.0 - x[1]*x[1]);
+		R d2 = 2.625 - x[0] * (1.0 - x[1]*x[1]*x[1]);
+		// Add a constant to make optimum not equal to 0.
+		// If optimum is 0, everything works except that the notion
+		// of relative interval size is not very useful.
+		return d0*d0 + d1*d1 + d2*d2 + 42.0;
+	}
+};
+
+TEST_CASE("Beale")
+{
+	double x[2] = {1.0, 1.0};
+	run_test<Beale, 2>(x, 10.0, 1e-4, 42.0);
+
+	CHECK( std::fabs(x[0] - 3.0) <=  1e-5);
+	CHECK( std::fabs(x[1] - 0.5) <= 1e-5);
 }
