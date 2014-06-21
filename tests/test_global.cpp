@@ -251,7 +251,7 @@ struct Rosenbrock
 TEST_CASE("Rosenbrock")
 {
 	double x[] = {2.0, 2.0};
-	run_test<Rosenbrock, 2>(x);
+	run_test<Rosenbrock, 2>(x, 1.0, 1e-4);
 	CHECK(std::abs(x[0] - 1.0) <= 1e-6);
 	CHECK(std::abs(x[1] - 1.0) <= 1e-6);
 }
