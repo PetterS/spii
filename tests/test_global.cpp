@@ -203,7 +203,6 @@ void run_test(double* x,
 	Function f;
 	f.add_variable(x, dimension);
 	f.add_term<IntervalTerm<Functor, dimension>>(x);
-	f.set_number_of_threads(1);
 
 	GlobalSolver solver;
 	solver.maximum_iterations = 1000000;

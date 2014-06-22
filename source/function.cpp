@@ -585,7 +585,7 @@ double Function::Implementation::evaluate_from_local_storage() const
 		// Each thread needs to store a specific error.
 		std::vector<std::exception_ptr> evaluation_errors(this->number_of_threads);
 
-		#pragma omp parallel for reduction(+ : value) num_threads(this->number_of_threads)
+		#pragma omp parallel for reduction(+ : value) num_threads(this->number_of_threads) if (terms.size() > 1)
 	#endif
 	// For loop has to be int for OpenMP.
 	for (int i = 0; i < terms.size(); ++i) {
@@ -721,7 +721,7 @@ void Function::Implementation::copy_global_to_local(const Eigen::VectorXd& x) co
 	double start_time = wall_time();
 
 	#ifdef USE_OPENMP
-		#pragma omp parallel for num_threads(this->number_of_threads)
+		#pragma omp parallel for num_threads(this->number_of_threads) if (variables.size() > 1000)
 	#endif
 	for (std::ptrdiff_t i = 0; i < std::ptrdiff_t(variables.size()); ++i) {
 		const auto& var = variables[i];
@@ -1213,16 +1213,37 @@ Interval<double>  Function::Implementation::evaluate(const std::vector<Interval<
 	interface->evaluations_without_gradient++;
 	double start_time = wall_time();
 
-	std::vector<const Interval<double> *> scratch_space;
-	std::vector<std::vector<Interval<double>>> temp_intervals;
+	std::vector<std::vector<const Interval<double> *>> scratch_space;
+	std::vector<std::vector<std::vector<Interval<double>>>> temp_intervals;
+	#ifdef USE_OPENMP
+		scratch_space.resize(this->number_of_threads);
+		temp_intervals.resize(this->number_of_threads);
+	#else
+		scratch_space.resize(1);
+		temp_intervals.resize(1);
+	#endif
 
-	Interval<double> value = this->constant;
-	// Go through and evaluate each term.
+	double lower = this->constant;
+	double upper = this->constant;
+
+	#ifdef USE_OPENMP
+		// Go through and evaluate each term.
+		// reduction(+ : lower) reduction(+ : upper)
+		#pragma omp parallel for reduction(+ : lower) reduction(+ : upper) num_threads(this->number_of_threads) if (terms.size() > 1)
+
+		// TODO: Handle exceptions in the parallel region below.
+	#endif
 	for (int i = 0; i < terms.size(); ++i) {
 		// Evaluate each term.
 
-		temp_intervals.clear();
-		scratch_space.clear();
+		#ifdef USE_OPENMP
+			int t = omp_get_thread_num();
+		#else
+			int t = 0;
+		#endif
+
+		temp_intervals[t].clear();
+		scratch_space[t].clear();
 		for (auto var: terms[i].added_variables_indices) {
 			
 			if (variables[var].is_constant) {
@@ -1230,23 +1251,26 @@ Interval<double>  Function::Implementation::evaluate(const std::vector<Interval<
 				// vector are not reallocated when the outer vector is
 				// resized. This is true if std::move of a vector is
 				// implemented without reallocation.
-				temp_intervals.emplace_back();
+				temp_intervals[t].emplace_back();
 				for (auto value: variables[var].temp_space) {
-					temp_intervals.back().emplace_back(value, value);
+					temp_intervals[t].back().emplace_back(value, value);
 				}
-				scratch_space.push_back(temp_intervals.back().data());
+				scratch_space[t].push_back(temp_intervals[t].back().data());
 			}
 			else {
 				check(variables[var].change_of_variables == nullptr,
 					"Global optimization does not support change of variables.");
 
 				auto global_index = variables[var].global_index;
-				scratch_space.push_back(&x.at(global_index));
+				scratch_space[t].push_back(&x.at(global_index));
 			}
 		}
 
-		value += terms[i].term->evaluate_interval(&scratch_space[0]);
+		auto value = terms[i].term->evaluate_interval(scratch_space[t].data());
+		lower += value.get_lower();
+		upper += value.get_upper();
 	}
+	Interval<double> value(lower, upper);
 
 	interface->evaluate_time += wall_time() - start_time;
 	return value;
