@@ -69,6 +69,7 @@ int main_function()
 	cout << "Perform global optimization? (y/n):";
 	char answer = 'n';
 	cin >> answer;
+
 	if (cin && tolower(answer) == 'y') {
 		sigma = 3.0;
 		f.set_constant(&sigma, true);
@@ -77,9 +78,14 @@ int main_function()
 		std::vector<Interval<double>> mu_interval;
 		mu_interval.push_back(Interval<double>(-10.0, 10.0));
 		global_solver.maximum_iterations = 1000;
+
+		auto start_time = wall_time();
 		auto interval = global_solver.solve_global(f, mu_interval, &results);
+		auto elapsed_time = wall_time() - start_time;
+
 		cout << "Optimal parameter interval (sigma is kept at " << sigma << "):" << endl;
 		cout << "   mu    = " << interval.at(0) << endl;
+		cout << "Elapsed time was " << elapsed_time << " seconds." << endl;
 	}
 	return 0;
 }
