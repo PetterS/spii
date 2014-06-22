@@ -1,5 +1,6 @@
 // Petter Strandmark 2013.
 
+#include <algorithm>
 #include <cstdio>
 #include <queue>
 #include <set>
@@ -22,13 +23,13 @@ struct GlobalQueueEntry
 	}
 };
 
-typedef std::priority_queue<GlobalQueueEntry> IntervalQueue;
+typedef std::vector<GlobalQueueEntry> IntervalQueue;
 
 std::ostream& operator << (std::ostream& out, IntervalQueue queue)
 {
 	while (!queue.empty()) {
-		const auto box = queue.top().box;
-		queue.pop();
+		const auto box = queue.front().box;
+		std::pop_heap(begin(queue), end(queue)); queue.pop_back();
 		out << box[0] << "; ";
 	}
 	out << std::endl;
@@ -66,23 +67,21 @@ IntervalVector get_bounding_box(const IntervalQueue& queue_in,
 	if (queue_in.empty()) {
 		return IntervalVector();
 	}
-	// Make copy.
-	auto queue = queue_in;
-	auto n = queue_in.top().box.size();
+
+	auto n = queue_in.front().box.size();
 	std::vector<double> upper_bound(n, -1e100);
 	std::vector<double> lower_bound(n, 1e100);
 
 	*function_lower_bound = std::numeric_limits<double>::infinity();
 
-	while (!queue.empty()) {
-		const auto& box = queue.top().box;
+	for (const auto& elem: queue_in) {
+		const auto& box = elem.box;
 		for (int i = 0; i < n; ++i) {
 			lower_bound[i] = std::min(lower_bound[i], box[i].get_lower());
 			upper_bound[i] = std::max(upper_bound[i], box[i].get_upper());
 		}
 		*sum_of_volumes += spii::volume(box);
-		*function_lower_bound = std::min(*function_lower_bound, queue.top().best_known_lower_bound);
-		queue.pop();
+		*function_lower_bound = std::min(*function_lower_bound, elem.best_known_lower_bound);
 	}
 
 	IntervalVector out(n);
@@ -105,7 +104,11 @@ void split_interval(const IntervalVector& x,
 
 	while (true) {
 
-		IntervalVector x_split(n);
+		queue->emplace_back();
+		GlobalQueueEntry& entry = queue->back();
+		IntervalVector& x_split = entry.box;
+		x_split.resize(n);
+
 		double volume = 1.0;
 		for (int i = 0; i < n; ++i) {
 			double a, b;
@@ -121,11 +124,9 @@ void split_interval(const IntervalVector& x,
 			volume *= b - a;
 		}
 
-		GlobalQueueEntry entry;
 		entry.volume = volume;
-		entry.box = x_split;
 		entry.best_known_lower_bound = lower_bound;
-		queue->push(entry);
+		std::push_heap(begin(*queue), end(*queue));
 
 		// Move to the next binary vector
 		//  000001
@@ -169,10 +170,12 @@ IntervalVector GlobalSolver::solve_global(const Function& function,
 	auto n = x_interval.size();
 
 	IntervalQueue queue;
+	queue.reserve(2 * this->maximum_iterations);
+
 	GlobalQueueEntry entry;
 	entry.volume = 1e100;
 	entry.box = x_interval;
-	queue.push(entry);
+	queue.push_back(entry);
 
 	auto bounds = function.evaluate(x_interval);
 	double upper_bound = bounds.get_upper();
@@ -192,10 +195,10 @@ IntervalVector GlobalSolver::solve_global(const Function& function,
 			break;
 		}
 
-		const auto box = queue.top().box;
+		const auto box = queue.front().box;
 		best_interval = box;
 		// Remove current element from queue.
-		queue.pop();
+		pop_heap(begin(queue), end(queue)); queue.pop_back();
 
 		auto bounds = function.evaluate(box);
 
