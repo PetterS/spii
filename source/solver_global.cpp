@@ -92,6 +92,10 @@ IntervalVector get_bounding_box(const IntervalQueue& queue_in,
 	return out;
 }
 
+//
+// Splits an interval into 2^n subintervals and adds them all to the
+// queue.
+//
 void split_interval(const IntervalVector& x,
                     double lower_bound,
                     IntervalQueue* queue)
@@ -149,6 +153,41 @@ void split_interval(const IntervalVector& x,
 		if (i == n) {
 			break;
 		}
+	}
+}
+
+//
+// Splits an interval into two along its largest dimension.
+//
+void split_interval_single(const IntervalVector& x,
+                           double lower_bound,
+                           IntervalQueue* queue)
+{
+	auto n = x.size();
+	size_t max_index;
+	double max_length = -1;
+	for (size_t i = 0; i < x.size(); ++i) {
+		if (x[i].length() > max_length) {
+			max_index = i;
+			max_length = x[i].length();
+		}
+	}
+
+	for (int i = 0; i <= 1; ++i) {
+		queue->emplace_back();
+		GlobalQueueEntry& entry = queue->back();
+		entry.box = x;
+		if (i == 0) {
+			entry.box[max_index] = Interval<double>(x[max_index].get_lower(), x[max_index].get_lower() + max_length / 2.0);
+		}
+		else {
+			entry.box[max_index] = Interval<double>(x[max_index].get_lower() + max_length / 2.0, x[max_index].get_upper());
+		}
+
+		entry.volume = volume(entry.box);
+		entry.best_known_lower_bound = lower_bound;
+
+		std::push_heap(begin(*queue), end(*queue));
 	}
 }
 
@@ -216,7 +255,8 @@ IntervalVector GlobalSolver::solve_global(const Function& function,
 			}
 
 			// Add new elements to queue.
-			split_interval(box, bounds.get_lower(), &queue);
+			//split_interval(box, bounds.get_lower(), &queue);
+			split_interval_single(box, bounds.get_lower(), &queue);
 		}
 		results->function_evaluation_time += wall_time() - start_time;
 
