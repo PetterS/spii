@@ -164,7 +164,7 @@ void split_interval_single(const IntervalVector& x,
                            IntervalQueue* queue)
 {
 	auto n = x.size();
-	size_t max_index;
+	size_t max_index = 0;
 	double max_length = -1;
 	for (size_t i = 0; i < x.size(); ++i) {
 		if (x[i].length() > max_length) {
