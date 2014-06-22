@@ -203,6 +203,7 @@ void run_test(double* x,
 	Function f;
 	f.add_variable(x, dimension);
 	f.add_term<IntervalTerm<Functor, dimension>>(x);
+	f.set_number_of_threads(1);
 
 	GlobalSolver solver;
 	solver.maximum_iterations = 1000000;
@@ -229,7 +230,6 @@ void run_test(double* x,
 		CHECK(opt.get_lower() <= ground_truth); CHECK(ground_truth <= opt.get_upper());
 	}
 
-	double parameter_ground_truth = 1.0;
 	for (int i = 0; i < dimension; ++i) {
 		CHECK(interval[i].length() <= x_maximum_gap);
 	}
@@ -359,7 +359,8 @@ TEST_CASE("BraninRCOS")
 	// From http://www.staff.brad.ac.uk/jpli/research/scga/function/branin_rcos.htm :
 	// Has three solutions.
 	// f(x1,x2)=0.397887; (x1,x2)=(-pi,12.275), (pi,2.275), (9.42478,2.475).
-	const double optimum = 0.3978873577;
+
+	// const double optimum = 0.3978873577;
 
 	{
 		double x[2] = {-4.0, 11.0};
