@@ -50,12 +50,14 @@ IF (EXISTS ${SYM_ILDL_INCLUDE})
 	MESSAGE("-- Found sym-ildl at ${SYM_ILDL_INCLUDE}. Will use it if requested to.")
 ENDIF ()
 
+FIND_PATH(EIGEN_INCLUDE NAMES Eigen/Dense PATHS /usr/include/eigen3 /usr/local/include/eigen3 thirdparty/Eigen)
+MESSAGE("-- Using Eigen at " ${EIGEN_INCLUDE})
 
 INCLUDE_DIRECTORIES(
   include
   thirdparty/boost
   SYSTEM thirdparty/Catch
-  thirdparty/Eigen
+  ${EIGEN_INCLUDE}
   SYSTEM thirdparty/meschach
   SYSTEM thirdparty/ceres-solver-data
   )
