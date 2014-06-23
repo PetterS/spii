@@ -1,4 +1,6 @@
-// Petter Strandmark 2013.
+// Petter Strandmark 2013–2014.
+//
+// [1] Stig Skelboe, Computation of Rational Interval Functions, BIT 14, 1974.
 
 #include <algorithm>
 #include <cstdio>
@@ -10,31 +12,6 @@
 #include <spii/spii.h>
 
 namespace spii {
-
-struct GlobalQueueEntry
-{
-	double volume;
-	IntervalVector box;
-	double best_known_lower_bound;
-
-	bool operator < (const GlobalQueueEntry& rhs) const
-	{
-		return this->volume < rhs.volume;
-	}
-};
-
-typedef std::vector<GlobalQueueEntry> IntervalQueue;
-
-std::ostream& operator << (std::ostream& out, IntervalQueue queue)
-{
-	while (!queue.empty()) {
-		const auto box = queue.front().box;
-		std::pop_heap(begin(queue), end(queue)); queue.pop_back();
-		out << box[0] << "; ";
-	}
-	out << std::endl;
-	return out;
-}
 
 void midpoint(const IntervalVector& x, Eigen::VectorXd* x_mid)
 {
@@ -56,6 +33,33 @@ double volume(const IntervalVector& x)
 		vol *= interval.get_upper() - interval.get_lower();
 	}
 	return vol;
+}
+
+struct GlobalQueueEntry
+{
+	IntervalVector box;
+	Interval<double> bounds;
+
+	bool operator < (const GlobalQueueEntry& rhs) const
+	{
+		return volume(this->box) < volume(rhs.box);
+
+		// From [1].
+		//return this->bounds.get_lower() > rhs.bounds.get_lower();
+	}
+};
+
+typedef std::vector<GlobalQueueEntry> IntervalQueue;
+
+std::ostream& operator << (std::ostream& out, IntervalQueue queue)
+{
+	while (!queue.empty()) {
+		const auto box = queue.front().box;
+		std::pop_heap(begin(queue), end(queue)); queue.pop_back();
+		out << box[0] << "; ";
+	}
+	out << std::endl;
+	return out;
 }
 
 IntervalVector get_bounding_box(const IntervalQueue& queue_in,
@@ -81,7 +85,7 @@ IntervalVector get_bounding_box(const IntervalQueue& queue_in,
 			upper_bound[i] = std::max(upper_bound[i], box[i].get_upper());
 		}
 		*sum_of_volumes += spii::volume(box);
-		*function_lower_bound = std::min(*function_lower_bound, elem.best_known_lower_bound);
+		*function_lower_bound = std::min(*function_lower_bound, elem.bounds.get_lower());
 	}
 
 	IntervalVector out(n);
@@ -96,9 +100,10 @@ IntervalVector get_bounding_box(const IntervalQueue& queue_in,
 // Splits an interval into 2^n subintervals and adds them all to the
 // queue.
 //
-void split_interval(const IntervalVector& x,
-                    double lower_bound,
-                    IntervalQueue* queue)
+void split_interval(const Function& function,
+                    const IntervalVector& x,
+                    IntervalQueue* queue,
+                    double upper_bound)
 {
 	auto n = x.size();
 	std::vector<int> split(n, 0);
@@ -113,7 +118,6 @@ void split_interval(const IntervalVector& x,
 		IntervalVector& x_split = entry.box;
 		x_split.resize(n);
 
-		double volume = 1.0;
 		for (int i = 0; i < n; ++i) {
 			double a, b;
 			if (split[i] == 0) {
@@ -125,12 +129,15 @@ void split_interval(const IntervalVector& x,
 				b = x[i].get_upper();
 			}
 			x_split[i] = Interval<double>(a, b);
-			volume *= b - a;
 		}
 
-		entry.volume = volume;
-		entry.best_known_lower_bound = lower_bound;
-		std::push_heap(begin(*queue), end(*queue));
+		entry.bounds = function.evaluate(entry.box);
+		if (entry.bounds.get_lower() <= upper_bound) {
+			std::push_heap(begin(*queue), end(*queue));
+		}
+		else {
+			queue->pop_back();
+		}
 
 		// Move to the next binary vector
 		//  000001
@@ -159,14 +166,15 @@ void split_interval(const IntervalVector& x,
 //
 // Splits an interval into two along its largest dimension.
 //
-void split_interval_single(const IntervalVector& x,
-                           double lower_bound,
-                           IntervalQueue* queue)
+void split_interval_single(const Function& function,
+                           const IntervalVector& x,
+                           IntervalQueue* queue,
+                           double upper_bound)
 {
 	auto n = x.size();
 	size_t max_index = 0;
 	double max_length = -1;
-	for (size_t i = 0; i < x.size(); ++i) {
+	for (size_t i = 0; i < n; ++i) {
 		if (x[i].length() > max_length) {
 			max_index = i;
 			max_length = x[i].length();
@@ -183,11 +191,14 @@ void split_interval_single(const IntervalVector& x,
 		else {
 			entry.box[max_index] = Interval<double>(x[max_index].get_lower() + max_length / 2.0, x[max_index].get_upper());
 		}
+		entry.bounds = function.evaluate(entry.box);
 
-		entry.volume = volume(entry.box);
-		entry.best_known_lower_bound = lower_bound;
-
-		std::push_heap(begin(*queue), end(*queue));
+		if (entry.bounds.get_lower() <= upper_bound) {
+			std::push_heap(begin(*queue), end(*queue));
+		}
+		else {
+			queue->pop_back();
+		}
 	}
 }
 
@@ -212,13 +223,11 @@ IntervalVector GlobalSolver::solve_global(const Function& function,
 	queue.reserve(2 * this->maximum_iterations);
 
 	GlobalQueueEntry entry;
-	entry.volume = 1e100;
+	entry.bounds = function.evaluate(x_interval);
 	entry.box = x_interval;
 	queue.push_back(entry);
 
-	auto bounds = function.evaluate(x_interval);
-	double upper_bound = bounds.get_upper();
-	double lower_bound = - std::numeric_limits<double>::infinity();
+	double upper_bound = entry.bounds.get_upper();
 
 	Eigen::VectorXd best_x(n);
 	IntervalVector best_interval;
@@ -235,13 +244,12 @@ IntervalVector GlobalSolver::solve_global(const Function& function,
 		}
 
 		const auto box = queue.front().box;
+		const auto bounds = queue.front().bounds;
 		best_interval = box;
 		// Remove current element from queue.
 		pop_heap(begin(queue), end(queue)); queue.pop_back();
 
-		auto bounds = function.evaluate(box);
-
-		//cerr << "-- Processing " << box << " resulting in " << bounds << ". Upper bound is " << upper_bound << endl;
+		//cerr << "-- Processing " << box << " with bounds " << bounds << ". Global upper bound is " << upper_bound << endl;
 
 		if (bounds.get_lower() < upper_bound) {
 			// Evaluate middle point.
@@ -255,8 +263,8 @@ IntervalVector GlobalSolver::solve_global(const Function& function,
 			}
 
 			// Add new elements to queue.
-			//split_interval(box, bounds.get_lower(), &queue);
-			split_interval_single(box, bounds.get_lower(), &queue);
+			//split_interval(function, box, &queue);
+			split_interval_single(function, box, &queue, upper_bound);
 		}
 		results->function_evaluation_time += wall_time() - start_time;
 
@@ -283,9 +291,23 @@ IntervalVector GlobalSolver::solve_global(const Function& function,
 			log_interval = 1;
 		}
 
+		if (iterations % 100 == 0 || iterations % log_interval == 0) {
+			// Remove intervals from queue which cannot contain the optimum.
+			bool removed = false;
+			for (ptrdiff_t i = ptrdiff_t(queue.size()) - 1; i >= 0; --i) {
+				if (queue[i].bounds.get_lower() > upper_bound) {
+					queue.erase(queue.begin() + i);
+					removed = true;
+				}
+			}
+			if (removed) {
+				make_heap(begin(queue), end(queue));
+			}
+		}
+
 		if (iterations % log_interval == 0) {
 			double volumes_sum;
-			lower_bound = upper_bound;  // Default lower bound if queue is empty (problem is solved).
+			double lower_bound = upper_bound;  // Default lower bound if queue is empty (problem is solved).
 			auto bounding_box = get_bounding_box(queue, &lower_bound, &volumes_sum);
 			double vol_bounding = volume(bounding_box);
 
@@ -327,8 +349,12 @@ IntervalVector GlobalSolver::solve_global(const Function& function,
 		}
 	}
 
-	double tmp1, tmp2;
-	auto bounding_box = get_bounding_box(queue, &tmp1, &tmp2);
+	double tmp = 0;
+	double lower_bound = upper_bound;
+	auto bounding_box = get_bounding_box(queue, &lower_bound, &tmp);
+	results->optimum_lower = lower_bound;
+	results->optimum_upper = upper_bound;
+
 	if (bounding_box.empty()) {
 		// Problem was solved exactly (queue empty)
 		spii_assert(queue.empty());
@@ -338,12 +364,8 @@ IntervalVector GlobalSolver::solve_global(const Function& function,
 
 	function.copy_global_to_user(best_x);
 
-	results->optimum_lower = lower_bound;
-	results->optimum_upper = upper_bound;
 	results->total_time = wall_time() - global_start_time;
-
 	return bounding_box;
 }
 
 }  // namespace spii
-

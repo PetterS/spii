@@ -10,7 +10,7 @@ Features
     * The sparse solver can also use sym-ildl (if available) for sparse Bunch-Kaufman-Parlett.
 * L-BFGS.
 * Nelder-Mead for nondifferentiable problems.
-* Global optimization with interval arithmetic (exponential in number of variables).
+* Global optimization with interval arithmetic (Moore-Skelboe algorithm).
 * Automatic differentiation to compute gradient and hessian using FADBAD++ (included).
 * Multi-threaded using OpenMP.
 * The interface is very easy to use, while still allowing very high performance. Generic lambdas (C++14) can be used if the compiler supports it.
