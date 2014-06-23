@@ -219,6 +219,9 @@ void run_test(double* x,
 	auto interval = solver.solve_global(f, x_interval, &results);
 	INFO(info_buffer.str());
 	INFO(results);
+	stringstream fout;
+	f.print_timing_information(fout);
+	INFO(fout.str());
 	REQUIRE(interval.size() == dimension);
 
 	auto opt = Interval<double>(results.optimum_lower, results.optimum_upper);
