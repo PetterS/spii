@@ -50,19 +50,18 @@ IF (EXISTS ${SYM_ILDL_INCLUDE})
 	MESSAGE("-- Found sym-ildl at ${SYM_ILDL_INCLUDE}. Will use it if requested to.")
 ENDIF ()
 
-FIND_PATH(EIGEN_INCLUDE NAMES Eigen/Dense PATHS /usr/include/eigen3 /usr/local/include/eigen3 thirdparty/Eigen)
-MESSAGE("-- Using Eigen at " ${EIGEN_INCLUDE})
+#FIND_PATH(EIGEN_INCLUDE NAMES Eigen/Dense PATHS /usr/include/eigen3 /usr/local/include/eigen3 thirdparty/Eigen)
+#MESSAGE("-- Using Eigen at " ${EIGEN_INCLUDE})
 
 # CI server fails to use Eigen from above. Therefore include
-# it at the bottom as well.
+# it at the bottom as well.it 
 INCLUDE_DIRECTORIES(
   include
   thirdparty/boost
   SYSTEM thirdparty/Catch
-  ${EIGEN_INCLUDE}
+  thirdparty/Eigen
   SYSTEM thirdparty/meschach
   SYSTEM thirdparty/ceres-solver-data
-  thirdparty/Eigen
   )
 
 FILE(GLOB SPII_HEADERS ${CMAKE_SOURCE_DIR}/include/spii/*.h)
