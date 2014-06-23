@@ -306,5 +306,4 @@ TEST_CASE("Rump")
 	CAPTURE(rump(ix, iy));  // Really wide!
 	CHECK(rump(ix, iy).get_lower() <= gt);
 	CHECK(rump(ix, iy).get_upper() >= gt);
-	FAIL();
 }
