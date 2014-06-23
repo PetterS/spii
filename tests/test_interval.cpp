@@ -40,6 +40,14 @@ TEST_CASE("plus")
 	CHECK((i1 + i2) == Interval<double>(4, 6));
 }
 
+TEST_CASE("plus-double-int")
+{
+	Interval<double> i1(1, 2);
+	INFO(i1 << " + " << 10 << " = " << i1 + 10.0);
+	CHECK((i1 + 10) == Interval<double>(11, 12));
+	CHECK((10 + i1) == Interval<double>(11, 12));
+}
+
 TEST_CASE("minus")
 {
 	Interval<double> i1(1, 2);
@@ -49,6 +57,13 @@ TEST_CASE("minus")
 	CHECK((10.0 - i1) == Interval<double>(8, 9));
 	CHECK((i1 - i2) == Interval<double>(-3, -1));
 	CHECK((i1 - i2) == -(i2 - i1));
+}
+
+TEST_CASE("minus-double-int")
+{
+	Interval<double> i1(1, 2);
+	CHECK((i1 - 10) == Interval<double>(-9, -8));
+	CHECK((10 - i1) == Interval<double>(8, 9));
 }
 
 TEST_CASE("multiplication")
@@ -68,6 +83,23 @@ TEST_CASE("multiplication")
 	CHECK((-5.0 * i2) == Interval<double>(-10, 5));
 
 	CHECK((i1 * i2) == Interval<double>(-2, 4));
+}
+
+TEST_CASE("multiplication-double-int")
+{
+	Interval<double> i1(1, 2);
+
+	CHECK((i1 *  5) == Interval<double>(5, 10));
+	CHECK((5  * i1) == Interval<double>(5, 10));
+	CHECK((i1 * -5) == Interval<double>(-10, -5));
+	CHECK((-5 * i1) == Interval<double>(-10, -5));
+
+	Interval<double> i2(-1, 2);
+
+	CHECK((i2 *  5) == Interval<double>(-5, 10));
+	CHECK((5  * i2) == Interval<double>(-5, 10));
+	CHECK((i2 * -5) == Interval<double>(-10, 5));
+	CHECK((-5 * i2) == Interval<double>(-10, 5));
 }
 
 TEST_CASE("multiplication_all_sign_combinations")
@@ -112,6 +144,36 @@ TEST_CASE("division")
 	result = 3.0 / i5;
 	CHECK(result.get_lower() == - std::numeric_limits<double>::infinity());
 	CHECK(result.get_upper() ==   std::numeric_limits<double>::infinity());
+}
+
+TEST_CASE("division-double-int")
+{
+	Interval<double> result;
+
+	Interval<double> i1(1.0, 2.0);
+	result = i1 / 3;
+	CHECK(result.get_lower() == 1.0 / 3.0);
+	CHECK(result.get_upper() == 2.0 / 3.0);
+
+	Interval<double> i2(-1.0, 2.0);
+	result = i2 / 3;
+	CHECK(result.get_lower() == -1.0 / 3.0);
+	CHECK(result.get_upper() == 2.0 / 3.0);
+
+	Interval<double> i3(1.0, 2.0);
+	result = i3 / -3;
+	CHECK(result.get_lower() == -2.0 / 3.0);
+	CHECK(result.get_upper() == -1.0 / 3.0);
+
+	Interval<double> i4(1.0, 2.0);
+	result = 3 / i4;
+	CHECK(result.get_lower() == 3.0 / 2.0);
+	CHECK(result.get_upper() == 3.0);
+
+	Interval<double> i5(-1.0, 1.0);
+	result = 3 / i5;
+	CHECK(result.get_lower() == -std::numeric_limits<double>::infinity());
+	CHECK(result.get_upper() == std::numeric_limits<double>::infinity());
 }
 
 TEST_CASE("division_strictly_positive")
@@ -244,4 +306,5 @@ TEST_CASE("Rump")
 	CAPTURE(rump(ix, iy));  // Really wide!
 	CHECK(rump(ix, iy).get_lower() <= gt);
 	CHECK(rump(ix, iy).get_upper() >= gt);
+	FAIL();
 }

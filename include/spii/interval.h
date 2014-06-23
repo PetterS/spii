@@ -17,14 +17,16 @@ class Interval
 public:
 	static const R infinity;
 
-	Interval(R _lower, R _upper) :
+	template<typename R1, typename R2>
+	Interval(const R1& _lower, const R2& _upper) :
 		lower(_lower),
 		upper(_upper)
 	{
 		spii_assert(lower <= upper);
 	}
 
-	Interval(R value) :
+	template<typename R2>
+	Interval(R2 value) :
 		lower(value),
 		upper(value)
 	{
@@ -134,6 +136,11 @@ public:
 		return result;
 	}
 
+	const Interval<R>& operator + () const
+	{
+		return *this;
+	}
+
 	Interval<R>& operator *= (const Interval<R>& interval)
 	{
 		R a = this->lower * interval.lower;
@@ -214,32 +221,62 @@ const R Interval<R>::infinity = std::numeric_limits<R>::has_infinity ?
                                 std::numeric_limits<R>::max();
 
 template<typename R>
-Interval<R> operator + (const R& lhs, const Interval<R>& rhs)
+Interval<R> operator + (const Interval<R>& lhs, const Interval<R>& rhs)
+{
+	Interval<R> result = lhs;
+	result += rhs;
+	return result;
+}
+
+template<typename R1, typename R2>
+Interval<R2> operator + (const R1& lhs, const Interval<R2>& rhs)
 {
 	return rhs + lhs;
 }
 
 template<typename R>
-Interval<R> operator - (const R& lhs, const Interval<R>& rhs)
+Interval<R> operator - (const Interval<R>& lhs, const Interval<R>& rhs)
+{
+	return lhs + (-rhs);
+}
+
+template<typename R1, typename R2>
+Interval<R2> operator - (const R1& lhs, const Interval<R2>& rhs)
 {
 	return lhs + (-rhs);
 }
 
 template<typename R>
-Interval<R> operator * (const R& lhs, const Interval<R>& rhs)
+Interval<R> operator * (const Interval<R>& lhs, const Interval<R>& rhs)
+{
+	Interval<R> result = lhs;
+	result *= rhs;
+	return result;
+}
+
+template<typename R1, typename R2>
+Interval<R2> operator * (const R1& lhs, const Interval<R2>& rhs)
 {
 	return rhs * lhs;
 }
 
 template<typename R>
-Interval<R> operator / (const R& lhs, const Interval<R>& rhs)
+Interval<R> operator / (const Interval<R>& lhs, const Interval<R>& rhs)
+{
+	Interval<R> result = lhs;
+	result /= rhs;
+	return result;
+}
+
+template<typename R1, typename R2>
+Interval<R2> operator / (const R1& lhs, const Interval<R2>& rhs)
 {
 	if (rhs.get_lower() <= 0 && rhs.get_upper() >= 0) {
-		return Interval<R>(-Interval<R>::infinity, Interval<R>::infinity);
+		return Interval<R2>(-Interval<R2>::infinity, Interval<R2>::infinity);
 	}
-	R a = lhs / rhs.get_lower();
-	R b = lhs / rhs.get_upper();
-	return Interval<R>(std::min(a, b), std::max(a, b));
+	R2 a = lhs / rhs.get_lower();
+	R2 b = lhs / rhs.get_upper();
+	return Interval<R2>(std::min(a, b), std::max(a, b));
 }
 
 template<typename R>
