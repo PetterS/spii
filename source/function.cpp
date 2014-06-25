@@ -1227,17 +1227,22 @@ Interval<double>  Function::Implementation::evaluate(const std::vector<Interval<
 	double upper = this->constant;
 
 	#ifdef USE_OPENMP
+		// Each thread needs to store a specific error.
+		std::vector<std::exception_ptr> evaluation_errors(this->number_of_threads);
+
 		// Go through and evaluate each term.
 		// reduction(+ : lower) reduction(+ : upper)
 		#pragma omp parallel for reduction(+ : lower) reduction(+ : upper) num_threads(this->number_of_threads) if (terms.size() > 1)
-
-		// TODO: Handle exceptions in the parallel region below.
 	#endif
 	for (int i = 0; i < terms.size(); ++i) {
 		// Evaluate each term.
 
 		#ifdef USE_OPENMP
 			int t = omp_get_thread_num();
+
+			// We need to catch all exceptions before leaving
+			// the loop body.
+			try {
 		#else
 			int t = 0;
 		#endif
@@ -1269,9 +1274,30 @@ Interval<double>  Function::Implementation::evaluate(const std::vector<Interval<
 		auto value = terms[i].term->evaluate_interval(scratch_space[t].data());
 		lower += value.get_lower();
 		upper += value.get_upper();
-	}
-	Interval<double> value(lower, upper);
 
+		#ifdef USE_OPENMP
+				// We need to catch all exceptions before leaving
+				// the loop body.
+			}
+			catch (...) {
+				evaluation_errors[t] = std::current_exception();
+			}
+		#endif
+	}
+
+	#ifdef USE_OPENMP
+		// Now that we are outside the OpenMP block, we can
+		// rethrow exceptions.
+		for (auto itr = evaluation_errors.begin(); itr != evaluation_errors.end(); ++itr) {
+			// VS 2010 does not have conversion to bool or
+			// operator !=.
+			if (!(*itr == std::exception_ptr())) {
+				std::rethrow_exception(*itr);
+			}
+		}
+	#endif
+
+	Interval<double> value(lower, upper);
 	interface->evaluate_time += wall_time() - start_time;
 	return value;
 }

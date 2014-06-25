@@ -833,7 +833,7 @@ TEST(Function, rethrows_error)
 	Function f1;
 	f1.add_variable(&x, 1);
 	for (int i = 1; i < 40; ++i) {
-		f1.add_term(std::make_shared<AutoDiffTerm<ThrowsRuntimeError, 1>>(),
+		f1.add_term(std::make_shared<IntervalTerm<ThrowsRuntimeError, 1>>(),
 		            &x);
 	}
 	Eigen::VectorXd x_vec(1);
@@ -841,16 +841,18 @@ TEST(Function, rethrows_error)
 	Eigen::VectorXd g(1);
 	Eigen::MatrixXd H(1, 1);
 	Eigen::SparseMatrix<double> H_sparse;
+	IntervalVector x_interval(1, 0.0);
 	EXPECT_THROW(f1.evaluate(), std::runtime_error);
 	EXPECT_THROW(f1.evaluate(x_vec), std::runtime_error);
 	EXPECT_THROW(f1.evaluate(x_vec, &g), std::runtime_error);
 	EXPECT_THROW(f1.evaluate(x_vec, &g, &H), std::runtime_error);
 	EXPECT_THROW(f1.evaluate(x_vec, &g, &H_sparse), std::runtime_error);
+	EXPECT_THROW(f1.evaluate(x_interval), std::runtime_error);
 
 	Function f2;
 	f2.add_variable(&x, 1);
 	for (int i = 1; i < 40; ++i) {
-		f2.add_term(std::make_shared<AutoDiffTerm<ThrowsCString, 1>>(),
+		f2.add_term(std::make_shared<IntervalTerm<ThrowsCString, 1>>(),
 		            &x);
 	}
 	EXPECT_THROW(f2.evaluate(), const char*);
@@ -858,6 +860,7 @@ TEST(Function, rethrows_error)
 	EXPECT_THROW(f2.evaluate(x_vec, &g), const char*);
 	EXPECT_THROW(f2.evaluate(x_vec, &g, &H), const char*);
 	EXPECT_THROW(f2.evaluate(x_vec, &g, &H_sparse), const char*);
+	EXPECT_THROW(f2.evaluate(x_interval), const char*);
 }
 
 struct SimplePolynomial
