@@ -5,6 +5,8 @@
 #include <stdexcept>
 #include <string>
 
+#include <spii/spii.h>
+
 namespace spii
 {
 
@@ -23,37 +25,12 @@ void check(bool everything_OK, Args&&... args)
 	}
 }
 
-namespace
-{
-	// Removes the path from __FILE__ constants and keeps the name only.
-	std::string extract_file_name(const char* full_file_cstr)
-	{
-		using namespace std;
-
-		// Extract the file name only.
-		string file(full_file_cstr);
-		auto pos = file.find_last_of("/\\");
-		if (pos == string::npos) {
-			pos = 0;
-		}
-		file = file.substr(pos + 1);  // Returns empty string if pos + 1 == length.
-
-		return file;
-	}
-
-	void verbose_error_internal(const char* expr, const char* full_file_cstr, int line, const std::string& args)
-	{
-		std::stringstream stream;
-		stream << "Assumption failed: " << expr << " in " << extract_file_name(full_file_cstr) << ":" << line << ". "
-		       << args;
-		throw std::logic_error(stream.str());
-	}
-}
+void SPII_API verbose_error_internal(const char* expr, const char* full_file_cstr, int line, const char* args);
 
 template<typename... Args>
 void verbose_error(const char* expr, const char* full_file_cstr, int line, Args&&... args)
 {
-	verbose_error_internal(expr, full_file_cstr, line, to_string(std::forward<Args>(args)...));
+	verbose_error_internal(expr, full_file_cstr, line, to_string(std::forward<Args>(args)...).c_str());
 }
 
 //#define ASSERT(expr, ...) (expr) ? ((void)0) : spii::verbose_error(#expr, __FILE__, __LINE__, spii::to_string(__VA_ARGS__))
