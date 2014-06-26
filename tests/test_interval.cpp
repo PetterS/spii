@@ -8,6 +8,15 @@
 #include <spii/interval.h>
 using namespace spii;
 
+namespace
+{
+void check_approximately_equal(Interval<double> i1, Interval<double> i2)
+{
+	CHECK(Approx(i1.get_lower()) == i2.get_lower()); 
+	CHECK(Approx(i1.get_upper()) == i2.get_upper());
+}
+}
+
 TEST_CASE("get")
 {
 	Interval<double> i1(123, 456);
@@ -278,6 +287,29 @@ TEST_CASE("even_powers")
 
 	Interval<double> i3(-2.0, 3.0);
 	CHECK(pow(i3, 2) == Interval<double>(0, 9));
+}
+
+TEST_CASE("double_exponents")
+{
+	using std::pow;
+	Interval<double> i1(2.0, 3.0);
+	check_approximately_equal(pow(i1, 2), pow(i1, 2.0));
+
+	Interval<double> i2(1.0, 5.0);
+	check_approximately_equal(pow(i2, 2), pow(i2, 2.0));
+
+	Interval<double> i3(-2.0, 7.0);
+	CHECK_THROWS(pow(i3, 2.0));
+}
+
+TEST_CASE("interval_exponents")
+{
+	using std::pow;
+	Interval<double> i1(2.0, 3.0);
+	Interval<double> i2(-3.0, -2.0);
+	CHECK(pow(i1, i2).contains(pow(2.0, -2.5)));
+	CHECK(pow(i1, i2).contains(pow(3.0, -2.5)));
+	CHECK_THROWS(pow(i2, i2));
 }
 
 // Rump’s example.
