@@ -229,7 +229,7 @@ MAT	*A;
 PERM	*pivot, *block;
 VEC	*b, *x;
 {
-	static VEC	*tmp=VNULL;	/* dummy storage needed */
+	VEC	*tmp=VNULL;	/* dummy storage needed */
 	int	i, j, n, onebyone;
 	Real	**A_me, a11, a12, a22, b1, b2, det, sum, *tmp_ve, tmp_diag;
 
@@ -241,7 +241,7 @@ VEC	*b, *x;
 	if ( b->dim != n || pivot->size != n || block->size != n )
 		error(E_SIZES,"BKPsolve");
 	x = v_resize(x,n);
-	tmp = v_resize(tmp,n);
+	tmp = v_get(n);
 	MEM_STAT_REG(tmp,TYPE_VEC);
 
 	A_me = A->me;	tmp_ve = tmp->ve;
@@ -303,7 +303,7 @@ VEC	*b, *x;
 	/* printf("# BKPsolve: solving L^T part: tmp =\n");v_output(tmp); */
 	/* and do final permutation */
 	x = pxinv_vec(pivot,tmp,x);
-
+	v_free(tmp);
 	return x;
 }
 

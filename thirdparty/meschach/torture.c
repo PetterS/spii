@@ -51,6 +51,7 @@ static char *test_err_list[] = {
 /* #define MEMCHK() if ( malloc_chain_check(0) ) \
 { printf("Error in malloc chain: \"%s\", line %d\n", \
 	 __FILE__, __LINE__); exit(0); } */
+
 #define	MEMCHK() 
 
 /* cmp_perm -- returns 1 if pi1 == pi2, 0 otherwise */
@@ -1024,7 +1025,9 @@ char	*argv[];
        printf(" norm = %g\n",v_norm2(x));
     }
 
-    mem_stat_free(1);
+	// Deallocates static variables. Not needed since BKPSolve no longer
+	// has a static variable.
+    //mem_stat_free(1);
 
     MEMCHK();
 

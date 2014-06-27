@@ -1,10 +1,16 @@
 
+#include <functional>
+#include <future>
 #include <iostream>
+#include <random>
+#include <thread>
 
 #define CATCH_CONFIG_MAIN
 #include <catch.hpp>
 
 #include <Eigen/Dense>
+
+#include <spii/spii.h>
 
 extern "C" {
 	#include "matrix.h"
@@ -60,21 +66,27 @@ TEST_CASE("BKP-dense", "")
 	// Factorize the matrix.
 	PERM* pivot  = px_get(4);
 	PERM* block = px_get(4);
+	spii_at_scope_exit(
+		px_free(pivot);
+		px_free(block);
+	);
 	BKPfactor(Amat, pivot, block);
 
 	// Print the results.
 	m_foutput(stderr, Amat);
+	spii_at_scope_exit( m_free(Amat); );
 	px_foutput(stderr, block);
 	px_foutput(stderr, pivot);
 	cerr << endl << endl;
 
 	// Solve the linear system.
 	VEC* bvec = v_get(4);
-	VEC* xvec = v_get(4);
+	spii_at_scope_exit( v_free(bvec); );
 	for (int i = 0; i < 4; ++i) {
 		bvec->ve[i] = b(i);
 	}
-	xvec = BKPsolve(Amat, pivot, block, bvec, 0);
+	VEC* xvec = BKPsolve(Amat, pivot, block, bvec, nullptr);
+	spii_at_scope_exit( v_free(xvec); );
 	for (int i = 0; i < 4; ++i) {
 		x(i) = xvec->ve[i];
 	}
@@ -144,12 +156,75 @@ TEST_CASE("BKP-dense", "")
 	MatrixXd F = Q * tau.asDiagonal() * Q.transpose();
 	cerr << "F = Q*tau*Q^T = \n" << F << endl << endl;
 	cerr << "B + F = \n" << B + F << endl << endl;
+}
 
-	v_free(bvec);
-	v_free(xvec);
-	m_free(Amat);
-	px_free(pivot);
-	px_free(block);
+TEST_CASE("BKP-dense-threadsafe")
+{
+	using namespace std;
+	using namespace Eigen;
+
+	auto stress_test = [](unsigned seed)
+	{
+		mt19937_64 engine(seed);
+		auto rand = bind(uniform_int_distribution<int>(-10, 10), ref(engine));
+		const int n = 400;
+
+		MatrixXd A(n, n);
+		for (int i = 0; i < n; ++i) {
+			for (int j = 0; j < n; ++j) {
+				A(i, j) = rand();
+			}
+		}
+		A = A.transpose() * A;
+		auto Amat = Eigen_to_Meschach(A);
+		spii_at_scope_exit( m_free(Amat); );
+
+		// Factorize the matrix.
+		PERM* pivot = px_get(n);
+		spii_at_scope_exit( px_free(pivot); );
+		PERM* block = px_get(n);
+		spii_at_scope_exit( px_free(block); );
+		BKPfactor(Amat, pivot, block);
+
+		VectorXd b(n);
+		VEC* bvec = v_get(n);
+		spii_at_scope_exit( v_free(bvec); );
+		for (int i = 0; i < n; ++i) {
+			b(i) = rand();
+			bvec->ve[i] = b(i);
+		}
+
+		for (int iteration = 1; iteration <= 20; ++iteration) {
+			VEC* xvec = BKPsolve(Amat, pivot, block, bvec, 0);
+			VectorXd x(n);
+			for (int i = 0; i < n; ++i) {
+				x(i) = xvec->ve[i];
+			}
+			v_free(xvec);
+			double err = (A * x - b).norm() / b.norm();
+			if (err > 1e-6) {
+				throw std::runtime_error("Not thread-safe!");
+			}
+		}		
+	};
+
+
+	try {
+		auto f1 = async(launch::async, stress_test, 1);
+		auto f2 = async(launch::async, stress_test, 2);
+		auto f3 = async(launch::async, stress_test, 3);
+		auto f4 = async(launch::async, stress_test, 4);
+		auto f5 = async(launch::async, stress_test, 5);
+		f1.get();
+		f2.get();
+		f3.get();
+		f4.get();
+		f5.get();
+		SUCCEED();
+	}
+	catch (...) {
+		FAIL();
+	}
 }
 
 /*
