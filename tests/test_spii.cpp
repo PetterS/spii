@@ -30,3 +30,30 @@ TEST_CASE("check-message", "")
 		CHECK(err.what() == std::string{"1 is not 2"});
 	}
 }
+
+TEST_CASE("scope_exit")
+{
+	int i = 1;
+	{
+		spii_at_scope_exit( i = 3 );
+	}
+	CHECK(i == 3);
+
+	int j = 1;
+	{
+		auto guard = spii::make_scope_guard([&](){ j = 3; });
+		guard.dismiss();
+	}
+	CHECK(j == 1);
+
+	i = 1;
+	j = 1;
+	{
+		spii_at_scope_exit( i = 3 );
+		spii_at_scope_exit( j = 3 );
+		i = 1;
+		j = 1;
+	}
+	CHECK(i == 3);
+	CHECK(j == 3);
+}
