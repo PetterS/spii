@@ -83,7 +83,7 @@ void Solver::BKP_dense(const Eigen::MatrixXd& H,
 	using namespace Eigen;
 	double start_time = wall_time();
 
-	auto cache = reinterpret_cast<FactorizationCacheInternal*>(cache_input.data);
+	auto cache = cache_input.data;
 	auto n = H.rows();
 
 	Eigen_to_Meschach(H, cache->Hmat);
