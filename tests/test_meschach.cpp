@@ -158,6 +158,7 @@ TEST_CASE("BKP-dense", "")
 	cerr << "B + F = \n" << B + F << endl << endl;
 }
 
+#ifdef USE_OPENMP
 TEST_CASE("BKP-dense-threadsafe")
 {
 	using namespace std;
@@ -226,6 +227,7 @@ TEST_CASE("BKP-dense-threadsafe")
 		FAIL();
 	}
 }
+#endif
 
 /*
 TEST_CASE("BKP-sparse", "")
