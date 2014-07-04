@@ -71,13 +71,13 @@ int main_function()
 	cin >> answer;
 
 	if (cin && tolower(answer) == 'y') {
-		sigma = 3.0;
+		// First, we try with sigma kept constant.
 		f.set_constant(&sigma, true);
 
 		GlobalSolver global_solver;
 		std::vector<Interval<double>> mu_interval;
-		mu_interval.push_back(Interval<double>(-10.0, 10.0));
-		global_solver.maximum_iterations = 1000;
+		mu_interval.emplace_back(-10.0, 10.0);
+		global_solver.maximum_iterations = 2000;
 
 		auto start_time = wall_time();
 		auto interval = global_solver.solve_global(f, mu_interval, &results);
@@ -85,6 +85,27 @@ int main_function()
 
 		cout << "Optimal parameter interval (sigma is kept at " << sigma << "):" << endl;
 		cout << "   mu    = " << interval.at(0) << endl;
+		cout << "Elapsed time was " << elapsed_time << " seconds." << endl;
+		cout << endl;
+
+
+		// Readding sigma to remove the change of variables
+		// (change of variable is not supported bty glboal solver)
+		f.set_constant(&sigma, false);
+		f.add_variable(&sigma, 1);
+
+		std::vector<Interval<double>> param_interval;
+		param_interval.emplace_back(-10.0, 10.0);
+		param_interval.emplace_back(0.1, 10.0);
+
+		global_solver.maximum_iterations = 50000;
+		start_time = wall_time();
+		interval = global_solver.solve_global(f, param_interval, &results);
+		elapsed_time = wall_time() - start_time;
+
+		cout << "Optimal parameter intervals:" << endl;
+		cout << "   mu    = " << interval.at(0) << endl;
+		cout << "   sigma = " << interval.at(1) << endl;
 		cout << "Elapsed time was " << elapsed_time << " seconds." << endl;
 	}
 	return 0;
