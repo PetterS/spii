@@ -271,7 +271,7 @@ TEST_CASE("ildl-sym-sparse")
 	add_element(3,8,  1);
 	add_element(4,8,  4);
 
-	SparseMatrix<double> Aorg(8, 8);
+	SparseMatrix<double> Aorg(n, n);
 	Aorg.setFromTriplets(begin(triplets), end(triplets));
 
 	cerr << Aorg << endl;

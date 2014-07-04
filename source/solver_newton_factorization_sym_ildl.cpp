@@ -129,7 +129,6 @@ void BKP_sym_ildl_generic(const MatrixType& Hinput,
 	//
 	// Create sym-ildl matrix.
 	//
-	auto n = Hinput.rows();
 	lilc_matrix<double> Hlilc;
 	eigen_to_lilc(Hinput, &Hlilc);
 
