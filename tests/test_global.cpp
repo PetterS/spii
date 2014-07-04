@@ -45,7 +45,8 @@ TEST_CASE("global_optimization/simple_function1", "Petter")
 	           &x);
 
 	GlobalSolver solver;
-	solver.maximum_iterations = 1015;
+	solver.maximum_iterations = 1000;
+	solver.function_improvement_tolerance = 1e-5;
 	std::stringstream info_buffer;
 	solver.log_function = [&info_buffer](const std::string& str) { info_buffer << str << std::endl; };
 	SolverResults results;
@@ -54,9 +55,11 @@ TEST_CASE("global_optimization/simple_function1", "Petter")
 	auto interval = solver.solve_global(f, x_interval, &results);
 	REQUIRE(interval.size() == 1);
 
+	f.print_timing_information(info_buffer);
 	INFO(info_buffer.str());
 	INFO(results);
 
+	CHECK(results.exit_success());
 	auto opt = Interval<double>(results.optimum_lower, results.optimum_upper);
 	CHECK((opt.get_upper() - opt.get_lower()) <= 1e-3);
 	auto val = f.evaluate();
@@ -84,8 +87,10 @@ TEST_CASE("global_optimization/simple_function2", "Petter")
 	auto interval = solver.solve_global(f, x_interval, &results);
 	REQUIRE(interval.size() == 2);
 
+	f.print_timing_information(info_buffer);
 	INFO(info_buffer.str());
 	INFO(results);
+	CHECK(results.exit_success());
 
 	auto opt = Interval<double>(results.optimum_lower, results.optimum_upper);
 	CHECK((opt.get_upper() - opt.get_lower()) <= 1e-10);
@@ -118,6 +123,7 @@ TEST_CASE("global_optimization/simple_function1-1", "Petter")
 
 	INFO(info_buffer.str());
 	INFO(results);
+	CHECK(results.exit_success());
 
 	auto opt = Interval<double>(results.optimum_lower, results.optimum_upper);
 	CHECK((opt.get_upper() - opt.get_lower()) <= 1e-10);

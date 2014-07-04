@@ -100,16 +100,18 @@ IntervalVector get_bounding_box(const IntervalQueue& queue_in,
 // Splits an interval into 2^n subintervals and adds them all to the
 // queue.
 //
-void split_interval(const Function& function,
-                    const IntervalVector& x,
-                    IntervalQueue* queue,
-                    double upper_bound)
+int split_interval(const Function& function,
+                   const IntervalVector& x,
+                   IntervalQueue* queue,
+                   double upper_bound)
 {
 	auto n = x.size();
 	std::vector<int> split(n, 0);
 
 	Eigen::VectorXd mid;
 	midpoint(x, &mid);
+
+	int evaluations = 0;
 
 	while (true) {
 
@@ -132,6 +134,8 @@ void split_interval(const Function& function,
 		}
 
 		entry.bounds = function.evaluate(entry.box);
+		evaluations++;
+
 		if (entry.bounds.get_lower() <= upper_bound) {
 			std::push_heap(begin(*queue), end(*queue));
 		}
@@ -161,15 +165,17 @@ void split_interval(const Function& function,
 			break;
 		}
 	}
+
+	return evaluations;
 }
 
 //
 // Splits an interval into two along its largest dimension.
 //
-void split_interval_single(const Function& function,
-                           const IntervalVector& x,
-                           IntervalQueue* queue,
-                           double upper_bound)
+int split_interval_single(const Function& function,
+                          const IntervalVector& x,
+                          IntervalQueue* queue,
+                          double upper_bound)
 {
 	auto n = x.size();
 	size_t max_index = 0;
@@ -200,6 +206,8 @@ void split_interval_single(const Function& function,
 			queue->pop_back();
 		}
 	}
+
+	return 2;
 }
 
 void GlobalSolver::solve(const Function& function,
@@ -232,16 +240,12 @@ IntervalVector GlobalSolver::solve_global(const Function& function,
 	Eigen::VectorXd best_x(n);
 	IntervalVector best_interval;
 
+	int number_of_function_evaluations = 0;
 	int iterations = 0;
 	results->exit_condition = SolverResults::INTERNAL_ERROR;
 
 	while (!queue.empty()) {
 		double start_time = wall_time();
-
-		if (iterations >= this->maximum_iterations) {
-			results->exit_condition = SolverResults::NO_CONVERGENCE;
-			break;
-		}
 
 		const auto box = queue.front().box;
 		const auto bounds = queue.front().bounds;
@@ -256,6 +260,7 @@ IntervalVector GlobalSolver::solve_global(const Function& function,
 			Eigen::VectorXd x(box.size());
 			midpoint(box, &x);
 			double value = function.evaluate(x);
+			number_of_function_evaluations++;
 
 			if (value < upper_bound) {
 				upper_bound = value;
@@ -263,8 +268,8 @@ IntervalVector GlobalSolver::solve_global(const Function& function,
 			}
 
 			// Add new elements to queue.
-			//split_interval(function, box, &queue);
-			split_interval_single(function, box, &queue, upper_bound);
+			number_of_function_evaluations += split_interval(function, box, &queue, upper_bound);
+			//number_of_function_evaluations += split_interval_single(function, box, &queue, upper_bound);
 		}
 		results->function_evaluation_time += wall_time() - start_time;
 
@@ -287,7 +292,7 @@ IntervalVector GlobalSolver::solve_global(const Function& function,
 		if (iterations > 200000) {
 			log_interval = 100000;
 		}
-		if (iterations >= this->maximum_iterations - 2) {
+		if (number_of_function_evaluations >= this->maximum_iterations) {
 			log_interval = 1;
 		}
 
@@ -346,6 +351,11 @@ IntervalVector GlobalSolver::solve_global(const Function& function,
 				results->exit_condition = SolverResults::ARGUMENT_TOLERANCE;
 				break;
 			}
+		}
+
+		if (number_of_function_evaluations >= this->maximum_iterations) {
+			results->exit_condition = SolverResults::NO_CONVERGENCE;
+			break;
 		}
 	}
 
