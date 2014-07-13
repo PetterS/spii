@@ -73,7 +73,8 @@ TEST_CASE("ildl-sym")
 	eigen_to_lilc(Aorg, &Alilc);
 
 	// Convert matrix to Meschach format.
-	auto Amat = Eigen_to_Meschach(Aorg);	
+	auto Amat = Eigen_to_Meschach(Aorg);
+	spii_at_scope_exit(m_free(Amat));
 
 	cerr << "Original A = " << endl;
 	cerr << Aorg << endl;
@@ -86,7 +87,9 @@ TEST_CASE("ildl-sym")
 
 	// Factorize the matrix.
 	PERM* pivot  = px_get(4);
+	spii_at_scope_exit(px_free(pivot));
 	PERM* block = px_get(4);
+	spii_at_scope_exit(px_free(block));
 	BKPfactor(Amat, pivot, block);
 
 	// Print the results.
