@@ -50,16 +50,16 @@ IF (EXISTS ${SYM_ILDL_INCLUDE})
 	MESSAGE("-- Found sym-ildl at ${SYM_ILDL_INCLUDE}. Will use it if requested to.")
 ENDIF ()
 
-FIND_PATH(EIGEN_INCLUDE NAMES signature_of_eigen3_matrix_library PATHS /usr/include/eigen3 /usr/local/include/eigen3 /usr/lib/eigen3 thirdparty/Eigen)
-IF (NOT EIGEN_INCLUDE)
-	MESSAGE(FATAL_ERROR "Eigen not found.")
-ENDIF ()
-MESSAGE("-- Using Eigen at " ${EIGEN_INCLUDE})
+#FIND_PATH(EIGEN_INCLUDE NAMES signature_of_eigen3_matrix_library PATHS /usr/include/eigen3 /usr/local/include/eigen3 /usr/lib/eigen3 thirdparty/Eigen)
+#IF (NOT EIGEN_INCLUDE)
+#	MESSAGE(FATAL_ERROR "Eigen not found.")
+#ENDIF ()
+#MESSAGE("-- Using Eigen at " ${EIGEN_INCLUDE})
 
 INCLUDE_DIRECTORIES(
   include
   SYSTEM thirdparty/Catch
-  SYSTEM ${EIGEN_INCLUDE}
+  SYSTEM thirdparty/Eigen
   SYSTEM thirdparty/meschach
   SYSTEM thirdparty/ceres-solver-data
   )
