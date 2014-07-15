@@ -188,7 +188,7 @@ namespace
 					if (digit < 0 || digit > 9) {
 						throw std::invalid_argument("Format specifier must be in {0, ..., 9}.");
 					}
-					if (digit >= arguments.size()) {
+					if (digit >= int(arguments.size())) {
 						throw std::invalid_argument("Too few arguments to format_string.");
 					}
 
