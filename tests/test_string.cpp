@@ -106,3 +106,17 @@ TEST_CASE("from_string")
 	CHECK(from_string("asd", 42) == 42);
 	CHECK_THROWS(from_string<int>("abc"));
 }
+
+TEST_CASE("join")
+{
+	std::vector<int> v1 = {1, 2, 3};
+	CHECK(join('\t', v1) == "1\t2\t3");
+	CHECK(join("x", v1) == "1x2x3");
+
+	std::vector<int> v2 ;
+	CHECK(join('\t', v2) == "");
+	CHECK(join("\t", v2) == "");
+
+	CHECK(join('\t', {1, 2, 3}) == "1\t2\t3");
+	CHECK(join("\t", {1, 2, 3}) == "1\t2\t3");
+}

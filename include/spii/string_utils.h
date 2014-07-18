@@ -2,6 +2,7 @@
 #ifndef SPII_STRING_UTILS_H
 #define SPII_STRING_UTILS_H
 
+#include <initializer_list>
 #include <map>
 #include <ostream>
 #include <set>
@@ -14,6 +15,18 @@
 
 namespace spii
 {
+
+//
+// Like Python's " ".join([1, 2, 3])
+//
+template<typename Container>
+std::string join(const std::string& joiner, const Container& container);
+template<typename Container>
+std::string join(char ch, const Container& container);
+template<typename T>
+std::string join(char ch, const std::initializer_list<T>& container);
+template<typename T>
+std::string join(const std::string& joiner, const std::initializer_list<T>& container);
 
 // to_string converts all its arguments to a string and
 // concatenates.
@@ -71,43 +84,24 @@ namespace {
 		return stream;
 	}
 
-	template<typename Container>
-	void add_container_to_stream(std::ostream* stream, const Container& container)
-	{
-		bool first = true;
-		for (const auto& value : container) {
-			if (!first) {
-				*stream << ", ";
-			}
-			*stream << value;
-			first = false;
-		}
-	}
-
 	template<typename T, typename Alloc>
 	std::ostream& operator<<(std::ostream& stream, const std::vector<T, Alloc>& v)
 	{
-		stream << '[';
-		add_container_to_stream(&stream, v);
-		stream << ']';
+		stream << '[' << join(", ", v) << ']';
 		return stream;
 	}
 
 	template<typename T, typename Comp, typename Alloc>
 	std::ostream& operator<<(std::ostream& stream, const std::set<T, Comp, Alloc>& s)
 	{
-		stream << '{';
-		add_container_to_stream(&stream, s);
-		stream << '}';
+		stream << '{' << join(", ", s) << '}';
 		return stream;
 	}
 
 	template<typename T1, typename T2, typename Comp, typename Alloc>
 	std::ostream& operator<<(std::ostream& stream, const std::map<T1, T2, Comp, Alloc>& m)
 	{
-		stream << '[';
-		add_container_to_stream(&stream, m);
-		stream << ']';
+		stream << '[' << join(", ", m) << ']';
 		return stream;
 	}
 
@@ -166,6 +160,49 @@ T from_string(const std::string& input_string, T default_value)
 		t = default_value;
 	}
 	return t;
+}
+
+template<typename Container>
+std::string join_helper(const std::string& joiner, const Container& container)
+{
+	std::string output = "";
+	bool first = true;
+	for (const auto& elem: container) {
+		if (!first) {
+			output += joiner;
+		}
+		first = false;
+		output += to_string(elem);
+	}
+	return output;
+}
+
+template<typename Container>
+std::string join(const std::string& joiner, const Container& container)
+{
+	return join_helper(joiner, container);
+}
+
+template<typename Container>
+std::string join(char ch, const Container& container)
+{
+	std::string joiner;
+	joiner += ch;
+	return join_helper(joiner, container);
+}
+
+template<typename T>
+std::string join(char ch, const std::initializer_list<T>& container)
+{
+	std::string joiner;
+	joiner += ch;
+	return join_helper(joiner, container);
+}
+
+template<typename T>
+std::string join(const std::string& joiner, const std::initializer_list<T>& container)
+{
+	return join_helper(joiner, container);
 }
 
 namespace
