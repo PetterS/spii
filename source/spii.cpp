@@ -39,13 +39,15 @@ std::mutex spii_stack_trace_mutex;
 
 std::string get_stack_trace(void)
 {
+	using namespace std;
+
 	// Absolutely required for the Windows version.
-	std::lock_guard<std::mutex> lock(spii_stack_trace_mutex);
+	lock_guard<mutex> lock(spii_stack_trace_mutex);
 
 	const unsigned int max_stack_size = 10000;
 	void* stack[max_stack_size];
 
-	std::string sout = "\n\nStack trace:\n";
+	string sout = "\n\nStack trace:\n";
 
 	#ifdef _WIN32
 		HANDLE process;
@@ -55,18 +57,18 @@ std::string get_stack_trace(void)
 		unsigned short frames = CaptureStackBackTrace(0, max_stack_size, stack, NULL);
 
 		typedef IMAGEHLP_SYMBOL64 SymbolInfo;
-		SymbolInfo* symbol = (SymbolInfo *) std::malloc(sizeof(SymbolInfo) + 256);
+		SymbolInfo* symbol = (SymbolInfo *) malloc(sizeof(SymbolInfo) + 256);
 		symbol->MaxNameLength = 255;
 		symbol->SizeOfStruct = sizeof(SymbolInfo);
 	
 		for (unsigned int i = 0; i < frames; i++) {
-			std::string symbol_name = "???";
-			size_t address = size_t(stack[i]);
-			size_t offset = 0;
+			string symbol_name = "???";
+			ptrdiff_t address = ptrdiff_t(stack[i]);
+			ptrdiff_t offset = 0;
 			if (SymGetSymFromAddr64(process, DWORD64(stack[i]), nullptr, symbol)) {	
-				address = symbol->Address;
+				address = ptrdiff_t(symbol->Address);
 				symbol_name = symbol->Name;
-				offset = size_t(stack[i]) - symbol->Address;
+				offset = ptrdiff_t(stack[i]) - address;
 			}
 
 			if (symbol_name.find("spii::get_stack_trace") != symbol_name.npos) {
@@ -76,9 +78,9 @@ std::string get_stack_trace(void)
 				continue;
 			}
 
-			sout += to_string(frames - i - 1, ": ", symbol_name, " (0x", std::hex, symbol->Address, " + 0x", offset, ")\n");
+			sout += to_string(frames - i - 1, ": ", symbol_name, " + ", offset, "\n");
 		}
-		std::free(symbol);
+		free(symbol);
 	#elif ! defined(__CYGWIN__)
 		size_t frames = backtrace(stack, max_stack_size);
 		char** messages = backtrace_symbols(stack, frames);

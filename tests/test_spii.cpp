@@ -10,9 +10,17 @@ using namespace std;
 
 TEST_CASE("spii_assert", "")
 {
-
 	CHECK_THROWS_AS(spii_assert(1 == 2, "message"), logic_error);
 	CHECK_NOTHROW(spii_assert(1 == 1, "message"));
+
+	try {
+		spii_assert(1 == 2, "message");
+	}
+	catch (std::logic_error& err) {
+		// Will print the stack trace to the test output.
+		INFO(err.what());
+		SUCCEED();
+	}
 }
 
 TEST_CASE("check", "")
