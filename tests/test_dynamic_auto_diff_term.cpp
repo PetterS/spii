@@ -1,7 +1,6 @@
 // Petter Strandmark 2013.
 #include <sstream>
 
-#define CATCH_CONFIG_MAIN
 #include <catch.hpp>
 
 #include <spii/dynamic_auto_diff_term.h>

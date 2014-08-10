@@ -4,7 +4,6 @@
 #include <limits>
 #include <random>
 
-#define CATCH_CONFIG_MAIN
 #include <catch.hpp>
 #include <spii/google_test_compatibility.h>
 

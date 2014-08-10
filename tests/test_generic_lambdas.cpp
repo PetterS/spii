@@ -23,7 +23,6 @@
 	#define USE_GENERIC_LAMBDAS
 #endif
 
-#define CATCH_CONFIG_MAIN
 #include <catch.hpp>
 
 #ifdef USE_GENERIC_LAMBDAS

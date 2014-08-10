@@ -1,6 +1,5 @@
 // Petter Strandmark 2012-2013.
 
-#define CATCH_CONFIG_MAIN
 #include <catch.hpp>
 #include <spii/google_test_compatibility.h>
 

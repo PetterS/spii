@@ -24,7 +24,6 @@
 
 #include <Eigen/Dense>
 
-#define CATCH_CONFIG_MAIN
 #include <catch.hpp>
 
 #include <spii/auto_diff_term.h>
