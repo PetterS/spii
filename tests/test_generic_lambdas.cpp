@@ -9,7 +9,7 @@
 
 // Check if we’re using a CTP with support for generic lambdas.
 #ifdef _MSC_FULL_VER
-	#if _MSC_FULL_VER > 180030501 /* RTM Update 2. */ || _MSC_FULL_VER == 180021114 /* Nov. CTP */
+	#if _MSC_FULL_VER == 180021114 /* Nov. CTP */
 		#define USE_GENERIC_LAMBDAS
 	#endif
 #endif
