@@ -73,6 +73,13 @@ function.add_term(term, &x, &y);
 ```
 If you have the November 2013 CTP installed for Visual Studio 2013, this new interface is unit tested in `test_generic_lambdas.cpp`.
 
+Emscripten
+----------
+Using the excellent tool Emscripten, it is possible compile Spii programs to Javascript and run them in the browser! The overhead is surprisingly small!
+  * [test_solver](http://www.strandmark.net/spii/test_solver.html)
+  * [lennard_jones](http://www.strandmark.net/spii/lennard_jones.html)
+  * [fit_gaussian](http://www.strandmark.net/spii/fit_gaussian.html)
+
 References
 ----------
 1. Nocedal and Wright, *Numerical Optimization*, Springer, 2006.
