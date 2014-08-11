@@ -8,7 +8,7 @@
 	#include <windows.h>
 	#include <Dbghelp.h>
 	#pragma comment(lib, "Dbghelp.lib")
-#elif ! defined(__CYGWIN__)
+#elif ! defined(__CYGWIN__) && ! defined(EMSCRIPTEN)
 	#include <execinfo.h>
 #endif
 
@@ -26,7 +26,7 @@ double wall_time()
 	#ifdef USE_OPENMP
 		return omp_get_wtime();
 	#else
-		return 0.0;
+		return std::time(nullptr);
 	#endif
 }
 
@@ -81,7 +81,7 @@ std::string get_stack_trace(void)
 			sout += to_string(frames - i - 1, ": ", symbol_name, " + ", offset, "\n");
 		}
 		free(symbol);
-	#elif ! defined(__CYGWIN__)
+	#elif ! defined(__CYGWIN__) && ! defined(EMSCRIPTEN)
 		size_t frames = backtrace(stack, max_stack_size);
 		char** messages = backtrace_symbols(stack, frames);
 		for (unsigned int i = 0; i < frames; i++) {

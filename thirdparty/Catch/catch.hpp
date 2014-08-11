@@ -6032,7 +6032,11 @@ namespace {
     };
 
     inline bool shouldUseColourForPlatform() {
-        return isatty(STDOUT_FILENO);
+		#ifdef EMSCRIPTEN
+			return false;
+		#else
+			return isatty(STDOUT_FILENO);
+		#endif
     }
 
     static Detail::IColourImpl* platformColourInstance() {

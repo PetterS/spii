@@ -39,7 +39,7 @@ int main()
 	auto randn = bind(normal, ref(prng));
 
 	int N = -1;
-	cout << "Enter N = ";
+	cout << "Enter N = " << endl;
 	cin >> N;
 
 	Function potential;
@@ -77,7 +77,7 @@ int main()
 	SolverResults results;
 	solver.solve(potential, &results);
 
-	cerr << results;
+	cout << results;
 	potential.print_timing_information(cout);
 
 	cout << "Energy = " << setprecision(10) << potential.evaluate() << endl;

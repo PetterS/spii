@@ -723,6 +723,7 @@ char	*argv[];
    mv_mlt(A,x,w);
    /* test of bd_mv_mlt */
    notice("bd_mv_mlt");
+   VEC *bd_mv_mlt(BAND *A, VEC *x, VEC *out);
    bd_mv_mlt(bA,x,z);
    v_sub(z,w,z);
    if (v_norm2(z) > v_norm2(x)*sqrt(MACHEPS)) {

@@ -39,7 +39,12 @@ Solver::Solver()
 	this->log_function = []
 	                     (const std::string& msg)
 						 {
-							std::cerr << msg << std::endl;
+							#ifdef EMSCRIPTEN
+								std::cout
+							#else
+								std::cerr
+							#endif
+							<< msg << std::endl;
 						 };
 
 	#ifdef _MSC_VER

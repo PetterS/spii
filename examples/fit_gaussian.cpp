@@ -66,7 +66,7 @@ int main_function()
 	cout << "Estimated:" << endl;
 	cout << "f = " << f.evaluate() << " mu = " << mu << ", sigma = " << sigma << endl << endl;
 
-	cout << "Perform global optimization? (y/n):";
+	cout << "Perform global optimization? (y/n):" << endl;
 	char answer = 'n';
 	cin >> answer;
 
