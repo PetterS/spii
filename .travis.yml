@@ -12,12 +12,12 @@ before_install:
  - sudo apt-get install -qq g++-4.9
  - if [ "$CXX" = "g++" ]; then export CXX="g++-4.9" CC="gcc-4.9"; fi
  - cd thirdparty
- - git clone https://github.com/inutard/matrix-factor.git
+ - git clone https://github.com/PetterS/matrix-factor.git
  - cd ..
 before_script:
   - mkdir build
   - cd build
-  - cmake -DOPENMP=OFF -DSYM_ILDL_INCLUDE=../thirdparty/matrix-factor/source -DCMAKE_BUILD_TYPE=${SPII_BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=/usr .. 
+  - cmake -DOPENMP=OFF -DSYM_ILDL_INCLUDE=../thirdparty/matrix-factor/source -DCMAKE_BUILD_TYPE=${SPII_BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=/usr ..
 script: 
   - make && ctest --output-on-failure && sudo make install
 after_success:
@@ -29,3 +29,4 @@ after_success:
 branches:
   only:
     - master
+    - ci
