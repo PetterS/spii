@@ -321,8 +321,7 @@ TEST(Solver, Powell3D)
 	xvec[1] = x[1];
 	xvec[2] = x[2];
 	f.evaluate(xvec, &g);
-	char tmpstr[1024];
-	std::sprintf(tmpstr, "x = (%.16e, %.16e, %.16e\n", x[0], x[1], x[2]);
+	auto tmpstr = to_string("x = (", std::setprecision(16), x[0], ", ", x[1], ", ", x[2], ")\n");
 	INFO(tmpstr);
 	INFO("g = (" << g.transpose() << ")");
 
