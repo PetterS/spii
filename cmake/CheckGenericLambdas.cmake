@@ -1,10 +1,10 @@
-INCLUDE(CheckCXXSourceCompiles)
+include(CheckCXXSourceCompiles)
 
-CHECK_CXX_SOURCE_COMPILES("int main() { auto lambda = [](auto x, auto y) { return x + y; };  }" USE_GENERIC_LAMBDAS)
+check_cxx_source_compiles("int main() { auto lambda = [](auto x, auto y) { return x + y; };  }" USE_GENERIC_LAMBDAS)
 
-IF (USE_GENERIC_LAMBDAS)
-	MESSAGE("-- Generic lambdas (C++14) are supported by the compiler.")
-	ADD_DEFINITIONS(-DUSE_GENERIC_LAMBDAS)
-ELSE ()
-	MESSAGE("-- Generic lambdas (C++14) are not supported by the compiler.")
-ENDIF()
+if (USE_GENERIC_LAMBDAS)
+	message("-- Generic lambdas (C++14) are supported by the compiler.")
+	add_definitions(-DUSE_GENERIC_LAMBDAS)
+else ()
+	message("-- Generic lambdas (C++14) are not supported by the compiler.")
+endif()

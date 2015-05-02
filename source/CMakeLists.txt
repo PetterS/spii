@@ -1,16 +1,16 @@
 # Author: petter.strandmark@gmail.com (Petter Strandmark)
 
-FILE(GLOB SPII_INTERNAL_SRC *.cpp)
+file(GLOB SPII_INTERNAL_SRC *.cpp)
 
-SET(SPII_LIBRARY_SOURCE
+set(SPII_LIBRARY_SOURCE
 	${SPII_INTERNAL_SRC}
 	${SPII_HEADERS})
 
-ADD_LIBRARY(spii SHARED ${SPII_LIBRARY_SOURCE})
-TARGET_LINK_LIBRARIES(spii ${SPII_LIBRARY_DEPENDENCIES})
-TARGET_LINK_LIBRARIES(spii meschach)
+add_library(spii SHARED ${SPII_LIBRARY_SOURCE})
+target_link_libraries(spii ${SPII_LIBRARY_DEPENDENCIES})
+target_link_libraries(spii meschach)
 
-INSTALL(TARGETS spii
+install(TARGETS spii
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib)

@@ -1,5 +1,5 @@
 
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" OR CMAKE_COMPILER_IS_GNUCXX)
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_COMPILER_IS_GNUCXX)
 	include(CheckCXXCompilerFlag)
 	check_cxx_compiler_flag(-std=c++14 SUPPORTS_STD_CXX14)
 	check_cxx_compiler_flag(-std=c++1y SUPPORTS_STD_CXX1Y)
