@@ -48,7 +48,9 @@ Solver::Solver()
 						 };
 
 	#ifdef _MSC_VER
-		_set_output_format(_TWO_DIGIT_EXPONENT);
+		#if _MSC_VER < 1900
+			_set_output_format(_TWO_DIGIT_EXPONENT);
+		#endif
 	#endif
 }
 
