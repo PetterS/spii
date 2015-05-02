@@ -447,7 +447,7 @@ VEC	*err_est;	/* error estimates of eigenvalues */
 	 }
 	 else if ( det_mant2 == 0.0 )
 	 {
-	    err_est->ve[i] = HUGE;
+	    err_est->ve[i] = HUGE_VAL;
 	    continue;
 	 }
 	 if ( (det_expt1 + det_expt2) % 2 )

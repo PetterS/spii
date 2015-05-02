@@ -443,7 +443,7 @@ VEC *diag, *c, *sc;
 	-- note that as Q does not affect the 2-norm condition number,
 		it is not necessary to pass the diag, beta (or pivot) vectors
 	-- generates a lower bound on the true condition number
-	-- if the matrix is exactly singular, HUGE is returned
+	-- if the matrix is exactly singular, HUGE_VAL is returned
 	-- note that QRcondest() is likely to be more reliable for
 		matrices factored using QRCPfactor() */
 double	QRcondest(QR)
@@ -459,7 +459,7 @@ MAT	*QR;
     limit = min(QR->m,QR->n);
     for ( i = 0; i < limit; i++ )
 	if ( QR->me[i][i] == 0.0 )
-	    return HUGE;
+	    return HUGE_VAL;
 
     y = v_resize(y,limit);
     MEM_STAT_REG(y,TYPE_VEC);

@@ -208,15 +208,6 @@
 #endif
 #endif
 
-/* for non-ANSI systems */
-#ifndef HUGE_VAL
-#define HUGE_VAL HUGE
-#else
-#ifndef HUGE
-#define HUGE HUGE_VAL
-#endif
-#endif
-
 
 #ifdef ANSI_C
 extern	int	isatty(int);
