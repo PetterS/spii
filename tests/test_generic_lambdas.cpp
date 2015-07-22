@@ -7,22 +7,6 @@
 #include <limits>
 #include <random>
 
-// Check if we’re using a CTP with support for generic lambdas.
-#ifdef _MSC_FULL_VER
-	#if _MSC_FULL_VER == 180021114 /* Nov. CTP */
-		#define USE_GENERIC_LAMBDAS
-	#endif
-#endif
-
-// Clang uses __has_feature.
-#ifndef __has_feature
-	#define __has_feature(x) 0
-#endif
-
-#if __has_feature(cxx_generic_lambda)
-	#define USE_GENERIC_LAMBDAS
-#endif
-
 #include <catch.hpp>
 
 #ifdef USE_GENERIC_LAMBDAS

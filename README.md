@@ -18,23 +18,7 @@ Features
 
 ####Experimental features
 This repository also contains some experimental features. These features are not ready for production and do not have very extensive test coverage. They may change or be removed in the future.
-* Wolfe line search.
 * Constrained optimization (augmented lagrangian).
-
-Compilation
------------
-Everything needed to compile the library, examples and tests using CMake should be included.
-All tests pass with the following compilers:
-* Visual Studio 2013
-* GCC 4.8 (Cygwin)
-* GCC 4.7 (Ubuntu)
-* Clang 3.3 (Ubuntu)
-* Clang 3.5 (Ubuntu)
-Earlier compilers will probably not work.
-
-You can check travis.yml for the commands used to build the library and run all tests on Ubuntu.
-It is even easier on Windows. The status of the automatic builds using gcc and Clang is [![Build Status](https://travis-ci.org/PetterS/spii.png)](https://travis-ci.org/PetterS/spii).
-
 
 Benchmarks
 ----------
@@ -71,14 +55,20 @@ auto term = make_differentiable<1, 1>(lambda);
 double x=0, y=0;
 function.add_term(term, &x, &y);
 ```
-If you have the November 2013 CTP installed for Visual Studio 2013, this new interface is unit tested in `test_generic_lambdas.cpp`.
+This interface is unit tested in `test_generic_lambdas.cpp`.
 
-Emscripten
-----------
-Using the excellent tool Emscripten, it is possible compile Spii programs to Javascript and run them in the browser! The overhead is surprisingly small!
-  * [test_solver](http://www.strandmark.net/spii/test_solver.html)
-  * [lennard_jones](http://www.strandmark.net/spii/lennard_jones.html)
-  * [fit_gaussian](http://www.strandmark.net/spii/fit_gaussian.html)
+Compilation
+-----------
+Everything needed to compile the library, examples and tests using CMake should be included.
+All tests pass with the following compilers:
+* Visual Studio 2015
+* GCC 4.9 (Cygwin)
+* GCC 4.9 (Ubuntu)
+* Clang 3.5 (Ubuntu)
+Earlier compilers may not work.
+
+You can check travis.yml for the commands used to build the library and run all tests on Ubuntu.
+It is even easier on Windows. The status of the automatic builds using gcc and Clang is [![Build Status](https://travis-ci.org/PetterS/spii.png)](https://travis-ci.org/PetterS/spii).
 
 References
 ----------
