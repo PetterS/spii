@@ -122,6 +122,9 @@ if (MSVC)
   add_definitions("-DNOMINMAX=1")
   # Macro redefinitions.
   add_definitions("/wd4005")
+
+  # Workaround for ICE in Eigen.
+  add_definitions("-DEIGEN_DONT_PARALLELIZE")
 endif ()
 
 #
