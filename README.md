@@ -16,7 +16,7 @@ Features
 * Multi-threaded using OpenMP.
 * The interface is very easy to use, while still allowing very high performance. Generic lambdas (C++14) can be used if the compiler supports it.
 
-####Experimental features
+#### Experimental features
 This repository also contains some experimental features. These features are not ready for production and do not have very extensive test coverage. They may change or be removed in the future.
 * Constrained optimization (augmented lagrangian).
 
