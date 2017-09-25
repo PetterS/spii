@@ -38,7 +38,7 @@ namespace fadbad
 template <typename T, unsigned int N=0>
 class FTypeName // STACK-BASED
 {
-	T m_val;
+	T m_val = 0;
 	T m_diff[N];
 	bool m_depend;
 public:
@@ -123,7 +123,7 @@ public:
 template <typename T>
 class FTypeName<T,0> // HEAP-BASED
 {
-	T m_val;
+	T m_val = 0;
 	unsigned int m_size;
 	T* m_diff;
 public:

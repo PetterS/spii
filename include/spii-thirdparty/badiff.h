@@ -190,7 +190,7 @@ public:
 template <typename U>
 class BTypeNameHV // Heap Value
 {
-	U m_val;
+	U m_val = 0;
 	mutable unsigned int m_rc;
 	
 protected:
