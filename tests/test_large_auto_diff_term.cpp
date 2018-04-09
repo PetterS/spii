@@ -126,7 +126,7 @@ TEST_CASE("LargeAutoDiffTerm/LargeTerms") {
 	constexpr double p = 0.01;  // Probability to include a variable.
 
 	std::mt19937_64 engine;
-	std::uniform_real<double> rand(0.0, 1.0);
+	std::uniform_real_distribution<double> rand(0.0, 1.0);
 
 	Function f;
 	std::vector<std::vector<double>> x(num_variables, {0.0, 0.0});
