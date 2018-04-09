@@ -1,6 +1,12 @@
 # Author: petter.strandmark@gmail.com (Petter Strandmark)
-cmake_minimum_required(VERSION 2.8.4)
+# set(CMAKE_CXX_STANDARD 11) requires at least CMake 3.1.
+cmake_minimum_required(VERSION 3.1)
 project(Spii C CXX)
+
+# Some tests use std::uniform_real, which is a C++11 feature; other tests
+# use generic lambdas, which is a C++14 feature. Ideally, we would declare
+# this only for tests?
+set(CMAKE_CXX_STANDARD 14)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/bin)
