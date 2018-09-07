@@ -1,3 +1,5 @@
+## This library has been merged into [monolith](https://github.com/PetterS/monolith) and will not be updated further here.
+
 This is a library for unconstrained minimization of smooth functions with a large number of variables. I wrote this to get a better grasp of nonlinear optimization. I used the book ny Nocedal and Wright [1] as a reference.
 
 [![Build Status](https://travis-ci.org/PetterS/spii.png)](https://travis-ci.org/PetterS/spii)
